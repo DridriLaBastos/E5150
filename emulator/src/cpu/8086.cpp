@@ -508,22 +508,22 @@ void CPU::simulate()
 			xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
 			xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
 
-#if defined SEE_REGS || SEE_ALL
+#if defined(SEE_REGS) ||  defined(SEE_ALL)
 			printRegisters();
 #endif
 
-#if defined SEE_FLAGS || SEE_ALL
+#if defined(SEE_FLAGS) || defined(SEE_ALL)
 			printFlags();
 #endif
 
-#if defined SEE_CURRENT_INST || SEE_ALL
+#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 			printCurrentInstruction();
 #endif
 
 			if (!execNonControlTransferInstruction())
 				execControlTransferInstruction();
 		}
-#if defined STOP_AT_END
+#if defined(STOP_AT_END)
 		else
 			std::cout << "CPU HALTED !" << std::endl;
 

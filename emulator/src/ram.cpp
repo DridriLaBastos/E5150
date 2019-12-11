@@ -11,7 +11,7 @@ uint8_t RAM::read (const unsigned int address)
 
 	const uint8_t tmp = (f == m_mappedDevices.end()) ? m_ram[address] : f->readFunc(address - f->begin);
 
-#if defined SEE_RAM_RW || SEE_RAM_READ || SEE_ALL
+#if defined(SEE_RAM_RW) || defined(SEE_RAM_READ) || defined(SEE_ALL)
 	std::cout << std::hex << "0x" << (int)tmp << " --> " << "0x" << address << std::dec << std::endl;
 #endif
 
@@ -27,7 +27,7 @@ void RAM::write (const unsigned int address, const uint8_t data)
 			m_ram[address] = data;
 	else
 		f->writeFunc(address - f->begin, data);
-#if defined SEE_RAM_RW || SEE_RAM_WRITE || SEE_ALL
+#if defined(SEE_RAM_RW) || defined(SEE_RAM_WRITE) || defined(SEE_ALL)
 	std::cout << std::hex << "0x" << address << " <-- " << "0x" << (int)data << std::dec << std::endl;
 #endif
 }

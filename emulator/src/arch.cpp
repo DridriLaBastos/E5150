@@ -11,7 +11,14 @@ static constexpr FloatMicroDuration CPU_CLOCK_DURATION(std::micro::den / CPU_CLO
 
 static bool _continue = true;
 
-static void stop(const int) { _continue = false; std::cout << "Simulation stoped !" << std::endl; }
+static void stop(const int)
+{
+	_continue = false;
+	std::cout << "Simulation stoped !" << std::endl;
+#ifdef STOP_AT_END
+	std::cout << "Press <enter> to quit !" << std::endl;
+#endif
+}
 
 E5150::Arch::Arch(): m_ram(), m_ports(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic)
 {
@@ -45,6 +52,7 @@ void E5150::Arch::startSimulation()
 		{
 #endif
 			m_cpu.simulate();
+			m_pit.clock();
 #ifndef STOP_AT_END
 			elapsed -= CPU_CLOCK_DURATION;
 		}
