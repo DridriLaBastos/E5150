@@ -2,6 +2,7 @@
 #define COMPONENT_HPP
 
 #include "stdint.h"
+#include "ports.hpp"
 
 namespace E5150
 {
