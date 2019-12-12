@@ -5,7 +5,7 @@ PCHSRC = pch.hpp
 PCHOBJ = $(PCHSRC).pch
 CPPPCH_FLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)/emulator
 CPPFLAGS += -I$(PROJECT_DIR)/emulator -include $(PCHSRC) -DBUILD -DSTOP_AT_END -DSEE_CURRENT_INST -DSEE_REGS -DSEE_FLAGS
-CFLAGS = -Wno-switch
+CFLAGS = -Wno-switch -Ofast
 CXXFLAGS = $(CFLAGS)
 
 PRODUCT = libibmpc.dylib

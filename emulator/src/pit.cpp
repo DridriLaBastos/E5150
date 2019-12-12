@@ -2,6 +2,12 @@
 
 E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): m_connectedPIC(connectedPIC)
 {
+	for (Counter& c: m_counters)
+	{
+		c.isCounting = false;
+		c.readComplete = true;
+	}
+	
 	PortInfos info0x40;
 	info0x40.component = this;
 	info0x40.portNum = 0x40;
@@ -39,47 +45,13 @@ void E5150::PIT::clock()
 void E5150::PIT::clockForCounter0()
 {
 	OUTPUT_VALUE oldOutPutValue = m_counters[0].outputValue;
-	execModeForCounter(m_counters[0]);
+	//TODO: I don't like that. How to change this to m_counters[0].mode->clock() ?
+	m_counters[0].mode->clock(m_counters[0]);
 
 	//Going from low to high
 	if ((m_counters[0].outputValue == OUTPUT_VALUE::HIGH) && (oldOutPutValue == OUTPUT_VALUE::LOW))
 		m_connectedPIC.assertInteruptLine(PIC::IR0);
-	
-	--m_counters[0].counterValue.word;
 }
-
-void E5150::PIT::execModeForCounter (PIT::Counter& counter)
-{
-	switch (m_counters[0].mode)
-	{
-		case MODE::MODE0:
-			clockMode0(counter);
-			break;
-		
-		/*case MODE::MODE1:
-			clockMode1(c);
-			break;
-		
-		case MODE::MODE2:
-			clockMode2(c);
-			break;
-		
-		case MODE::MODE3:
-			clockMode3(c);
-			break;
-		
-		case MODE::MODE4:
-			clockMode4(c);
-			break;
-		
-		case MODE::MODE5:
-			clockMode5(c);
-			break;*/
-	}
-}
-
-void E5150::PIT::clockMode0 (Counter& counter)
-{ if (counter.counterValue.word == 0) counter.outputValue = OUTPUT_VALUE::HIGH; }
 
 void E5150::PIT::write (const unsigned int address, const uint8_t data)
 {
@@ -92,26 +64,28 @@ void E5150::PIT::write (const unsigned int address, const uint8_t data)
 }
 
 void E5150::PIT::writeCounter (const unsigned int counterIndex, const uint8_t data)
+{ m_counters[counterIndex].mode->writeToCounter(m_counters[counterIndex], data); }
+
+uint8_t E5150::PIT::applyPICReadAlgorithm (Counter& counter, const unsigned int value)
 {
-	switch (m_counters[counterIndex].writeStatus)
+	switch (counter.readStatus)
 	{
-		case OPERATION_STATUS::LSB:
-		{
-			m_counters[counterIndex].counterValue.lsb = data;
-
-			if (m_counters[counterIndex].accessOperation == ACCESS_OPERATION::LSB_MSB)
-				m_counters[counterIndex].writeStatus = OPERATION_STATUS::MSB;
-		} break;
-
-		case OPERATION_STATUS::MSB:
-		{
-			m_counters[counterIndex].counterValue.msb = data;
-
-			if (m_counters[counterIndex].accessOperation == ACCESS_OPERATION::LSB_MSB)
-				m_counters[counterIndex].writeStatus = OPERATION_STATUS::LSB;
-		} break;
+	case OPERATION_STATUS::LSB:
+		counter.readStatus = OPERATION_STATUS::MSB;
+		return value & 0xFF;
+	
+	case OPERATION_STATUS::MSB:
+		counter.readStatus = OPERATION_STATUS::LSB;
+		return (value & 0xFF00) >> 8;
 	}
 }
+
+uint8_t E5150::PIT::readCounterLatchedValue (Counter& counter)
+{ return applyPICReadAlgorithm(counter, counter.latchedValue); }
+
+//TODO: blocking the count down
+uint8_t E5150::PIT::readCounterDirectValue (Counter& counter)
+{ return applyPICReadAlgorithm(counter, counter.counterValue.word); }
 
 uint8_t E5150::PIT::read (const unsigned int address)
 {
@@ -119,16 +93,8 @@ uint8_t E5150::PIT::read (const unsigned int address)
 
 	if (localAddress != 0b11)
 	{
-		switch (m_counters[localAddress].readStatus)
-		{
-		case OPERATION_STATUS::LSB:
-			m_counters[localAddress].readStatus = OPERATION_STATUS::MSB;
-			return m_counters[localAddress].latchedValue & 0xFF;
-		
-		case OPERATION_STATUS::MSB:
-			m_counters[localAddress].readStatus = OPERATION_STATUS::LSB;
-			return (m_counters[localAddress].latchedValue & 0xFF00) >> 8;
-		}
+		Counter& counter = m_counters[address];
+		return (counter.latchedValueIsAvailable) ? readCounterLatchedValue(counter) : readCounterDirectValue(counter);
 	}
 }
 
@@ -150,13 +116,22 @@ static bool isM2Set (const uint8_t controlWord) { return controlWord & 0b1000; }
 void E5150::PIT::setModeForCounter (const unsigned int counterIndex, const uint8_t controlWord)
 {
 	if (isM1Set(controlWord))
-		m_counters[counterIndex].mode = isM0Set(controlWord) ? MODE::MODE3 : MODE::MODE2;
+	{
+		if (isM0Set(controlWord)) m_mode3.setForCounter(m_counters[counterIndex]);
+		else m_mode2.setForCounter(m_counters[counterIndex]);
+	}
 	else
 	{
 		if (isM2Set(controlWord))
-			m_counters[counterIndex].mode = isM0Set(controlWord) ? MODE::MODE5 : MODE::MODE4;
+		{
+			if (isM0Set(controlWord)) m_mode5.setForCounter(m_counters[counterIndex]);
+			else m_mode2.setForCounter(m_counters[counterIndex]);
+		}
 		else
-			m_counters[counterIndex].mode = isM0Set(controlWord) ? MODE::MODE1 : MODE::MODE0;
+		{
+			if (isM0Set(controlWord)) m_mode1.setForCounter(m_counters[counterIndex]);
+			else m_mode0.setForCounter(m_counters[counterIndex]);
+		}
 	}
 }
 
@@ -192,3 +167,111 @@ void E5150::PIT::setOperationAccessForCounter (const unsigned int counterIndex, 
 			m_counters[counterIndex].latchedValue = m_counters[counterIndex].counterValue.word;
 	}
 }
+
+//I implement the modes in pit.cpp so that they are in the compilation unit of the pit and the compiler can optimmize call and have the
+//possibility to inline.
+/* *** IMPLEMENTING MODES *** */
+//TODO: What happens when the mode change while the counter is counting ?
+void E5150::PIT::MODE::setForCounter (E5150::PIT::Counter& counter)
+{
+	counter.mode = this;
+	actionForSet(counter);
+}
+
+/* *** MODE 0 *** */
+void E5150::PIT::MODE0::actionForSet(Counter& counter)
+{
+	counter.outputValue = OUTPUT_VALUE::LOW;
+	counter.isCounting = false;
+}
+
+void E5150::PIT::MODE0::writeToCounter(Counter& counter, const uint8_t count)
+{
+	switch (counter.writeStatus)
+	{
+		case OPERATION_STATUS::LSB:
+		{
+			counter.isCounting = false;
+			counter.counterValue.lsb = count;
+
+			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
+				counter.writeStatus = OPERATION_STATUS::MSB;
+			else
+				counter.isCounting = true;
+		} break;
+
+		case OPERATION_STATUS::MSB:
+		{
+			if (counter.accessOperation == ACCESS_OPERATION::MSB_ONLY)
+				counter.isCounting = false;
+
+			counter.counterValue.msb = count;
+
+			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
+				counter.writeStatus = OPERATION_STATUS::LSB;
+			
+			counter.isCounting = true;
+		} break;
+	}
+}
+
+void E5150::PIT::MODE0::clock(Counter& counter)
+{
+	if (counter.outputValue == OUTPUT_VALUE::LOW)
+	{
+		if (counter.counterValue.word == 0)
+			counter.outputValue = OUTPUT_VALUE::HIGH;
+	}
+
+	--counter.counterValue.word;
+}
+
+/* *** MODE1 *** */
+void E5150::PIT::MODE1::actionForSet(Counter& counter)
+{}
+
+void E5150::PIT::MODE1::writeToCounter(Counter& counter, const uint8_t count)
+{}
+
+void E5150::PIT::MODE1::clock(Counter& counter)
+{}
+
+/* *** MODE2 *** */
+void E5150::PIT::MODE2::actionForSet(Counter& counter)
+{}
+
+void E5150::PIT::MODE2::writeToCounter(Counter& counter, const uint8_t count)
+{}
+
+void E5150::PIT::MODE2::clock(Counter& counter)
+{}
+
+/* *** MODE3 *** */
+void E5150::PIT::MODE3::actionForSet(Counter& counter)
+{}
+
+void E5150::PIT::MODE3::writeToCounter(Counter& counter, const uint8_t count)
+{}
+
+void E5150::PIT::MODE3::clock(Counter& counter)
+{}
+
+/* *** MODE4 *** */
+void E5150::PIT::MODE4::actionForSet(Counter& counter)
+{}
+
+void E5150::PIT::MODE4::writeToCounter(Counter& counter, const uint8_t count)
+{}
+
+void E5150::PIT::MODE4::clock(Counter& counter)
+{}
+
+/* *** MODE5 *** */
+void E5150::PIT::MODE5::actionForSet(Counter& counter)
+{}
+
+void E5150::PIT::MODE5::writeToCounter(Counter& counter, const uint8_t count)
+{}
+
+void E5150::PIT::MODE5::clock(Counter& counter)
+{}

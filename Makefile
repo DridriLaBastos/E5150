@@ -1,6 +1,6 @@
 export MACOSX_VERSION_MIN = 10.10
 export PROJECT_DIR = $(PWD)
-export CXX = clang++ -O3 -std=c++11 -mmacosx-version-min=$(MACOSX_VERSION_MIN)
+export CXX = clang++ -std=c++11 -mmacosx-version-min=$(MACOSX_VERSION_MIN)
 export LD  = ld -macosx_version_min $(MACOSX_VERSION_MIN)
 
 .PHONY: clean cleantest mrproper test emulator run
