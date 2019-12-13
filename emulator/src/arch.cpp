@@ -20,7 +20,7 @@ static void stop(const int)
 #endif
 }
 
-E5150::Arch::Arch(): m_ram(), m_ports(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic)
+E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic)
 {
 	std::cout << "Welcome to E5150, the emulator of an IBM PC 5150" << std::endl;
 	std::cout << "This program use the library Intel XED to decode the instructions" << std::endl;

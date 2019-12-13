@@ -1,6 +1,7 @@
 #ifndef PCH_HPP
 #define PCH_HPP
 
+#include <set>
 #include <array>
 #include <string>
 #include <memory>

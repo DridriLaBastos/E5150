@@ -31,6 +31,7 @@ static bool isOCW3 (const uint8_t ocw) { return ocw & 0b1000; }
 
 void E5150::PIC::writeA0_0 (const uint8_t data)
 {
+	std::cout << "Write to the PIC with A0 = 0" << std::endl;
 	if (isICW1(data))
 	{
 		m_initStatus = INIT_STATUS::UNINITIALIZED;
@@ -47,6 +48,7 @@ void E5150::PIC::writeA0_0 (const uint8_t data)
 
 void E5150::PIC::writeA0_1 (const uint8_t data)
 {
+	std::cout << "Write to the PIC with A0 = 1" << std::endl;
 	if (m_initStatus != INIT_STATUS::INITIALIZED)
 		handleInitSequence(data);
 	else
@@ -58,7 +60,7 @@ void E5150::PIC::write(const unsigned int address, const uint8_t data)
 	const unsigned int localAddress = address & 0b1;
 
 	if (localAddress == 0)
-		writeA0_1(data);
+		writeA0_0(data);
 	else
 		writeA0_1(data);
 }

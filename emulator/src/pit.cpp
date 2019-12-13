@@ -70,13 +70,23 @@ uint8_t E5150::PIT::applyPICReadAlgorithm (Counter& counter, const unsigned int 
 {
 	switch (counter.readStatus)
 	{
-	case OPERATION_STATUS::LSB:
-		counter.readStatus = OPERATION_STATUS::MSB;
-		return value & 0xFF;
-	
-	case OPERATION_STATUS::MSB:
-		counter.readStatus = OPERATION_STATUS::LSB;
-		return (value & 0xFF00) >> 8;
+		case OPERATION_STATUS::LSB:
+		{
+			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
+				counter.readStatus = OPERATION_STATUS::MSB;
+
+			return value & 0xFF;
+		}
+		
+		case OPERATION_STATUS::MSB:
+		{
+			counter.readStatus = OPERATION_STATUS::LSB;
+
+			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
+				counter.readStatus = OPERATION_STATUS::LSB;
+
+			return (value & 0xFF00) >> 8;
+		}
 	}
 }
 
@@ -90,12 +100,15 @@ uint8_t E5150::PIT::readCounterDirectValue (Counter& counter)
 uint8_t E5150::PIT::read (const unsigned int address)
 {
 	const unsigned int localAddress = address & 0b11;
+	uint8_t ret = 0;
 
 	if (localAddress != 0b11)
 	{
 		Counter& counter = m_counters[address];
-		return (counter.latchedValueIsAvailable) ? readCounterLatchedValue(counter) : readCounterDirectValue(counter);
+		ret = (counter.latchedValueIsAvailable) ? readCounterLatchedValue(counter) : readCounterDirectValue(counter);
 	}
+	
+	return ret;
 }
 
 static unsigned int extractRegisterNumber (const uint8_t controlWord) { return (controlWord & 0b11000000) >> 6; }
