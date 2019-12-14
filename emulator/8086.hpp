@@ -34,13 +34,13 @@ class CPU
 		unsigned int gen_address (const reg_t base, const xed_reg_enum_t offset) const;
 		unsigned int gen_address (const xed_reg_enum_t segment, const uint16_t offset) const;
 		unsigned int gen_address (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const;
-		unsigned int get_address (const xed_operand_enum_t op_name);
+		unsigned int genEA (const xed_operand_enum_t op_name);
 
-		uint8_t  read_byte (const unsigned int addr) const;
-		uint16_t read_word (const unsigned int addr) const;
+		uint8_t  readByte (const unsigned int addr) const;
+		uint16_t readWord (const unsigned int addr) const;
 
-		void write_byte (const unsigned int addr, const uint8_t  data);
-		void write_word (const unsigned int addr, const uint16_t data);
+		void writeByte (const unsigned int addr, const uint8_t  data);
+		void writeWord (const unsigned int addr, const uint16_t data);
 
 		void testCF (const unsigned int value, const bool byte);
 		void testPF	(const unsigned int value);

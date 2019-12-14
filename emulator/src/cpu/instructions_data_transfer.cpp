@@ -23,7 +23,7 @@ void CPU::MOV()
 			break;
 
 		case XED_OPERAND_MEM0:
-			move_v = read_word(gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0)));
+			move_v = readWord(genEA(op_name));
 			break;
 	}
 
@@ -37,12 +37,12 @@ void CPU::MOV()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int write_addr = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
+			const unsigned int write_addr = genEA(op_name);
 
 			if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1)
-				write_byte(write_addr, (uint8_t)move_v);
+				writeByte(write_addr, (uint8_t)move_v);
 			else
-				write_word(write_addr, move_v);
+				writeWord(write_addr, move_v);
 			
 			break;
 		}
@@ -61,8 +61,8 @@ void CPU::PUSH (void)
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int data_to_push_addr = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
-			push(read_word(data_to_push_addr));
+			const unsigned int data_to_push_addr = genEA(op_name);
+			push(readWord(data_to_push_addr));
 		}
 		break;
 	}
@@ -108,14 +108,14 @@ void CPU::XCHG()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = gen_address(xed_decoded_inst_get_base_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
-			const unsigned int value2 = read_word(addr);
+			const unsigned int addr = genEA(op_name);
+			const unsigned int value2 = readWord(addr);
 			write_reg(register_xchg, value2);
 
 			if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1)
-				write_byte(addr, value1);
+				writeByte(addr, value1);
 			else
-				write_word(addr, value1);
+				writeWord(addr, value1);
 		}
 	}
 
@@ -158,14 +158,14 @@ void CPU::OUT()
 }
 
 void CPU::XLAT  (void)
-{ m_gregs[AX].l = read_byte(gen_address(m_regs[DS], m_gregs[BX].x + m_gregs[AX].l)); }
+{ m_gregs[AX].l = readByte(gen_address(m_regs[DS], m_gregs[BX].x + m_gregs[AX].l)); }
 
 void CPU::LEA()
 {
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 1));
 
-	write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name0), get_address(op_name1));
+	write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name0), genEA(op_name1));
 }
 
 void CPU::LDS()

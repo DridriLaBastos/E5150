@@ -23,8 +23,8 @@ void CPU::ADD()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = gen_address(xed_decoded_inst_get_base_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
-			value1 += cond ? read_byte(addr) : read_word(addr);
+			const unsigned int addr = genEA(op_name2);
+			value1 += cond ? readByte(addr) : readWord(addr);
 		} break;
 	}
 
@@ -39,13 +39,13 @@ void CPU::ADD()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = gen_address(xed_decoded_inst_get_base_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
-			value1 += cond ? read_byte(addr) : read_word(addr);
+			const unsigned int addr = genEA(op_name1);
+			value1 += cond ? readByte(addr) : readWord(addr);
 
 			if (cond)
-				write_byte(addr, value1);
+				writeByte(addr, value1);
 			else
-				write_word(addr, value1);
+				writeWord(addr, value1);
 		} break;
 	}
 
@@ -72,14 +72,13 @@ void CPU::INC()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
-
-			value1 = cond ? read_byte(addr) : read_word(addr) + 1;
+			const unsigned int addr = genEA(op_name);
+			value1 = (cond ? readByte(addr) : readWord(addr)) + 1;
 
 			if (cond)
-				write_byte(addr, value1);
+				writeByte(addr, value1);
 			else
-				write_word(addr, value1);
+				writeWord(addr, value1);
 		} break;
 	}
 
@@ -110,8 +109,8 @@ void CPU::SUB()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
-			value1 -= cond ? read_byte(addr) : read_word(addr);
+			const unsigned int addr = genEA(op_name2);
+			value1 -= cond ? readByte(addr) : readWord(addr);
 		} break;
 	}
 
@@ -127,10 +126,10 @@ void CPU::SUB()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
+			const unsigned int addr = genEA(op_name1);
+			value1 += cond ? readByte(addr) : readWord(addr);
 
-			value1 += cond ? read_byte(addr) : read_word(addr);
-			cond ? write_byte(addr, value1) : write_word(addr, value1);
+			if (cond) writeByte(addr, value1); else writeWord(addr, value1);
 		} break;
 	}
 
@@ -151,20 +150,19 @@ void CPU::DEC()
 		{
 			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name);
 
-			value1 = read_reg(reg) + 1;
+			value1 = read_reg(reg) - 1;
 			write_reg(reg, value1);
 		} break;
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
-
-			value1 = (cond ? read_byte(addr) : read_word(addr)) + 1;
+			const unsigned int addr = genEA(op_name);
+			value1 = (cond ? readByte(addr) : readWord(addr)) - 1;
 
 			if (cond)
-				write_byte(addr, value1);
+				writeByte(addr, value1);
 			else
-				write_word(addr, value1);
+				writeWord(addr, value1);
 		} break;
 	}
 
@@ -192,15 +190,15 @@ void CPU::NEG()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = get_address(op_name);
+			const unsigned int addr = genEA(op_name);
 
-			value1 = cond ? read_byte(addr) : read_word(addr);
+			value1 = cond ? readByte(addr) : readWord(addr);
 			value1 *= -1;
 
 			if (cond)
-				write_byte(addr, value1);
+				writeByte(addr, value1);
 			else
-				write_word(addr, value1);
+				writeWord(addr, value1);
 		} break;
 	}
 
@@ -231,8 +229,8 @@ void CPU::CMP()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = get_address(op_name1);
-			value1 += cond ? read_byte(addr) : read_word(addr);
+			const unsigned int addr = genEA(op_name1);
+			value1 += cond ? readByte(addr) : readWord(addr);
 		} break;
 	}
 
@@ -249,8 +247,8 @@ void CPU::CMP()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = get_address(op_name2);
-			value1 -= cond ? read_byte(addr) : read_word(addr);
+			const unsigned int addr = genEA(op_name2);
+			value1 -= cond ? readByte(addr) : readWord(addr);
 		} break;
 	}
 
@@ -272,7 +270,7 @@ void CPU::MUL()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= cond ? read_byte(get_address(op_name)) : read_word(get_address(op_name));
+			value1 *= cond ? readByte(genEA(op_name)) : readWord(genEA(op_name));
 			break;
 	}
 
@@ -314,7 +312,7 @@ void CPU::IMUL()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= (signed)(cond ? read_byte(get_address(op_name)) : read_word(get_address(op_name)));
+			value1 *= (signed)(cond ? readByte(genEA(op_name)) : readWord(genEA(op_name)));
 			break;
 	}
 
@@ -360,7 +358,7 @@ void CPU::DIV()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = cond ? read_byte(get_address(op_name)) : read_word(get_address(op_name));
+			value2 = cond ? readByte(genEA(op_name)) : readWord(genEA(op_name));
 			break;
 	}
 
@@ -400,7 +398,7 @@ void CPU::IDIV()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = (signed)(cond ? read_byte(get_address(op_name)) : read_word(get_address(op_name)));
+			value2 = (signed)(cond ? readByte(genEA(op_name)) : readWord(genEA(op_name)));
 			break;
 	}
 

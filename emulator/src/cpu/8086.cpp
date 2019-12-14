@@ -38,27 +38,82 @@ unsigned int CPU::gen_address (const xed_reg_enum_t segment, const uint16_t offs
 unsigned int CPU::gen_address (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const 
 {return gen_address(read_reg(segment), read_reg(offset));}
 
-unsigned int CPU::get_address (const xed_operand_enum_t op_name) 
-{ return gen_address(xed_decoded_inst_get_reg(&m_decoded_inst, op_name), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0)); }
+/**
+ * This function compute the effective address for a memory operand and add the corresponding number of 
+ * instructions cycles. The instruction cycles are îcked up from https://zsmith.co/intel.php#ea:
+ * 1.  disp: mod = 0b00 and rm = 0b110								+6
+ * 2.  (BX,BP,SI,DI): mod = 0b00 and rm != 0b110 and rm = 0b1xx		+5
+ * 3.  disp + (BX,BP,SI,DI): mod = 0b10 and rm = 0b1xx				+9
+ * 4.1 (BP+DI, BX+SI): mod = 0b00 and rm = 0b01x					+7
+ * 4.2 (BP+SI, BX+DI): mod = 0b00 and rm = 0b00x					+8
+ * 5.1 disp + (BP+DI, BX+SI) +-> same as precedet with mod = 0b10	+11
+ * 5.2 disp + (BP+SI, BX+DI) +										+12
+ * 
+ * word operands at odd addresses	+4
+ * segment override					+2
+ */
+unsigned int CPU::genEA (const xed_operand_enum_t op_name) 
+{
+	const unsigned int modrm = xed_decoded_inst_get_modrm(&m_decoded_inst);
+	const unsigned int mod = (modrm & 0b11000000) >> 6;
+	const unsigned int rm = modrm & 0b111;
 
-uint8_t  CPU::read_byte (const unsigned int addr) const 
+	if (mod == 0b00)
+	{
+		//1. disp: mod == 0b00 and rm 0b110
+		if (rm == 0b110)
+			m_clockCountDown += 6;
+		else
+		{
+			//2. (base,index) mod = 0b00 and rm = 0b1xx and rm != 0b110
+			if (rm & 0b100)
+				m_clockCountDown += 5;
+			//4.1/4.2 base + index mod = 0b00 and rm = 0b01x/0b00x
+			else
+				m_clockCountDown += (rm & 0b10) ? 7 : 8;
+		}
+	}
+	//mod = 0b10
+	else
+	{
+		//3. disp + (base,index): mod = 0b10 rm = 0b1xx
+		if (rm & 0b100)
+			m_clockCountDown += 9;
+		//5.1/5.2 base + index + disp: mod = 0b10 rm = 0b01x/0b00x
+		else
+			m_clockCountDown += (rm & 0b10) ? 11 : 12;
+	}
+
+	const unsigned int address = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst,0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst,0));
+
+	if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 2)
+		m_clockCountDown += (address & 0b1) ? 4 : 0;
+	
+	if (xed_operand_values_has_segment_prefix(&m_decoded_inst))
+		m_clockCountDown += 2;
+	
+	return address;
+
+}
+
+uint8_t  CPU::readByte (const unsigned int addr) const 
 { return m_ram.read(addr); }
 
-uint16_t CPU::read_word (const unsigned int addr) const 
+uint16_t CPU::readWord (const unsigned int addr) const 
 { return (uint16_t)m_ram.read(addr) | (uint16_t)(m_ram.read(addr + 1) << 8); }
 
-void CPU::write_byte (const unsigned int addr, const uint8_t  data) 
+void CPU::writeByte (const unsigned int addr, const uint8_t  data) 
 { m_ram.write(addr, data); }
 
-void CPU::write_word (const unsigned int addr, const uint16_t data) 
+void CPU::writeWord (const unsigned int addr, const uint16_t data) 
 { m_ram.write(addr, (uint8_t)data); m_ram.write(addr + 1, (uint8_t)(data >> 8)); }
 
 void CPU::push (const uint16_t data)
-{ m_regs[SP] -= 2; write_word(gen_address(m_regs[SS], m_regs[SP]), data); }
+{ m_regs[SP] -= 2; writeWord(gen_address(m_regs[SS], m_regs[SP]), data); }
 
 uint16_t CPU::pop (void)
 {
-	const uint16_t ret = read_word(gen_address(m_regs[SS], m_regs[SP])); m_regs[SP] += 2;
+	const uint16_t ret = readWord(gen_address(m_regs[SS], m_regs[SP])); m_regs[SP] += 2;
 	return ret;
 }
 
@@ -81,7 +136,7 @@ void CPU::interrupt (void)
 {
 	push(m_flags);
 	clearFlags(INTF);
-	far_call(read_word(gen_address(0, 4 * intr_v + 2)), read_word(gen_address(0, 4 * intr_v)));
+	far_call(readWord(gen_address(0, 4 * intr_v + 2)), readWord(gen_address(0, 4 * intr_v)));
 	hlt = false;
 }
 
@@ -93,32 +148,6 @@ void CPU::clearFlags (const unsigned int flags)
 
 bool CPU::get_flag_status (const unsigned int flag)
 { return (m_flags & (unsigned int) flag) == flag; }
-
-/*
-{
-            //TODO: find a better way to do it
-            if (size == 1)
-            {
-                if (((signed)value < (int8_t)0xFF) || ((signed)value > (int8_t)0x7F) || (value > 0xFF))
-                {
-                    if (which & 0b1)
-                        flag_buffer |= CARRY;
-                    if (which & 0b10)
-                        flag_buffer |= OVER;
-                }
-            }
-            else
-            {
-                if (((signed)value < (int16_t)0xFFFF) || ((unsigned)value > (uint16_t)0x7FFF) || (value > 0xFFFF))
-                {
-                    if (which & 0b1)
-                        flag_buffer |= CARRY;
-                    if (which & 0b10)
-                        flag_buffer |= OVER;
-                }
-            }
-        }
-*/
 
 void CPU::testCF (const unsigned int value, const bool byte)
 {

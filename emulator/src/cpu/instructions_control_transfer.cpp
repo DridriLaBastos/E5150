@@ -18,9 +18,9 @@ void CPU::NEAR_CALL()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned ip_location = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
+			const unsigned int ip_location = genEA(op_name);
 
-			m_ip = read_word(ip_location);
+			m_ip = readWord(ip_location);
 
 			break;
 		}
@@ -40,10 +40,10 @@ void CPU::FAR_CALL()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
+			const unsigned far_addr_location = genEA(op_name);
 			
-			far_call(read_word(far_addr_location),
-					 read_word(far_addr_location + 2));
+			far_call(readWord(far_addr_location),
+					 readWord(far_addr_location + 2));
 			break;
 		}
 	}
@@ -57,9 +57,9 @@ void CPU::NEAR_JMP()
 	{
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned ip_location = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
+			const unsigned ip_location = genEA(op_name);
 
-			m_ip = read_word(ip_location);
+			m_ip = readWord(ip_location);
 
 			break;
 		}
@@ -82,10 +82,10 @@ void CPU::FAR_JMP()
 	{
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0));
+			const unsigned far_addr_location = genEA(op_name);
 			
-			m_regs[CS] = read_word(far_addr_location);
-			m_ip = read_word(far_addr_location + 2);
+			m_regs[CS] = readWord(far_addr_location);
+			m_ip = readWord(far_addr_location + 2);
 			break;
 		}
 
