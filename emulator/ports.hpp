@@ -3,17 +3,8 @@
 
 #include "util.hpp"
 
-/*
- * Structure représentant un composant utilisant un port.
- * - read_func : la fonction de lecture à utiliser lors de lecture sur le port utilisé : doit retourner un octet
- *               cette fonction est fournie par le composant qui veut utiliser un port
- * - write_func : la fonction de lecture à utiliser lors de l'écriture sur le port utilser : doit prendre un octet en argument
- *                cette fonction est fournie par le composant qui veut utiliser un port
- */
-
 namespace E5150 { class Component; }
 
-//TODO: insérer le numéro du port utilisé dans le struct le struct ?
 struct PortInfos
 {
 	uint16_t portNum;

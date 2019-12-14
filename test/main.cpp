@@ -7,7 +7,7 @@ int main (void)
 
 	arch.getRam().load("jmp.bin", 0xFFFF0);
 	arch.getRam().load("bios.bin", 0xE0000);
-	arch.getRam().load("test.bin", 0x100);
+	arch.getRam().load("test.bin", 0x1000);
 
 	arch.startSimulation();
 

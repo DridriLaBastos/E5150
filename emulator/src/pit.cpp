@@ -7,6 +7,12 @@ E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): m_connectedPIC(connectedPIC)
 		c.isCounting = false;
 		c.readComplete = true;
 	}
+
+	for (size_t modeIndex = 0; modeIndex < 6; ++modeIndex)
+	{
+		for (size_t counterIndex = 0; counterIndex < 3; ++counterIndex)
+			m_modes[modeIndex][counterIndex] = std::unique_ptr<MODE> (new MODE(m_counters[counterIndex]));
+	}
 	
 	PortInfos info0x40;
 	info0x40.component = this;
@@ -30,28 +36,40 @@ E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): m_connectedPIC(connectedPIC)
 	ports.connect(info0x43);   
 }
 
+void E5150::PIT::toggleGateFor(const COUNTER counterNumber)
+{
+	Counter& counter = m_counters[static_cast<unsigned int>(counterNumber)];
+	counter.gateValue = (counter.gateValue == OUTPUT_VALUE::LOW) ? OUTPUT_VALUE::HIGH : OUTPUT_VALUE::LOW;
+}
+
+//TODO: implement the one clock wait to confirm writing to the counter
 void E5150::PIT::clock()
 {
 	if (m_counters[0].isCounting)
 		clockForCounter0();
 	
-	/*if (m_counters[1].isCounting)
+	if (m_counters[1].isCounting)
 		clockForCounter1();
 	
 	if (m_counters[2].isCounting)
-		clockForCounter2();*/
+		clockForCounter2();
 }
 
 void E5150::PIT::clockForCounter0()
 {
-	OUTPUT_VALUE oldOutPutValue = m_counters[0].outputValue;
-	//TODO: I don't like that. How to change this to m_counters[0].mode->clock() ?
-	m_counters[0].mode->clock(m_counters[0]);
+	if (m_counters[0].gateValue == OUTPUT_VALUE::HIGH)
+	{
+		OUTPUT_VALUE oldOutPutValue = m_counters[0].outputValue;
+		m_counters[0].mode->clock();
 
-	//Going from low to high
-	if ((m_counters[0].outputValue == OUTPUT_VALUE::HIGH) && (oldOutPutValue == OUTPUT_VALUE::LOW))
-		m_connectedPIC.assertInteruptLine(PIC::IR0);
+		//Going from low to high
+		if ((m_counters[0].outputValue == OUTPUT_VALUE::HIGH) && (oldOutPutValue == OUTPUT_VALUE::LOW))
+			m_connectedPIC.assertInteruptLine(PIC::IR0);
+	}
 }
+
+void E5150::PIT::clockForCounter1() {}
+void E5150::PIT::clockForCounter2() {}
 
 void E5150::PIT::write (const unsigned int address, const uint8_t data)
 {
@@ -64,7 +82,7 @@ void E5150::PIT::write (const unsigned int address, const uint8_t data)
 }
 
 void E5150::PIT::writeCounter (const unsigned int counterIndex, const uint8_t data)
-{ m_counters[counterIndex].mode->writeToCounter(m_counters[counterIndex], data); }
+{ m_counters[counterIndex].mode->writeOperation(data); }
 
 uint8_t E5150::PIT::applyPICReadAlgorithm (Counter& counter, const unsigned int value)
 {
@@ -73,7 +91,10 @@ uint8_t E5150::PIT::applyPICReadAlgorithm (Counter& counter, const unsigned int 
 		case OPERATION_STATUS::LSB:
 		{
 			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
+			{
 				counter.readStatus = OPERATION_STATUS::MSB;
+				counter.readComplete = false;
+			}
 
 			return value & 0xFF;
 		}
@@ -81,6 +102,7 @@ uint8_t E5150::PIT::applyPICReadAlgorithm (Counter& counter, const unsigned int 
 		case OPERATION_STATUS::MSB:
 		{
 			counter.readStatus = OPERATION_STATUS::LSB;
+			counter.readComplete = true;
 
 			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
 				counter.readStatus = OPERATION_STATUS::LSB;
@@ -91,9 +113,15 @@ uint8_t E5150::PIT::applyPICReadAlgorithm (Counter& counter, const unsigned int 
 }
 
 uint8_t E5150::PIT::readCounterLatchedValue (Counter& counter)
-{ return applyPICReadAlgorithm(counter, counter.latchedValue); }
+{
+	const uint8_t result = applyPICReadAlgorithm(counter, counter.latchedValue);
 
-//TODO: blocking the count down
+	if (counter.readComplete)
+		counter.latchedValueIsAvailable = false;
+
+	return result;
+}
+
 uint8_t E5150::PIT::readCounterDirectValue (Counter& counter)
 { return applyPICReadAlgorithm(counter, counter.counterValue.word); }
 
@@ -130,20 +158,20 @@ void E5150::PIT::setModeForCounter (const unsigned int counterIndex, const uint8
 {
 	if (isM1Set(controlWord))
 	{
-		if (isM0Set(controlWord)) m_mode3.setForCounter(m_counters[counterIndex]);
-		else m_mode2.setForCounter(m_counters[counterIndex]);
+		if (isM0Set(controlWord)) m_modes[3][counterIndex]->enable();
+		else m_modes[2][counterIndex]->enable();
 	}
 	else
 	{
 		if (isM2Set(controlWord))
 		{
-			if (isM0Set(controlWord)) m_mode5.setForCounter(m_counters[counterIndex]);
-			else m_mode2.setForCounter(m_counters[counterIndex]);
+			if (isM0Set(controlWord)) m_modes[5][counterIndex]->enable();
+			else m_modes[2][counterIndex]->enable();
 		}
 		else
 		{
-			if (isM0Set(controlWord)) m_mode1.setForCounter(m_counters[counterIndex]);
-			else m_mode0.setForCounter(m_counters[counterIndex]);
+			if (isM0Set(controlWord)) m_modes[1][counterIndex]->enable();
+			else m_modes[0][counterIndex]->enable();
 		}
 	}
 }
@@ -184,107 +212,115 @@ void E5150::PIT::setOperationAccessForCounter (const unsigned int counterIndex, 
 //I implement the modes in pit.cpp so that they are in the compilation unit of the pit and the compiler can optimmize call and have the
 //possibility to inline.
 /* *** IMPLEMENTING MODES *** */
+E5150::PIT::MODE::MODE(Counter& relatedCounter): m_relatedCounter(relatedCounter)
+{}
+
+void E5150::PIT::MODE::clock (void) {}
+void E5150::PIT::MODE::writeOperation (const uint8_t count) {}
+void E5150::PIT::MODE::actionOnEnable (void) {}
+
 //TODO: What happens when the mode change while the counter is counting ?
-void E5150::PIT::MODE::setForCounter (E5150::PIT::Counter& counter)
+void E5150::PIT::MODE::enable (void)
 {
-	counter.mode = this;
-	actionForSet(counter);
+	m_relatedCounter.mode = this;
+	actionOnEnable();
 }
 
-/* *** MODE 0 *** */
-void E5150::PIT::MODE0::actionForSet(Counter& counter)
+/* *** IMPLEMENTING MODE0 *** */
+void E5150::PIT::MODE0::actionOnEnable()
 {
-	counter.outputValue = OUTPUT_VALUE::LOW;
-	counter.isCounting = false;
+	m_relatedCounter.outputValue = OUTPUT_VALUE::LOW;
+	m_relatedCounter.isCounting = false;
 }
 
-void E5150::PIT::MODE0::writeToCounter(Counter& counter, const uint8_t count)
+void E5150::PIT::MODE0::clock()
 {
-	switch (counter.writeStatus)
+	if (m_relatedCounter.outputValue == OUTPUT_VALUE::LOW)
+	{
+		if (m_relatedCounter.counterValue.word == 0)
+			m_relatedCounter.outputValue = OUTPUT_VALUE::HIGH;
+	}
+
+	--m_relatedCounter.counterValue.word;
+}
+
+void E5150::PIT::MODE0::writeOperation(const uint8_t count)
+{
+	switch (m_relatedCounter.writeStatus)
 	{
 		case OPERATION_STATUS::LSB:
 		{
-			counter.isCounting = false;
-			counter.counterValue.lsb = count;
+			m_relatedCounter.isCounting = false;
+			m_relatedCounter.counterValue.lsb = count;
 
-			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
-				counter.writeStatus = OPERATION_STATUS::MSB;
+			if (m_relatedCounter.accessOperation == ACCESS_OPERATION::LSB_MSB)
+				m_relatedCounter.writeStatus = OPERATION_STATUS::MSB;
 			else
-				counter.isCounting = true;
+			{
+				m_relatedCounter.isCounting = true;
+				m_relatedCounter.outputValue = OUTPUT_VALUE::LOW;
+			}
 		} break;
 
 		case OPERATION_STATUS::MSB:
 		{
-			if (counter.accessOperation == ACCESS_OPERATION::MSB_ONLY)
-				counter.isCounting = false;
+			m_relatedCounter.counterValue.msb = count;
+			m_relatedCounter.isCounting = true;
+			m_relatedCounter.outputValue = OUTPUT_VALUE::LOW;
 
-			counter.counterValue.msb = count;
-
-			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
-				counter.writeStatus = OPERATION_STATUS::LSB;
+			if (m_relatedCounter.accessOperation == ACCESS_OPERATION::LSB_MSB)
+				m_relatedCounter.writeStatus = OPERATION_STATUS::LSB;
 			
-			counter.isCounting = true;
 		} break;
 	}
 }
 
-void E5150::PIT::MODE0::clock(Counter& counter)
-{
-	if (counter.outputValue == OUTPUT_VALUE::LOW)
-	{
-		if (counter.counterValue.word == 0)
-			counter.outputValue = OUTPUT_VALUE::HIGH;
-	}
-
-	--counter.counterValue.word;
-}
-
 /* *** MODE1 *** */
-void E5150::PIT::MODE1::actionForSet(Counter& counter)
+void E5150::PIT::MODE1::actionOnEnable()
 {}
 
-void E5150::PIT::MODE1::writeToCounter(Counter& counter, const uint8_t count)
+void E5150::PIT::MODE1::writeOperation(const uint8_t count)
 {}
 
-void E5150::PIT::MODE1::clock(Counter& counter)
+void E5150::PIT::MODE1::clock()
 {}
 
 /* *** MODE2 *** */
-void E5150::PIT::MODE2::actionForSet(Counter& counter)
+void E5150::PIT::MODE2::actionOnEnable()
 {}
 
-void E5150::PIT::MODE2::writeToCounter(Counter& counter, const uint8_t count)
+void E5150::PIT::MODE2::writeOperation(const uint8_t count)
 {}
 
-void E5150::PIT::MODE2::clock(Counter& counter)
+void E5150::PIT::MODE2::clock()
 {}
 
 /* *** MODE3 *** */
-void E5150::PIT::MODE3::actionForSet(Counter& counter)
+void E5150::PIT::MODE3::actionOnEnable()
 {}
 
-void E5150::PIT::MODE3::writeToCounter(Counter& counter, const uint8_t count)
+void E5150::PIT::MODE3::writeOperation(const uint8_t count)
 {}
 
-void E5150::PIT::MODE3::clock(Counter& counter)
+void E5150::PIT::MODE3::clock()
 {}
 
 /* *** MODE4 *** */
-void E5150::PIT::MODE4::actionForSet(Counter& counter)
+void E5150::PIT::MODE4::actionOnEnable()
 {}
 
-void E5150::PIT::MODE4::writeToCounter(Counter& counter, const uint8_t count)
+void E5150::PIT::MODE4::writeOperation(const uint8_t count)
 {}
 
-void E5150::PIT::MODE4::clock(Counter& counter)
+void E5150::PIT::MODE4::clock()
 {}
 
 /* *** MODE5 *** */
-void E5150::PIT::MODE5::actionForSet(Counter& counter)
+void E5150::PIT::MODE5::actionOnEnable()
 {}
 
-void E5150::PIT::MODE5::writeToCounter(Counter& counter, const uint8_t count)
+void E5150::PIT::MODE5::writeOperation(const uint8_t count)
 {}
 
-void E5150::PIT::MODE5::clock(Counter& counter)
+void E5150::PIT::MODE5::clock()
 {}
