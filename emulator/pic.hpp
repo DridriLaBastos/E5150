@@ -48,6 +48,15 @@ namespace E5150
 			void handleOCW1 (const uint8_t ocw1);
 			void handleOCW2 (const uint8_t ocw2);
 			void handleOCW3 (const uint8_t ocw3);
+
+			void nonSpecificEOI(void);
+			void specificEOI (const unsigned int IRLevelToBeActedUpon);
+
+			//interruptLineNumber is 0 for IR0, 1 for IR1, 2 for IR2 etc
+			void interruptInFullyNestedMode (const unsigned int interruptLineNumber);
+
+			void reInit(void);
+			void rotatePriorities(const unsigned int pivot);
 		
 		private:
 			enum REGISTER
@@ -76,10 +85,12 @@ namespace E5150
 
 		private:
 			std::array<uint8_t, 3> m_regs;
+			std::array<uint8_t, 8> m_priorities;
 			CPU& m_connectedCPU;
 			INIT_STATUS m_initStatus;
 			PicInfo m_picInfo;
 			REGISTER m_nextRegisterToRead;
+			unsigned int m_IRLineWithPriority0;
 	};
 }
 

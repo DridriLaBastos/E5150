@@ -34,6 +34,8 @@ E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu
 	signal(SIGINT, stop);
 }
 
+std::ostream& operator<< (std::ostream& ostream, const std::exception& e) { return (ostream << e.what()); }
+
 void E5150::Arch::stopSimulation() const { _continue = false; }
 
 RAM& E5150::Arch::getRam() { return m_ram; }
@@ -44,21 +46,28 @@ void E5150::Arch::startSimulation()
 	FloatMicroDuration elapsed;
 #endif
 
-	while (_continue)
+	try
 	{
-#ifndef STOP_AT_END
-		Clock::time_point start = Clock::now();
-		while (elapsed >= CPU_CLOCK_DURATION)
+		while (_continue)
 		{
-#endif
-			m_cpu.simulate();
-			m_pit.clock();
-#ifndef STOP_AT_END
-			elapsed -= CPU_CLOCK_DURATION;
-		}
+	#ifndef STOP_AT_END
+			Clock::time_point start = Clock::now();
+			while (elapsed >= CPU_CLOCK_DURATION)
+			{
+	#endif
+				m_cpu.simulate();
+				m_pit.clock();
+	#ifndef STOP_AT_END
+				elapsed -= CPU_CLOCK_DURATION;
+			}
 
-		FloatMicroDuration duration = std::chrono::duration_cast<FloatMicroDuration>(Clock::now() - start);
-		elapsed += duration;
-#endif
+			FloatMicroDuration duration = std::chrono::duration_cast<FloatMicroDuration>(Clock::now() - start);
+			elapsed += duration;
+	#endif
+		}
+	}
+	catch (const std::exception& e)
+	{
+		std::cout << e << std::endl;
 	}
 }

@@ -1,8 +1,10 @@
 #include "pic.hpp"
 
-template <unsigned int _N>
-unsigned int log2_2 (void)
-{ return (_N == 1) ? 0 : (1 + log2_2<_N - 1>()); }
+unsigned int log2_2 (const unsigned int n)
+{
+	ASSERT(n > 0);
+	return (n == 1) ? 0 : (1 + log2_2(n-1));
+}
 
 E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): m_connectedCPU(connectedCPU), m_initStatus(INIT_STATUS::UNINITIALIZED)
 {
@@ -15,6 +17,33 @@ E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): m_connectedCPU(connectedCPU), 
 	dataInfo.component = this;
 
 	ports.connect(commandInfo);   ports.connect(dataInfo);
+
+	reInit();
+}
+
+void E5150::PIC::rotatePriorities (const unsigned int pivot)
+{
+	assert(pivot < m_priorities.size());
+	m_IRLineWithPriority0 = pivot;
+	size_t pos = pivot;
+
+	for (unsigned int priority = 0; priority < m_priorities.size(); ++priority)
+	{
+		m_priorities[pos++] = priority;
+		pos %= m_priorities.size();
+	}
+}
+
+void E5150::PIC::reInit()
+{
+	m_regs[IMR] = 0;
+	//From intel manuel: after initialization of the PIC, the mode is fully nested: the priorities are from 0 to 7
+	//with IR0 the highest (0) and IR7 the smallest (7). We rotate the priority with 0 as the pivot
+	//which will gives the expected result
+	m_picInfo.specialFullyNestedMode = false;
+	rotatePriorities(0);
+	m_picInfo.slaveID = 7;
+	m_nextRegisterToRead = IRR;
 }
 
 uint8_t E5150::PIC::readA0_0 () const { return m_regs[m_nextRegisterToRead]; }
@@ -31,7 +60,6 @@ static bool isOCW3 (const uint8_t ocw) { return ocw & 0b1000; }
 
 void E5150::PIC::writeA0_0 (const uint8_t data)
 {
-	std::cout << "Write to the PIC with A0 = 0" << std::endl;
 	if (isICW1(data))
 	{
 		m_initStatus = INIT_STATUS::UNINITIALIZED;
@@ -65,13 +93,45 @@ void E5150::PIC::write(const unsigned int address, const uint8_t data)
 		writeA0_1(data);
 }
 
+static unsigned int genInterruptVectorForIRLine (const unsigned int T7_T3, const unsigned int IRLineNumber)
+{ return (T7_T3 << 3) | IRLineNumber; }
+
+//TODO: test this
+void E5150::PIC::interruptInFullyNestedMode (const unsigned int IRLineNumber)
+{
+	const unsigned int assertedIRLinePriority = m_priorities[IRLineNumber];
+	bool canInterrupt = true;
+
+	//First we verify that no interrupt with higher priority is set
+	for (size_t i = m_IRLineWithPriority0; m_priorities[i] < assertedIRLinePriority; ++i)
+	{
+		if (m_regs[ISR] & (1 << i)) canInterrupt = false;
+	}
+
+	if (canInterrupt)
+	{
+		m_connectedCPU.request_intr(genInterruptVectorForIRLine(m_picInfo.T7_T3, IRLineNumber));
+		if (!m_picInfo.autoEOI)
+			m_regs[ISR] |= (1 << IRLineNumber);
+	}
+}
+
 void E5150::PIC::assertInteruptLine(const E5150::PIC::INTERRUPT_LINE irLine)
 {
-	/*if (m_initStatus == INIT_STATUS::INITIALIZED)
+	//If the pic is fully initialized
+	if (m_initStatus == INIT_STATUS::INITIALIZED)
 	{
-		const unsigned int irLineIndex = log2_2<(unsigned int)irLine>();
-		m_regs[static_cast<unsigned int>(REGISTER::IRR)] |= irLine;
-	}*/
+		//And the interrupt is not masked
+		if (m_regs[IMR] & irLine)
+		{
+			if (!m_picInfo.specialFullyNestedMode)
+			{
+				throw std::runtime_error("ERROR: E5150::PIC::assertInteruptLine(): other mode than fully nested not implemented");
+			}
+			else
+				interruptInFullyNestedMode(log2_2(irLine));
+		}
+	}
 }
 
 static bool isICW4Needed (const uint8_t icw1) { return icw1 & 0b1; }
@@ -88,8 +148,7 @@ void E5150::PIC::handleICW1 (const uint8_t icw1)
 	m_picInfo.singleMode = isInSingleMode(icw1);
 	m_picInfo.addressInterval4 = isAddressCallIntervalOf4(icw1);
 	m_picInfo.levelTriggered = isInLevelTriggeredMode(icw1);
-
-	m_nextRegisterToRead = IRR;
+	reInit();
 }
 
 static unsigned int extractT7_T3 (const uint8_t icw2) { return (icw2 & (~0b111)) >> 3; }
@@ -126,41 +185,101 @@ void E5150::PIC::handleInitSequence (const uint8_t icw)
 	switch (m_initStatus)
 	{
 		//Wether the pic is initialized or not, if it receive an icw1, it restart its initialization sequence
-	case INIT_STATUS::UNINITIALIZED:
-	case INIT_STATUS::INITIALIZED:
-		handleICW1(icw);
-		m_initStatus = INIT_STATUS::ICW2;
-		break;
-	
-	case INIT_STATUS::ICW2:
-	{
-		handleICW2(icw);
+		case INIT_STATUS::UNINITIALIZED:
+		case INIT_STATUS::INITIALIZED:
+			handleICW1(icw);
+			m_initStatus = INIT_STATUS::ICW2;
+			break;
+		
+		case INIT_STATUS::ICW2:
+		{
+			handleICW2(icw);
 
-		if (m_picInfo.singleMode)
+			if (m_picInfo.singleMode)
+				m_initStatus = m_picInfo.icw4Needed ? INIT_STATUS::ICW4 : INIT_STATUS::INITIALIZED;
+			else
+				m_initStatus = INIT_STATUS::ICW4;
+
+		} break;
+		
+		case INIT_STATUS::ICW3:
+			handleICW3(icw);
 			m_initStatus = m_picInfo.icw4Needed ? INIT_STATUS::ICW4 : INIT_STATUS::INITIALIZED;
-		else
-			m_initStatus = INIT_STATUS::ICW4;
-
-	} break;
-	
-	case INIT_STATUS::ICW3:
-		handleICW3(icw);
-		m_initStatus = m_picInfo.icw4Needed ? INIT_STATUS::ICW4 : INIT_STATUS::INITIALIZED;
-		break;
-	
-	case INIT_STATUS::ICW4:
-		handleICW4(icw);
-		m_initStatus = INIT_STATUS::INITIALIZED;
-		break;
+			break;
+		
+		case INIT_STATUS::ICW4:
+			handleICW4(icw);
+			m_initStatus = INIT_STATUS::INITIALIZED;
+			break;
 	}
 }
 
 void E5150::PIC::handleOCW1 (const uint8_t ocw1)
 { m_regs[IMR] = ocw1; }
 
+void E5150::PIC::nonSpecificEOI()
+{
+	unsigned int ISBitToReset;
+
+	for (size_t i = m_IRLineWithPriority0; m_priorities[i] <= 7; ++i)
+	{
+		if (m_regs[ISR] & (1 << i))
+			m_regs[ISR] &= ~(1 << i);
+	}
+}
+
+void E5150::PIC::specificEOI(const unsigned int IRLevelToBeActedUpon)
+{
+	unsigned int ISRBitsToClear = 0;
+
+	for (size_t i = 0; i < m_priorities.size(); ++i)
+	{
+		if (m_priorities[i] == IRLevelToBeActedUpon)
+			ISRBitsToClear |= (1 << i);
+	}
+	m_regs[ISR] &= ~(ISRBitsToClear);
+}
+
+static bool isRSet   (const uint8_t ocw2) { return ocw2 & (1 << 7); }
+static bool isSLSet  (const uint8_t ocw2) { return ocw2 & (1 << 6); }
+static bool isEOISet (const uint8_t ocw2) { return ocw2 & (1 << 5); }
+static unsigned int getIRLevel (const uint8_t ocw2) { return ocw2 & 0b111; }
+/**
+ * From intel manual for the 8259A:
+ *          7   6   5   4   3   2   1   0
+ * A0 = 0 | R | SL|EOI| 0 | 0 | L2| L1| L0| 
+ * 
+ *	  | R | SL|EOI|
+ *	  | 0 | 0 | 0 |	non specific EOI command				+--> end of interrupt
+ *	  | 0 | 1 | 1 |	specific EOI command					+
+ *	  | 1 | 0 | 1 |	rotate on non specific EOI command		+--> automatic rotation
+ *	  | 1 | 0 | 0 |	rotate in automatic EOI mode (set)		|
+ *	  | 0 | 0 | 0 |	rotate in automatic EOI mode (clear)	+
+ *	  | 1 | 1 | 1 |	rotate on specific EOI command			+--> specific rotation
+ *	  | 1 | 1 | 0 |	set priority command					+
+ *	  | 0 | 1 | 0 |	no operation
+ */
 void E5150::PIC::handleOCW2 (const uint8_t ocw2)
 {
-	//TODO: implement
+	const unsigned int IRLevelToBeActedUpon = getIRLevel(ocw2);
+	if (isRSet(ocw2))
+	{
+		throw std::runtime_error("ERROR: OCW2: R not implemented");
+	}
+	else
+	{
+		if (isEOISet(ocw2))
+		{
+			if (isSLSet(ocw2))
+				specificEOI(IRLevelToBeActedUpon);
+			else
+				nonSpecificEOI();
+		}
+		else
+		{
+			throw std::runtime_error("ERROR: OCW2: r eoi not implemented");
+		}
+	}
 }
 
 static bool isRISSet (const uint8_t ocw3) { return ocw3 & 0b1; }

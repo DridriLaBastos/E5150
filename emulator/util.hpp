@@ -10,4 +10,10 @@
 	#include "pch.hpp"
 #endif
 
+#ifdef DEBUG
+	#define ASSERT(x) assert(x)
+#else
+	#define ASSERT(x)
+#endif
+
 #endif
