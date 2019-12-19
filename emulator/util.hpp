@@ -10,10 +10,14 @@
 	#include "pch.hpp"
 #endif
 
+#include "config.hpp"
+
 #ifdef DEBUG
 	#define ASSERT(x) assert(x)
+	#define PAUSE  { std::string tmp; std::getline(std::cin, tmp); if (tmp == "q") exit(EXIT_SUCCESS); }
 #else
 	#define ASSERT(x)
+	#define PAUSE
 #endif
 
 #endif

@@ -548,20 +548,32 @@ void CPU::simulate()
 #if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 			printCurrentInstruction();
 #endif
+#ifdef STOP_AT_END
+			PAUSE
+#endif
 
 			if (!execNonControlTransferInstruction())
 				execControlTransferInstruction();
 		}
-#if defined(STOP_AT_END)
+#ifdef STOP_AT_END
 		else
 			std::cout << "CPU HALTED !" << std::endl;
-
-		if (std::cin.get() == 'q')
-			m_arch.stopSimulation();
 #endif
 	}
 	else
-		--m_clockCountDown;
+	{
+		#ifdef CLOCK_DEBUG
+			std::cout << "clock: " <<
+		#endif
+		m_clockCountDown--
+		#ifdef CLOCK_DEBUG
+			<< std::endl
+		#endif
+		;
+		#ifdef CLOCK_DEBUG
+			PAUSE
+		#endif
+	}
 
 	if (nmi)
 	{

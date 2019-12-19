@@ -1,6 +1,8 @@
 #ifndef PIC_HPP
 #define PIC_HPP
 
+#include "util.hpp"
+
 #include "8086.hpp"
 #include "ports.hpp"
 #include "component.hpp"

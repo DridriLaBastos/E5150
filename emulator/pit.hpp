@@ -1,8 +1,9 @@
 #ifndef PIT_HPP
 #define PIT_HPP
 
-#include "pic.hpp"
 #include "util.hpp"
+
+#include "pic.hpp"
 #include "component.hpp"
 
 namespace E5150

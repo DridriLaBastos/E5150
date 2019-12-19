@@ -50,14 +50,14 @@ void E5150::Arch::startSimulation()
 	{
 		while (_continue)
 		{
-	#ifndef STOP_AT_END
+	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			Clock::time_point start = Clock::now();
 			while (elapsed >= CPU_CLOCK_DURATION)
 			{
 	#endif
 				m_cpu.simulate();
 				m_pit.clock();
-	#ifndef STOP_AT_END
+	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 				elapsed -= CPU_CLOCK_DURATION;
 			}
 

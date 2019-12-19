@@ -57,19 +57,56 @@ void E5150::PIT::clock()
 
 void E5150::PIT::clockForCounter0()
 {
-	if (m_counters[0].gateValue == OUTPUT_VALUE::HIGH)
-	{
-		OUTPUT_VALUE oldOutPutValue = m_counters[0].outputValue;
-		m_counters[0].mode->clock();
+	OUTPUT_VALUE oldOutPutValue = m_counters[0].outputValue;
+	m_counters[0].mode->clock();
 
-		//Going from low to high
-		if ((m_counters[0].outputValue == OUTPUT_VALUE::HIGH) && (oldOutPutValue == OUTPUT_VALUE::LOW))
-			m_connectedPIC.assertInteruptLine(PIC::IR0);
-	}
+	//Going from low to high
+	if ((m_counters[0].outputValue == OUTPUT_VALUE::HIGH) && (oldOutPutValue == OUTPUT_VALUE::LOW))
+		m_connectedPIC.assertInteruptLine(PIC::IR0);
 }
 
 void E5150::PIT::clockForCounter1() {}
 void E5150::PIT::clockForCounter2() {}
+
+void E5150::PIT::writeCounter (const unsigned int counterIndex, const uint8_t data)
+{ m_counters[counterIndex].mode->writeOperation(data); }
+
+static bool isM0Set (const uint8_t controlWord) { return controlWord & 0b10; }
+static bool isM1Set (const uint8_t controlWord) { return controlWord & 0b100; }
+static bool isM2Set (const uint8_t controlWord) { return controlWord & 0b1000; }
+
+void E5150::PIT::setModeForCounter (const unsigned int counterIndex, const uint8_t controlWord)
+{
+	if (isM1Set(controlWord))
+	{
+		if (isM0Set(controlWord)) m_modes[3][counterIndex]->enable();
+		else m_modes[2][counterIndex]->enable();
+	}
+	else
+	{
+		if (isM2Set(controlWord))
+		{
+			if (isM0Set(controlWord)) m_modes[5][counterIndex]->enable();
+			else m_modes[2][counterIndex]->enable();
+		}
+		else
+		{
+			if (isM0Set(controlWord)) m_modes[1][counterIndex]->enable();
+			else m_modes[0][counterIndex]->enable();
+		}
+	}
+}
+
+static unsigned int extractRegisterNumber (const uint8_t controlWord) { return (controlWord & 0b11000000) >> 6; }
+
+void E5150::PIT::writeControlWord (const uint8_t controlWord)
+{
+	const unsigned int counterIndex = extractRegisterNumber(controlWord);
+
+	setModeForCounter(counterIndex, controlWord);
+	setOperationAccessForCounter(counterIndex, controlWord);
+	m_counters[counterIndex].codedBCD = controlWord & 0b1;
+}
 
 void E5150::PIT::write (const unsigned int address, const uint8_t data)
 {
@@ -81,9 +118,8 @@ void E5150::PIT::write (const unsigned int address, const uint8_t data)
 		writeCounter(localAddress, data);
 }
 
-void E5150::PIT::writeCounter (const unsigned int counterIndex, const uint8_t data)
-{ m_counters[counterIndex].mode->writeOperation(data); }
-
+//TODO: how does the IBM PC protect the counter from input clock while the read od the count value
+//isn't finished ?
 uint8_t E5150::PIT::applyPICReadAlgorithm (Counter& counter, const unsigned int value)
 {
 	switch (counter.readStatus)
@@ -137,43 +173,6 @@ uint8_t E5150::PIT::read (const unsigned int address)
 	}
 	
 	return ret;
-}
-
-static unsigned int extractRegisterNumber (const uint8_t controlWord) { return (controlWord & 0b11000000) >> 6; }
-
-void E5150::PIT::writeControlWord (const uint8_t controlWord)
-{
-	const unsigned int counterIndex = extractRegisterNumber(controlWord);
-
-	setModeForCounter(counterIndex, controlWord);
-	setOperationAccessForCounter(counterIndex, controlWord);
-	m_counters[counterIndex].codedBCD = controlWord & 0b1;
-}
-
-static bool isM0Set (const uint8_t controlWord) { return controlWord & 0b10; }
-static bool isM1Set (const uint8_t controlWord) { return controlWord & 0b100; }
-static bool isM2Set (const uint8_t controlWord) { return controlWord & 0b1000; }
-
-void E5150::PIT::setModeForCounter (const unsigned int counterIndex, const uint8_t controlWord)
-{
-	if (isM1Set(controlWord))
-	{
-		if (isM0Set(controlWord)) m_modes[3][counterIndex]->enable();
-		else m_modes[2][counterIndex]->enable();
-	}
-	else
-	{
-		if (isM2Set(controlWord))
-		{
-			if (isM0Set(controlWord)) m_modes[5][counterIndex]->enable();
-			else m_modes[2][counterIndex]->enable();
-		}
-		else
-		{
-			if (isM0Set(controlWord)) m_modes[1][counterIndex]->enable();
-			else m_modes[0][counterIndex]->enable();
-		}
-	}
 }
 
 static bool isRL0Set (const uint8_t controlWord) { return controlWord & 0b10000; }
@@ -233,15 +232,23 @@ void E5150::PIT::MODE0::actionOnEnable()
 	m_relatedCounter.isCounting = false;
 }
 
+//TODO: is it relevant to emulate the behaviour of the gate input ?
 void E5150::PIT::MODE0::clock()
 {
-	if (m_relatedCounter.outputValue == OUTPUT_VALUE::LOW)
+	if (m_relatedCounter.gateValue == OUTPUT_VALUE::HIGH)
 	{
-		if (m_relatedCounter.counterValue.word == 0)
-			m_relatedCounter.outputValue = OUTPUT_VALUE::HIGH;
-	}
+		if (m_relatedCounter.outputValue == OUTPUT_VALUE::LOW)
+		{
+			if (m_relatedCounter.counterValue.word == 0)
+				m_relatedCounter.outputValue = OUTPUT_VALUE::HIGH;
+		}
 
-	--m_relatedCounter.counterValue.word;
+		--m_relatedCounter.counterValue.word;
+	}
+	#ifdef CLOCK_DEBUG
+		std::cout << "gate low: clock has no effect" << std::endl;
+		PAUSE;
+	#endif
 }
 
 void E5150::PIT::MODE0::writeOperation(const uint8_t count)
