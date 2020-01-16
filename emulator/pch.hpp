@@ -8,6 +8,7 @@
 #include <vector>
 #include <fstream>
 #include <cstdint>
+#include <stdint.h>
 #include <iostream>
 #include <algorithm>
 #include <exception>

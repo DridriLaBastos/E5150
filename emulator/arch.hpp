@@ -6,6 +6,7 @@
 #include "pic.hpp"
 #include "pit.hpp"
 #include "ram.hpp"
+#include "dma.hpp"
 #include "8086.hpp"
 #include "ports.hpp"
 
@@ -17,7 +18,6 @@ namespace E5150
 			Arch(void);
 
 			void startSimulation(void);
-			void stopSimulation(void) const;
 			RAM& getRam(void);
 
 		private:
@@ -26,6 +26,7 @@ namespace E5150
 			CPU m_cpu;
 			PIC m_pic;
 			PIT m_pit;
+			DMA m_dma;
 	};
 }
 

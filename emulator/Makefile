@@ -5,7 +5,7 @@ PCHSRC = pch.hpp
 PCHOBJ = $(PCHSRC).pch
 CXX += -DBUILD
 CPPPCH_FLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)/emulator
-CPPFLAGS += -I$(PROJECT_DIR)/emulator -include $(PCHSRC) -DDEBUG
+CPPFLAGS += -I$(PROJECT_DIR)/emulator -include $(PCHSRC)
 CFLAGS = -Wno-switch -Ofast
 CXXFLAGS = $(CFLAGS)
 
@@ -14,7 +14,7 @@ PRODUCT = libibmpc.dylib
 .PHONY: clean mrproper cleanpch
 
 $(PRODUCT): $(PCHOBJ) $(CXXOBJ)
-	$(CXX) $(LDFLAGS) -dynamiclib -install_name @rpath/$(PRODUCT) -current_version 1.0.0 -lxed -lc++ -lSystem $(CXXOBJ) -o $@
+	$(CXX) $(LDFLAGS) -dynamiclib -install_name @rpath/$(PRODUCT) -rpath $(DEV)/lib -current_version 1.0.0 -lxed -lc++ -lSystem -lsfml-system $(CXXOBJ) -o $@
 
 $(PCHOBJ): $(PCHSRC)
 	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -x c++-header $^ -o $@

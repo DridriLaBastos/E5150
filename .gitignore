@@ -32,4 +32,6 @@
 *.app
 *.bin
 .vscode
+
+# macOS files
 .DS_Store
