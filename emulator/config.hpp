@@ -7,12 +7,13 @@
 	#define SEE_CURRENT_INST
 	#define SEE_REGS
 	#define SEE_FLAGS
-#endif
-
+#else
 //#define CLOCK_DEBUG
-#define STOP_AT_END
-#define SEE_CURRENT_INST
-#define SEE_REGS
-#define SEE_FLAGS
+//#define STOP_AT_END
+//#define SEE_CURRENT_INST
+//#define SEE_REGS
+//#define SEE_FLAGS
+
+#endif
 
 #endif

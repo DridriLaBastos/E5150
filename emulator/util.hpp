@@ -16,12 +16,12 @@
 	#define CLOCK_PAUSE
 #endif
 
-//I first implement this with a call to exit if q was enterred. But a call to exit
+//I first implemented this with a call to exit if q was enterred. But a call to exit
 //doesn't imply a call to the destructors and thus any heap allocated ressources isn't garrantied to be freed, so 
 //I rewrite this using exception even if enterring q is not really an exception. 
 #ifdef CLOCK_PAUSE
 	struct Exit: public std::exception
-	{ const char* what (void) const noexcept { return "Exit"; }	};
+	{ const char* what (void) const noexcept final { return "Exit"; } };
 
 	#define PAUSE { std::string tmp; std::getline(std::cin, tmp); if (tmp == "q") throw Exit(); }
 #else

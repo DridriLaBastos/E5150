@@ -7,7 +7,7 @@
 using Clock = std::chrono::system_clock;
 using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 
-constexpr unsigned int CLOCK_PER_BLOCKS = 1000;
+constexpr unsigned int CLOCK_PER_BLOCKS = 10000;
 static constexpr float I8284_CLOCKS_PER_SECOND = 4770000.f;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
 
@@ -75,8 +75,7 @@ void E5150::Arch::startSimulation()
 
 			while (clock.getElapsedTime() < TIME_PER_BLOCK);
 
-			const sf::Time elapsed = clock.restart();
-			elapsedSinceLastSecond += elapsed;
+			elapsedSinceLastSecond += clock.restart();
 	#endif
 		}
 	}
