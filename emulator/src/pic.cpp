@@ -6,7 +6,7 @@ unsigned int log2_2 (const unsigned int n)
 	return (n == 1) ? 0 : (1 + log2_2(n-1));
 }
 
-E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): m_connectedCPU(connectedCPU), m_initStatus(INIT_STATUS::UNINITIALIZED)
+E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): Component("PIC",1,1), m_connectedCPU(connectedCPU), m_initStatus(INIT_STATUS::UNINITIALIZED)
 {
 	PortInfos commandInfo;
 	commandInfo.portNum = 0x20;
@@ -49,11 +49,8 @@ void E5150::PIC::reInit()
 uint8_t E5150::PIC::readA0_0 () const { return m_regs[m_nextRegisterToRead]; }
 uint8_t E5150::PIC::readA0_1 () const { return m_regs[IMR]; }
 
-uint8_t E5150::PIC::read(const unsigned int address)
-{
-	const unsigned int localAddress = address & 0b1;
-	return localAddress ? readA0_1() : readA0_0();
-}
+uint8_t E5150::PIC::read(const unsigned int localAddress)
+{ return localAddress ? readA0_1() : readA0_0(); }
 
 static bool isICW1 (const uint8_t icw) { return icw & 0b10000; }
 static bool isOCW3 (const uint8_t ocw) { return ocw & 0b1000; }

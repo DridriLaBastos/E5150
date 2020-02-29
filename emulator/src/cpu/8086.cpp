@@ -557,7 +557,10 @@ void CPU::simulate()
 		}
 #ifdef STOP_AT_END
 		else
+		{
 			std::cout << "CPU HALTED !" << std::endl;
+			PAUSE
+		}
 #endif
 	}
 	else
@@ -570,9 +573,6 @@ void CPU::simulate()
 			<< std::endl
 		#endif
 		;
-		#ifdef CLOCK_DEBUG
-			PAUSE
-		#endif
 	}
 
 	if (nmi)

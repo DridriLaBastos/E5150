@@ -1,6 +1,6 @@
 #include "pit.hpp"
 
-E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): m_connectedPIC(connectedPIC)
+E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",2,2), m_connectedPIC(connectedPIC)
 {
 	for (Counter& c: m_counters)
 	{
@@ -108,9 +108,8 @@ void E5150::PIT::writeControlWord (const uint8_t controlWord)
 	m_counters[counterIndex].codedBCD = controlWord & 0b1;
 }
 
-void E5150::PIT::write (const unsigned int address, const uint8_t data)
+void E5150::PIT::write (const unsigned int localAddress, const uint8_t data)
 {
-	const unsigned int localAddress = address & 0b11;
 
 	if (localAddress == 0b11)
 		writeControlWord(data);
@@ -161,14 +160,13 @@ uint8_t E5150::PIT::readCounterLatchedValue (Counter& counter)
 uint8_t E5150::PIT::readCounterDirectValue (Counter& counter)
 { return applyPICReadAlgorithm(counter, counter.counterValue.word); }
 
-uint8_t E5150::PIT::read (const unsigned int address)
+uint8_t E5150::PIT::read (const unsigned int localAddress)
 {
-	const unsigned int localAddress = address & 0b11;
 	uint8_t ret = 0;
 
 	if (localAddress != 0b11)
 	{
-		Counter& counter = m_counters[address];
+		Counter& counter = m_counters[localAddress];
 		ret = (counter.latchedValueIsAvailable) ? readCounterLatchedValue(counter) : readCounterDirectValue(counter);
 	}
 	

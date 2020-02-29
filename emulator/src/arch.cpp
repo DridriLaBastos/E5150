@@ -19,7 +19,7 @@ static void stop(const int)
 	std::cout << "Simulation stopped !" << std::endl;
 }
 
-E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic)
+E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
 {
 	std::cout << "Welcome to E5150, the emulator of an IBM PC 5150" << std::endl;
 	std::cout << "This program use the library Intel XED to decode the instructions" << std::endl;
@@ -58,7 +58,6 @@ void E5150::Arch::startSimulation()
 	#endif
 				m_cpu.simulate();
 				m_pit.clock();
-				m_dma.clock();
 	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			}
 			const sf::Time blockDuration = clock.getElapsedTime();
@@ -66,9 +65,9 @@ void E5150::Arch::startSimulation()
 
 			if (elapsedSinceLastSecond >= sf::seconds(1.f))
 			{
-				std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
-				std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
-				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
+				//std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
+				//std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
+				//std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
 				blockCount = 0;
 				elapsedSinceLastSecond = sf::Time::Zero;
 			}

@@ -20,4 +20,6 @@ extern "C"
 	#include "xed/xed-operand-visibility-enum.h"
 }
 
+#include "component.hpp"
+
 #endif

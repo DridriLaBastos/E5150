@@ -14,14 +14,16 @@ namespace E5150
 			PIT(PORTS& ports, PIC& connectedPIC);
 
 		public:
-			virtual uint8_t read (const unsigned int address) final;
-			virtual void write (const unsigned int address, const uint8_t data) final;
 			void clock (void);
 		
 			enum class COUNTER
 			{ COUNTER0 = 0, COUNTER1, COUNTER2 };
 
 			void toggleGateFor(const COUNTER counterNUmber);
+		
+		protected:
+			virtual uint8_t read (const unsigned int localAddress) final;
+			virtual void write (const unsigned int localAddress, const uint8_t data) final;
 		
 		private:
 			enum class ACCESS_OPERATION

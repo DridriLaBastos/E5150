@@ -7,7 +7,7 @@ uint8_t PORTS::read (const uint16_t port_number) const
 	auto found = m_portDevices.find(toFind);
 
 	if (found != m_portDevices.end())
-		return found->component->read(port_number);
+		return found->component->readFromComponent(port_number);
 	
 	return 0;
 }
@@ -18,7 +18,7 @@ void PORTS::write(const uint16_t port_number, const uint8_t data)
 	auto found = m_portDevices.find(toFind);
 
 	if (found != m_portDevices.end())
-		found->component->write(port_number,data);
+		found->component->writeToComponent(port_number,data);
 }
 
 void PORTS::connect (const PortInfos& portInfos)

@@ -3,11 +3,15 @@ CXXOBJ = $(CXXSRC:.cpp=.o)
 CPUSRC = $(wildcard src/cpu/*.cpp)
 PCHSRC = pch.hpp
 PCHOBJ = $(PCHSRC).pch
-CXX += -DBUILD
+CPPFLAGS += -DBUILD
 CPPPCH_FLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)/emulator
 CPPFLAGS += -I$(PROJECT_DIR)/emulator -include $(PCHSRC)
-CFLAGS = -Wno-switch -Ofast
+CFLAGS = -Wno-switch
 CXXFLAGS = $(CFLAGS)
+
+ifneq ($(DEBUG),1)
+	CFLAGS += -Ofast
+endif
 
 PRODUCT = libibmpc.dylib
 

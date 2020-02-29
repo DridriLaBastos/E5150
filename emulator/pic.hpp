@@ -28,13 +28,13 @@ namespace E5150
 			};
 		
 		public:
-			virtual void write		(const unsigned int address, const uint8_t data) final;
-			virtual uint8_t read	(const unsigned int address) final;
-
 			void assertInteruptLine (const INTERRUPT_LINE irLine);
 		
+		protected:
+			virtual void write		(const unsigned int localAddress, const uint8_t data) final;
+			virtual uint8_t read	(const unsigned int localAddress) final;
+		
 		private:
-
 			uint8_t readA0_0 (void) const;
 			uint8_t readA0_1 (void) const;
 

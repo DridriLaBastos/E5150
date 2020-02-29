@@ -26,7 +26,7 @@ default_int:
 .end:
 
 init_start:
-mov ax, 0b10010
+mov ax, 0b10011
 out 0x20, al
 out 0x21, al
 out 0x21, al
