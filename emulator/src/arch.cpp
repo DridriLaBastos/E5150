@@ -43,7 +43,6 @@ void E5150::Arch::startSimulation()
 {
 #ifndef STOP_AT_END
 	sf::Clock clock;
-	sf::Time elapsedSinceLastClock = sf::Time::Zero;
 	sf::Time elapsedSinceLastSecond = sf::Time::Zero;
 	unsigned int blockCount = 0;
 #endif
@@ -54,20 +53,25 @@ void E5150::Arch::startSimulation()
 		{
 	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
-			for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i) {
+			//The next block is launch if we have enougth time (we can run at less clock than specified but not more)
+			if ((blockCount+1)*CLOCK_PER_BLOCKS <= I8284_CLOCKS_PER_SECOND)
+			{
+				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
+				{
 	#endif
-				m_cpu.simulate();
-				m_pit.clock();
+					m_cpu.simulate();
+					m_pit.clock();
 	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
+				}
+				++blockCount;
 			}
 			const sf::Time blockDuration = clock.getElapsedTime();
-			++blockCount;
 
 			if (elapsedSinceLastSecond >= sf::seconds(1.f))
 			{
-				//std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
-				//std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
-				//std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
+				std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
+				std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
+				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
 				blockCount = 0;
 				elapsedSinceLastSecond = sf::Time::Zero;
 			}
