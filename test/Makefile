@@ -3,18 +3,19 @@ ASSRC  = $(wildcard *.s)
 ASOBJ  = $(ASSRC:.s=.bin)
 PRODUCT = test.out
 CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)/emulator
+LDFLAGS  := $(LDFLAGS) -L../emulator
+DYLD_LIBRARY_PATH := $(DYLD_LIBRARY_PATH):../emulator
 
-all: asm $(PRODUCT)
+.PHONY: mrproper clean run
 
-$(PRODUCT): $(CXXSRC)
-	$(CXX) $(CPPFLAGS) $(LDFLAGS) -libmpc $^ -o $@
-
-asm: $(ASOBJ)
+$(PRODUCT): $(CXXSRC) $(ASOBJ)
+	$(CXX) $(CPPFLAGS) $(LDFLAGS) -libmpc $(CXXSRC) -o $@
 
 %.bin: %.s
 	nasm -f bin $^ -o $@
 
-.PHONY: mrproper clean
+run:
+	@./$(PRODUCT)
 
 clean:
 	rm $(ASOBJ) $(CXXOBJ)

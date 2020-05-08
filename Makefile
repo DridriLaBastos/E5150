@@ -17,7 +17,7 @@ test:
 	$(MAKE) -C $@
 
 run:
-	@cd test; ./test.out
+	$(MAKE) -C test $@
 
 clean:
 	$(MAKE) -C emulator $@
