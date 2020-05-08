@@ -18,7 +18,7 @@ PRODUCT = libibmpc.dylib
 .PHONY: clean mrproper cleanpch
 
 $(PRODUCT): $(PCHOBJ) $(CXXOBJ)
-	$(CXX) $(LDFLAGS) -dynamiclib -install_name @rpath/$(PRODUCT) -rpath $(DEV)/lib -current_version 1.0.0 -lxed -lc++ -lSystem -lsfml-system $(CXXOBJ) -o $@
+	$(CXX) $(LDFLAGS) -dynamiclib -install_name $(PRODUCT) -current_version 1.0.0 -lxed -lsfml-system $(CXXOBJ) -o $@
 
 $(PCHOBJ): $(PCHSRC)
 	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -x c++-header $^ -o $@

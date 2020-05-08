@@ -34,12 +34,12 @@ namespace E5150
 			const unsigned int m_writeBusSize;
 			const unsigned int m_readBusSize;
 		
+			const std::string m_name;
+			
 		protected:
 			virtual void write		(const unsigned int localAddress, const uint8_t data) = 0;
 			virtual uint8_t read	(const unsigned int localAddress) = 0;
-		
-		private:
-			std::string m_name;
+
 	};
 }
 

@@ -1,3 +1,4 @@
+#include "log.hpp"
 #include "arch.hpp"
 
 /* Exemple de fonctionnement */

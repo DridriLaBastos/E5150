@@ -2,11 +2,12 @@ CXXSRC = main.cpp
 ASSRC  = $(wildcard *.s)
 ASOBJ  = $(ASSRC:.s=.bin)
 PRODUCT = test.out
+CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)/emulator
 
 all: asm $(PRODUCT)
 
 $(PRODUCT): $(CXXSRC)
-	$(CXX) $(CPPFLAGS) -I$(PROJECT_DIR)/emulator -L$(PROJECT_DIR)/emulator -rpath $(PROJECT_DIR)/emulator -libmpc $^ -o $@
+	$(CXX) $(CPPFLAGS) $(LDFLAGS) -libmpc $^ -o $@
 
 asm: $(ASOBJ)
 
