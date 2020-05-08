@@ -3,6 +3,7 @@
 #include <SFML/System/Clock.hpp>
 
 #include "arch.hpp"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 using Clock = std::chrono::system_clock;
 using FloatMicroDuration = std::chrono::duration<float, std::micro>;
@@ -21,12 +22,13 @@ static void stop(const int)
 
 E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
 {
-	std::cout << "Welcome to E5150, the emulator of an IBM PC 5150" << std::endl;
-	std::cout << "This program use the library Intel XED to decode the instructions" << std::endl;
-	std::cout << "This library is accessible at : https://intelxed.github.io" << std::endl;
-	std::cout << "xed version : " << xed_get_version() << std::endl << std::endl;
+	spdlog::set_level(spdlog::level::debug);
+	spdlog::info("Welcome to E5150, the emulator of an IBM PC 5150");
+	spdlog::info("This program use the library Intel XED to decode the instructions");
+	spdlog::info("This library is accessible at : https://intelxed.github.io");
+	spdlog::info("xed version : {} \n",xed_get_version());
 
-	std::cout << "Duration for " << CLOCK_PER_BLOCKS << " blocks: " << TIME_PER_BLOCK.asMicroseconds() << "us\n";
+	spdlog::debug("Duration for {} blocks: {}us", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMicroseconds());
 
 	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);

@@ -3,8 +3,11 @@ CXXOBJ = $(CXXSRC:.cpp=.o)
 CPUSRC = $(wildcard src/cpu/*.cpp)
 PCHSRC = pch.hpp
 PCHOBJ = $(PCHSRC).pch
-CPPPCH_FLAGS := $(CPPFLAGS) -DBUILD -I$(PROJECT_DIR)/emulator
-CPPFLAGS := $(CPPFLAGS) -DBUILD -I$(PROJECT_DIR)/emulator -include $(PCHSRC)
+
+SPDLOG_INCLUDE = third-party/spdlog/include
+
+CPPPCH_FLAGS := $(CPPFLAGS) -DBUILD -I$(PROJECT_DIR)/emulator -I$(SPDLOG_INCLUDE)
+CPPFLAGS := $(CPPFLAGS) -DBUILD -I. -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
 CFLAGS = -Wno-switch
 CXXFLAGS = $(CFLAGS)
 
