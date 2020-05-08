@@ -21,5 +21,6 @@ extern "C"
 }
 
 #include "component.hpp"
+#include "third-party/spdlog/include/spdlog/spdlog.h"
 
 #endif
