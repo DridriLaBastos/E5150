@@ -1,6 +1,6 @@
 #include "pit.hpp"
 
-E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",2,2), m_connectedPIC(connectedPIC)
+E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",0b11,0b11), m_connectedPIC(connectedPIC)
 {
 	for (Counter& c: m_counters)
 	{
@@ -110,7 +110,6 @@ void E5150::PIT::writeControlWord (const uint8_t controlWord)
 
 void E5150::PIT::write (const unsigned int localAddress, const uint8_t data)
 {
-
 	if (localAddress == 0b11)
 		writeControlWord(data);
 	else

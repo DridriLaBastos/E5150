@@ -2,7 +2,8 @@
 
 namespace E5150
 {
-	PPI::PPI(PORTS& ports): Component("PPI", 2,2)
+	//TODO: change those values
+	PPI::PPI(PORTS& ports): Component("PPI", 0b11,0b11)
 	{
 		PortInfos info0x60;
 		info0x60.component	= this;
@@ -26,13 +27,11 @@ namespace E5150
 		ports.connect(info0x63);
 	}
 
-	void PPI::write(const unsigned int addr, const uint8_t data)
+	void PPI::write(const unsigned int localAddress, const uint8_t data)
 	{
-		const unsigned int localAddr = addr & 0b11;
 	}
 
 	uint8_t PPI::read (const unsigned int addr)
 	{
-		const unsigned int localAddr = addr & 0b11;
 	}
 }

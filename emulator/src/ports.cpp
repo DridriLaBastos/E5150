@@ -1,6 +1,8 @@
 #include "ports.hpp"
 #include "component.hpp"
 
+static bool operator< (const PortInfos& left, const PortInfos& right) { return left.portNum < right.portNum; }
+
 uint8_t PORTS::read (const uint16_t port_number) const 
 {
 	PortInfos toFind; toFind.portNum = port_number;
@@ -23,5 +25,3 @@ void PORTS::write(const uint16_t port_number, const uint8_t data)
 
 void PORTS::connect (const PortInfos& portInfos)
 { m_portDevices.emplace(portInfos); }
-
-static bool operator< (const PortInfos& left, const PortInfos& right) { return left.portNum < right.portNum; }

@@ -80,10 +80,8 @@ void E5150::PIC::writeA0_1 (const uint8_t data)
 		handleOCW1(data);
 }
 
-void E5150::PIC::write(const unsigned int address, const uint8_t data)
+void E5150::PIC::write(const unsigned int localAddress, const uint8_t data)
 {
-	const unsigned int localAddress = address & 0b1;
-
 	if (localAddress == 0)
 		writeA0_0(data);
 	else

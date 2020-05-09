@@ -9,12 +9,12 @@ namespace E5150
 	class Component
 	{
 		public:
-			Component (const std::string& name, const unsigned int writeBusSize, const unsigned int readBusSize):
-				m_writeBusSize(writeBusSize), m_readBusSize(readBusSize), m_name(name) {}
+			Component (const std::string& name, const unsigned int writeBusMask, const unsigned int readBusMask):
+				m_writeBusMask(writeBusMask), m_readBusMask(readBusMask), m_name(name) {}
 
 			void writeToComponent (const unsigned int address, const uint8_t data)
 			{
-				const unsigned int localAddress = address & m_writeBusSize;
+				const unsigned int localAddress = address & m_writeBusMask;
 				#ifdef DEBUG_BUILD
 					DEBUG("W ({}): {:#x} --> {:#x} (local: {:#b})",m_name,(unsigned)data,address,localAddress);
 				#endif
@@ -23,7 +23,7 @@ namespace E5150
 
 			uint8_t readFromComponent (const unsigned int address)
 			{
-				const unsigned int localAddress = address & m_readBusSize;
+				const unsigned int localAddress = address & m_readBusMask;
 				const uint8_t readData = read(localAddress);
 				#ifdef DEBUG_BUILD
 					DEBUG("R ({}): {:#x} <-- {:#x}(local: {:#b})",m_name,(unsigned)readData,address,localAddress);
@@ -31,8 +31,8 @@ namespace E5150
 				return readData;
 			}
 
-			const unsigned int m_writeBusSize;
-			const unsigned int m_readBusSize;
+			const unsigned int m_writeBusMask;
+			const unsigned int m_readBusMask;
 		
 			const std::string m_name;
 			
