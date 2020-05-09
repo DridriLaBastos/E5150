@@ -19,16 +19,16 @@ PRODUCT = libibmpc.dylib
 
 .PHONY: clean mrproper cleanpch
 
-$(PRODUCT): $(PCHOBJ) $(CXXOBJ)
+$(PRODUCT): $(CXXOBJ)
 	$(CXX) $(LDFLAGS) -dynamiclib -install_name $(PRODUCT) -current_version 1.0.0 -lxed -lsfml-system $(CXXOBJ) -o $@
 
-$(PCHOBJ): $(PCHSRC) component.hpp
+$(PCHOBJ): $(PCHSRC) util.hpp config.hpp
 	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -x c++-header $(PCHSRC) -arch x86_64 -o $@
 
-%.o:%.cpp util.hpp config.hpp
+%.o:%.cpp $(PCHOBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-src/cpu.o: src/cpu.cpp $(CPUSRC) util.hpp config.hpp
+src/cpu.o: src/cpu.cpp $(CPUSRC) $(PCHOBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 clean:

@@ -38,8 +38,8 @@ void RAM::load (const std::string path, size_t pos)
 
 	if (!stream.is_open())
 	{
-		std::cerr << "ERROR when openning " << path << std::endl;
-		std::cerr << "      file not loaded" << std::endl;
+		ERROR("ERROR when openning '{}'",path);
+		ERROR("      file not loaded");
 	}
 	else
 	{

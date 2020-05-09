@@ -2,6 +2,7 @@
 #define PPI_HPP
 
 #include "util.hpp"
+#include "component.hpp"
 
 namespace E5150
 {

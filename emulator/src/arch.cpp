@@ -17,18 +17,18 @@ bool E5150::Util::_continue = true;
 static void stop(const int signum)
 {
 	E5150::Util::_continue = false;
-	spdlog::info("Simulation stopped by signal {}", signum);
+	INFO("Simulation stopped by signal {}", signum);
 }
 
 E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
 {
 	spdlog::set_level(spdlog::level::debug);
-	spdlog::info("Welcome to E5150, the emulator of an IBM PC 5150");
-	spdlog::info("This program use the library Intel XED to decode the instructions");
-	spdlog::info("This library is accessible at : https://intelxed.github.io");
-	spdlog::info("xed version : {} \n",xed_get_version());
+	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
+	INFO("This program use the library Intel XED to decode the instructions");
+	INFO("This library is accessible at : https://intelxed.github.io");
+	INFO("xed version : {} \n",xed_get_version());
 
-	spdlog::debug("Duration for {} blocks: {}us", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMicroseconds());
+	DEBUG("Duration for {} blocks: {}us", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMicroseconds());
 
 	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
@@ -85,5 +85,5 @@ void E5150::Arch::startSimulation()
 		}
 	}
 	catch (const std::exception& e)
-	{ spdlog::error(e.what()); }
+	{ ERROR(e.what()); }
 }

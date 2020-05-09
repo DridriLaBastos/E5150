@@ -73,7 +73,7 @@ void E5150::PIC::writeA0_0 (const uint8_t data)
 
 void E5150::PIC::writeA0_1 (const uint8_t data)
 {
-	spdlog::debug("Write to the PIC with A0 = 1");
+	DEBUG("Write to the PIC with A0 = 1");
 	if (m_initStatus != INIT_STATUS::INITIALIZED)
 		handleInitSequence(data);
 	else

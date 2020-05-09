@@ -8,10 +8,14 @@ namespace E5150
 {
 	struct  Util
 	{ static bool _continue; };
-	
 }
 
-#if defined(DEBUG) || defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+#define DEBUG(...)		spdlog::debug(__VA_ARGS__)
+#define INFO(...)		spdlog::info(__VA_ARGS__)
+#define WARNING(...)	spdlog::warning(__VA_ARGS__)
+#define ERROR(...)		spdlog::error(__VA_ARGS__)
+
+#if defined(DEBUG_BUILD) || defined(STOP_AT_END) || defined(CLOCK_DEBUG)
 	#define CLOCK_PAUSE
 #endif
 

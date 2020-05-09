@@ -15,8 +15,8 @@ namespace E5150
 			void writeToComponent (const unsigned int address, const uint8_t data)
 			{
 				const unsigned int localAddress = address & m_writeBusSize;
-				#ifdef DEBUG
-					std::cout << "W (" << m_name << "): " << std::showbase << std::hex << (unsigned)data << " --> " << localAddress << "(" << address << ")" << std::noshowbase << std::dec << std::endl;
+				#ifdef DEBUG_BUILD
+					DEBUG("W ({}): {:#x} --> {:#x} (local: {:#b})",m_name,(unsigned)data,address,localAddress);
 				#endif
 				write(localAddress, data);
 			}
@@ -25,8 +25,8 @@ namespace E5150
 			{
 				const unsigned int localAddress = address & m_readBusSize;
 				const uint8_t readData = read(localAddress);
-				#ifdef DEBUG
-					std::cout << "R (" << m_name << "): " << std::showbase << std::hex << (unsigned)readData << " <--  " << localAddress << "(" << address << ")" << std::noshowbase << std::dec << std::endl;
+				#ifdef DEBUG_BUILD
+					DEBUG("R ({}): {:#x} <-- {:#x}(local: {:#b})",m_name,(unsigned)readData,address,localAddress);
 				#endif
 				return readData;
 			}
