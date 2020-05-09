@@ -86,4 +86,5 @@ void E5150::Arch::startSimulation()
 	}
 	catch (const std::exception& e)
 	{ ERROR(e.what()); }
+	INFO("Simulation quit !");
 }

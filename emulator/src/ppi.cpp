@@ -3,7 +3,7 @@
 namespace E5150
 {
 	//TODO: change those values
-	PPI::PPI(PORTS& ports): Component("PPI", 0b11,0b11)
+	PPI::PPI(PORTS& ports): Component("PPI", 0b11)
 	{
 		PortInfos info0x60;
 		info0x60.component	= this;

@@ -1,6 +1,6 @@
 #include "pit.hpp"
 
-E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",0b11,0b11), m_connectedPIC(connectedPIC)
+E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",0b11), m_connectedPIC(connectedPIC)
 {
 	for (Counter& c: m_counters)
 	{
