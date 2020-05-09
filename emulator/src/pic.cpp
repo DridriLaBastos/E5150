@@ -73,7 +73,7 @@ void E5150::PIC::writeA0_0 (const uint8_t data)
 
 void E5150::PIC::writeA0_1 (const uint8_t data)
 {
-	std::cout << "Write to the PIC with A0 = 1" << std::endl;
+	spdlog::debug("Write to the PIC with A0 = 1");
 	if (m_initStatus != INIT_STATUS::INITIALIZED)
 		handleInitSequence(data);
 	else
@@ -123,7 +123,7 @@ void E5150::PIC::assertInteruptLine(const E5150::PIC::INTERRUPT_LINE irLine)
 		{
 			if (!m_picInfo.specialFullyNestedMode)
 			{
-				throw std::runtime_error("ERROR: E5150::PIC::assertInteruptLine(): other mode than fully nested not implemented");
+				throw std::runtime_error("E5150::PIC::assertInteruptLine(): other mode than fully nested not implemented");
 			}
 			else
 				interruptInFullyNestedMode(log2_2(irLine));
@@ -140,7 +140,7 @@ void E5150::PIC::handleICW1 (const uint8_t icw1)
 {
 	//TODO: remove this
 	if (!isICW4Needed(icw1))
-		throw std::logic_error("ERROR: ICW1: ICW4 is needed to put the PIC in 8086/8088 mode because the IBM PC use an intel 8088");
+		throw std::logic_error("ICW1: ICW4 is needed to put the PIC in 8086/8088 mode because the IBM PC use an intel 8088");
 	m_picInfo.icw4Needed = true;
 	m_picInfo.singleMode = isInSingleMode(icw1);
 	m_picInfo.addressInterval4 = isAddressCallIntervalOf4(icw1);
@@ -261,7 +261,7 @@ void E5150::PIC::handleOCW2 (const uint8_t ocw2)
 	const unsigned int IRLevelToBeActedUpon = getIRLevel(ocw2);
 	if (isRSet(ocw2))
 	{
-		throw std::runtime_error("ERROR: OCW2: R not implemented");
+		throw std::runtime_error("OCW2: R not implemented");
 	}
 	else
 	{
@@ -274,7 +274,7 @@ void E5150::PIC::handleOCW2 (const uint8_t ocw2)
 		}
 		else
 		{
-			throw std::runtime_error("ERROR: OCW2: r eoi not implemented");
+			throw std::runtime_error("OCW2: r eoi not implemented");
 		}
 	}
 }

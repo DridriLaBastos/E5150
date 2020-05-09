@@ -3,7 +3,7 @@
 #include <SFML/System/Clock.hpp>
 
 #include "arch.hpp"
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include "util.hpp"
 
 using Clock = std::chrono::system_clock;
 using FloatMicroDuration = std::chrono::duration<float, std::micro>;
@@ -12,12 +12,12 @@ constexpr unsigned int CLOCK_PER_BLOCKS = 10000;
 static constexpr float I8284_CLOCKS_PER_SECOND = 4770000.f;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
 
-static bool _continue = true;
+bool E5150::Util::_continue = true;
 
-static void stop(const int)
+static void stop(const int signum)
 {
-	_continue = false;
-	std::cout << "Simulation stopped !" << std::endl;
+	E5150::Util::_continue = false;
+	spdlog::info("Simulation stopped by signal {}", signum);
 }
 
 E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
@@ -51,7 +51,7 @@ void E5150::Arch::startSimulation()
 
 	try
 	{
-		while (_continue)
+		while (Util::_continue)
 		{
 	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
@@ -85,8 +85,5 @@ void E5150::Arch::startSimulation()
 		}
 	}
 	catch (const std::exception& e)
-	{
-		std::cout << e << std::endl;
-		stop(0);
-	}
+	{ spdlog::error(e.what()); }
 }

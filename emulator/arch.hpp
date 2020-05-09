@@ -1,8 +1,6 @@
 #ifndef ARCH_HPP
 #define ARCH_HPP
 
-#include "util.hpp"
-
 #include "pic.hpp"
 #include "pit.hpp"
 #include "ram.hpp"
