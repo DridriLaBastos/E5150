@@ -22,7 +22,6 @@ static void stop(const int signum)
 
 E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
 {
-	spdlog::set_level(spdlog::level::debug);
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	INFO("This program use the library Intel XED to decode the instructions");
 	INFO("This library is accessible at : https://intelxed.github.io");

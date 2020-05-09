@@ -1,9 +1,11 @@
-#include "log.hpp"
 #include "arch.hpp"
 
 /* Exemple de fonctionnement */
 int main (void)
 {
+#ifdef DEBUG_BUILD
+	spdlog::set_level(spdlog::level::debug);
+#endif
 	E5150::Arch arch;
 
 	//Loading bochs BIOS

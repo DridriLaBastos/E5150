@@ -10,10 +10,11 @@ namespace E5150
 	{ static bool _continue; };
 }
 
-#ifdef BUILD_DEBUG
+#ifdef DEBUG_BUILD
 	#define DEBUG(...)		spdlog::debug(__VA_ARGS__)
 #else
 	#define DEBUG(...)
+	#warning "not debuging"
 #endif
 #define INFO(...)		spdlog::info(__VA_ARGS__)
 #define WARNING(...)	spdlog::warning(__VA_ARGS__)

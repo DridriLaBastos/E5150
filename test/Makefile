@@ -2,7 +2,7 @@ CXXSRC = main.cpp
 ASSRC  = $(wildcard *.s)
 ASOBJ  = $(ASSRC:.s=.bin)
 PRODUCT = test.out
-CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)/emulator
+CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)/emulator -I../emulator/third-party/spdlog/include
 LDFLAGS  := $(LDFLAGS) -L../emulator
 DYLD_LIBRARY_PATH := $(DYLD_LIBRARY_PATH):../emulator
 

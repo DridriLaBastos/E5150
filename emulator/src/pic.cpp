@@ -6,7 +6,7 @@ unsigned int log2_2 (const unsigned int n)
 	return (n == 1) ? 0 : (1 + log2_2(n-1));
 }
 
-E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): Component("PIC",1,1), m_connectedCPU(connectedCPU), m_initStatus(INIT_STATUS::UNINITIALIZED)
+E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): Component("PIC",0b1), m_connectedCPU(connectedCPU), m_initStatus(INIT_STATUS::UNINITIALIZED)
 {
 	PortInfos commandInfo;
 	commandInfo.portNum = 0x20;
