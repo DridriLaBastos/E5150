@@ -10,9 +10,9 @@ int main (void)
 
 	//Loading bochs BIOS
 	//arch.getRam().load("/Users/adrien/dev/share/bochs/BIOS-bochs-legacy", 0xF0000);
-	arch.getRam().load("jmp.bin", 0xFFFF0);
-	arch.getRam().load("bios.bin", 0xE0000);
-	arch.getRam().load("test.bin", 0x1000);
+	arch.getRam().load("test/jmp.bin", 0xFFFF0);
+	arch.getRam().load("test/bios.bin", 0xE0000);
+	arch.getRam().load("test/test.bin", 0x1000);
 
 	arch.startSimulation();
 

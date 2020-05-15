@@ -1,29 +1,56 @@
-export MACOSX_VERSION_MIN = 10.10
-export PROJECT_DIR = $(PWD)
-export CXX = clang++ -std=c++11 -mmacosx-version-min=$(MACOSX_VERSION_MIN)
-export DEBUG = 1
+CXXSRC = $(wildcard src/*.cpp) main.cpp
+CXXOBJ = $(CXXSRC:.cpp=.o)
+CPUSRC = $(wildcard src/cpu/*.cpp)
+PCHSRC = include/pch.hpp
+PCHOBJ = $(PCHSRC).pch
+ASMSRC = $(wildcard test/*.s)
+ASMOBJ = $(ASMSRC:.s=.bin)
 
-ifeq ($(DEBUG), 1)
-	CPPFLAGS += -DDEBUG_BUILD
+CXX := $(CXX) --std=c++11
+
+OBJ = $(CXXOBJ)
+SPDLOG_INCLUDE = third-party/spdlog/include
+
+CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
+CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
+CXXFLAGS = -Wextra -Wall -Wno-switch 
+
+ifneq ($(DEBUG),1)
+	CXXFLAGS += -Ofast
 endif
 
-.PHONY: clean cleantest mrproper test emulator run
+PRODUCT = epc.out
 
-emulator:
-	$(MAKE) -C $@
+.PHONY: clean mrproper cleanpch asm run
 
-test:
-	$(MAKE) -C $@
+$(PRODUCT): $(OBJ)
+	$(CXX) $(LDFLAGS) -lxed -lsfml-system $^ -o $@
+
+asm: $(ASMOBJ)
+
+$(PCHOBJ): $(PCHSRC) include/util.hpp include/config.hpp
+	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -x c++-header -arch x86_64 $(PCHSRC) -o $@
+
+%.o:%.cpp $(PCHOBJ)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+%.bin: %.s
+	nasm -f bin $^ -o $@
+
+src/cpu.o: src/cpu.cpp $(CPUSRC) $(PCHOBJ)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+src/main.o: src/main.cpp $(ASMOBJ) $(PCHOBJ)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 run:
-	$(MAKE) -C test $@
+	@./$(PRODUCT)
 
 clean:
-	$(MAKE) -C emulator $@
-
-cleantest:
-	$(MAKE) -C test clean
-	$(MAKE) -C test mrproper
+	rm $(CXXOBJ) $(ASMOBJ)
 
 mrproper:
-	$(MAKE) -C emulator $@
+	rm $(PRODUCT)
+
+cleanpch:
+	rm $(PCHOBJ)

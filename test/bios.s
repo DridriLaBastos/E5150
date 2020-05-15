@@ -2,30 +2,7 @@
 
 %define STARTUP_JUMP 0x1000
 
-jmp init_start
-
-int_0:
-	call default_int
-	iret
-.end:
-
-int_1:
-	call default_int
-	iret
-.end:
-
-int_2:
-	call default_int
-	iret
-.end:
-
-default_int:
-	mov ax, 0xCAFE
-	mov bx, 0xBABE
-	ret
-.end:
-
-init_start:
+section .text
 mov ax, 0b10011
 out 0x20, al
 out 0x21, al
@@ -52,3 +29,26 @@ mov ax, cs
 mov word [10], ax
 sti
 jmp 0x100:0
+
+section interrupts follows=.text
+
+int_0:
+	call default_int
+	iret
+.end:
+
+int_1:
+	call default_int
+	iret
+.end:
+
+int_2:
+	call default_int
+	iret
+.end:
+
+default_int:
+	mov ax, 0xCAFE
+	mov bx, 0xBABE
+	ret
+.end:
