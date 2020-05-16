@@ -10,11 +10,13 @@ E5150::PIT::MODE5 E5150::PIT::mode5;
 
 E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",0b11), m_connectedPIC(connectedPIC)
 {
-	for (Counter& c: m_counters)
+	for (size_t i = 0; i < m_counters.size(); ++i)
 	{
-		c.isCounting = false;
-		c.readComplete = true;
-		mode0.enable(c);
+		Counter& counter = m_counters[i];
+		counter.isCounting = false;
+		counter.readComplete = true;
+		counter.counterIndex = i;
+		mode0.enable(counter);//By default all counters have mode0
 	}
 	
 	PortInfos info0x40;
@@ -234,6 +236,7 @@ void E5150::PIT::MODE0::enable (Counter& counter)
 	counter.mode = this;
 	counter.outputValue = OUTPUT_VALUE::LOW;
 	counter.isCounting = false;
+	DEBUG("PIT: Set mode0 for counter {}", counter.counterIndex);
 }
 
 //TODO: is it relevant to emulate the behaviour of the gate input ?

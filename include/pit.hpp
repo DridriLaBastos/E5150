@@ -58,6 +58,7 @@ namespace E5150
 				bool latchedValueIsAvailable;
 				bool readComplete;
 				bool waitClock;
+				unsigned int counterIndex;//Used for messages
 			};
 
 			class MODE

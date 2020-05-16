@@ -29,7 +29,7 @@ namespace E5150
 	#define PAUSE
 #endif
 
-#ifdef DEBUG
+#ifdef DEBUG_BUILD
 	#define ASSERT(x) assert(x)
 #else
 	#define ASSERT(x)

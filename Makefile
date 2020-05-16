@@ -13,10 +13,12 @@ SPDLOG_INCLUDE = third-party/spdlog/include
 
 CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
 CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
-CXXFLAGS = -Wextra -Wall -Wno-switch 
+CXXFLAGS = -Wextra -Wall -Wno-switch -Ofast
 
-ifneq ($(DEBUG),1)
-	CXXFLAGS += -Ofast
+DEBUG=1
+
+ifeq ($(DEBUG),1)
+	CPPFLAGS += -DDEBUG_BUILD
 endif
 
 PRODUCT = epc.out
