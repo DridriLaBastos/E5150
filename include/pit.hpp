@@ -45,7 +45,8 @@ namespace E5150
 
 			struct Counter
 			{
-				CounterValue counterValue;
+				Counter(void);
+				CounterValue value;
 				uint16_t latchedValue;
 				MODE* mode;
 				ACCESS_OPERATION accessOperation;
@@ -58,7 +59,7 @@ namespace E5150
 				bool latchedValueIsAvailable;
 				bool readComplete;
 				bool waitClock;
-				unsigned int counterIndex;//Used for messages
+				unsigned int index;//Used for messages
 			};
 
 			class MODE

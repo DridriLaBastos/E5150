@@ -8,17 +8,21 @@ E5150::PIT::MODE3 E5150::PIT::mode3;
 E5150::PIT::MODE4 E5150::PIT::mode4;
 E5150::PIT::MODE5 E5150::PIT::mode5;
 
+static unsigned int counterIndex = 0;
+
+//From intel documentation : "Prior to initialization, the MODE, count, and output of all counters is undefined".
+//Initialization here initialization by software. But, we are not in real life, and we want value for some variables.
+//Specialy, we don't want to leave the pointer to the mode uninitialized, so it is set to 0.
+E5150::PIT::Counter::Counter()
+{
+	isCounting = false;
+	readComplete = true;
+	index = counterIndex++;
+	mode0.enable(*this);
+}
+
 E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",0b11), m_connectedPIC(connectedPIC)
 {
-	for (size_t i = 0; i < m_counters.size(); ++i)
-	{
-		Counter& counter = m_counters[i];
-		counter.isCounting = false;
-		counter.readComplete = true;
-		counter.counterIndex = i;
-		mode0.enable(counter);//By default all counters have mode0
-	}
-	
 	PortInfos info0x40;
 	info0x40.component = this;
 	info0x40.portNum = 0x40;
@@ -61,28 +65,7 @@ void E5150::PIT::clock()
 				m_connectedPIC.assertInteruptLine(PIC::IR0);
 		}
 	}
-	/*if (m_counters[0].isCounting)
-		clockForCounter0();
-	
-	if (m_counters[1].isCounting)
-		clockForCounter1();
-	
-	if (m_counters[2].isCounting)
-		clockForCounter2();*/
 }
-
-//void E5150::PIT::clockForCounter0()
-//{
-//	OUTPUT_VALUE oldOutPutValue = m_counters[0].outputValue;
-//	m_counters[0].mode->clock();
-//
-//	//Going from low to high
-//	if ((m_counters[0].outputValue == OUTPUT_VALUE::HIGH) && (oldOutPutValue == OUTPUT_VALUE::LOW))
-//		m_connectedPIC.assertInteruptLine(PIC::IR0);
-//}
-//
-//void E5150::PIT::clockForCounter1() {}
-//void E5150::PIT::clockForCounter2() {}
 
 void E5150::PIT::writeCounter (const unsigned int counterIndex, const uint8_t data)
 {
@@ -177,7 +160,7 @@ uint8_t E5150::PIT::readCounterLatchedValue (Counter& counter)
 }
 
 uint8_t E5150::PIT::readCounterDirectValue (Counter& counter)
-{ return applyPICReadAlgorithm(counter, counter.counterValue.word); }
+{ return applyPICReadAlgorithm(counter, counter.value.word); }
 
 uint8_t E5150::PIT::read (const unsigned int localAddress)
 {
@@ -221,7 +204,7 @@ void E5150::PIT::setOperationAccessForCounter (const unsigned int counterIndex, 
 			m_counters[counterIndex].writeStatus = OPERATION_STATUS::MSB;
 		}
 		else
-			m_counters[counterIndex].latchedValue = m_counters[counterIndex].counterValue.word;
+			m_counters[counterIndex].latchedValue = m_counters[counterIndex].value.word;
 	}
 }
 
@@ -230,13 +213,14 @@ void E5150::PIT::setOperationAccessForCounter (const unsigned int counterIndex, 
 /* *** IMPLEMENTING MODES *** */
 
 /* *** IMPLEMENTING MODE0 *** */
-//TODO: What happens when the mode change while the counter is counting ?
+//When the the mode is set to counter0, the counter stops counting and wait for a rewriting of the count
+//to start counting down
 void E5150::PIT::MODE0::enable (Counter& counter)
 {
 	counter.mode = this;
 	counter.outputValue = OUTPUT_VALUE::LOW;
 	counter.isCounting = false;
-	DEBUG("PIT: Set mode0 for counter {}", counter.counterIndex);
+	DEBUG("PIT: COUNTER{}: MODE0: set", counter.index);
 }
 
 //TODO: is it relevant to emulate the behaviour of the gate input ?
@@ -246,21 +230,23 @@ void E5150::PIT::MODE0::clock(Counter& counter)
 	{
 		if (counter.outputValue == OUTPUT_VALUE::LOW)
 		{
-			if (counter.counterValue.word == 0)
+			if (counter.value.word == 0)
 				counter.outputValue = OUTPUT_VALUE::HIGH;
 		}
 
-		--counter.counterValue.word;
+		--counter.value.word;
 	}
 	#ifdef CLOCK_DEBUG
 	else
 	{
-		DEBUG("PIT: gate low: clock has no effect");
+		DEBUG("PIT: COUNTER{0}: MODE0: gate low, clock has no effects",counter.index);
 		PAUSE;
 	}
 	#endif
 }
 
+//Intel documentation sais that write the first byte stops the counter and writing the second byte starts
+//the counter in the definition of mode0. But is this behaviour only for mode0 or is this for all the modes ?
 void E5150::PIT::MODE0::writeOperation(Counter& counter, const uint8_t count)
 {
 	switch (counter.writeStatus)
@@ -268,7 +254,7 @@ void E5150::PIT::MODE0::writeOperation(Counter& counter, const uint8_t count)
 		case OPERATION_STATUS::LSB:
 		{
 			counter.isCounting = false;
-			counter.counterValue.lsb = count;
+			counter.value.lsb = count;
 
 			if (counter.accessOperation == ACCESS_OPERATION::LSB_MSB)
 				counter.writeStatus = OPERATION_STATUS::MSB;
@@ -281,7 +267,7 @@ void E5150::PIT::MODE0::writeOperation(Counter& counter, const uint8_t count)
 
 		case OPERATION_STATUS::MSB:
 		{
-			counter.counterValue.msb = count;
+			counter.value.msb = count;
 			counter.isCounting = true;
 			counter.outputValue = OUTPUT_VALUE::LOW;
 
