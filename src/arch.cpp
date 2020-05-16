@@ -36,8 +36,6 @@ E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu
 	signal(SIGINT, stop);
 }
 
-std::ostream& operator<< (std::ostream& ostream, const std::exception& e) { return (ostream << e.what()); }
-
 RAM& E5150::Arch::getRam() { return m_ram; }
 
 void E5150::Arch::startSimulation()

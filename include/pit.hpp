@@ -63,78 +63,57 @@ namespace E5150
 			class MODE
 			{
 				public:
-					MODE(Counter& relatedCounter);
-
-				public:
-					void enable (void);
-					virtual void clock (void);
-					virtual void writeOperation (const uint8_t count);
-				
-				private:
-					virtual void actionOnEnable (void);
-				
-				protected:
-					Counter& m_relatedCounter;
+					virtual void enable (Counter& counter)	= 0;
+					virtual void clock (Counter& counter)	= 0;
+					virtual void writeOperation (Counter& counter, const uint8_t count) = 0;
 			};
 
 			class MODE0: public MODE
 			{
 				public:
-					virtual void clock (void) final;
-					virtual void writeOperation (const uint8_t count) final;
-				
-				private:
-					virtual void actionOnEnable (void) final;
+					virtual void enable (Counter& counter) final;
+					virtual void clock (Counter& counter) final;
+					virtual void writeOperation (Counter& counter, const uint8_t count) final;
 			};
 
 			class MODE1: public MODE
 			{
 				public:
-					virtual void clock (void) final;
-					virtual void writeOperation (const uint8_t count) final;
-				
-				private:
-					virtual void actionOnEnable (void) final;
+					virtual void enable (Counter& counter) final;
+					virtual void clock (Counter& counter) final;
+					virtual void writeOperation (Counter& counter, const uint8_t count) final;
 			};
 
 			class MODE2: public MODE
 			{
 				public:
-					virtual void clock (void) final;
-					virtual void writeOperation (const uint8_t count) final;
-				
-				private:
-					virtual void actionOnEnable (void) final;
+					virtual void enable (Counter& counter) final;
+					virtual void clock (Counter& counter) final;
+					virtual void writeOperation (Counter& counter, const uint8_t count) final;
 			};
 
 			class MODE3: public MODE
 			{
 				public:
-					virtual void clock (void) final;
-					virtual void writeOperation (const uint8_t count) final;
-				
-				private:
-					virtual void actionOnEnable (void) final;
+					virtual void enable (Counter& counter) final;
+					virtual void clock (Counter& counter) final;
+					virtual void writeOperation (Counter& counter, const uint8_t count) final;
 			};
 
 			class MODE4: public MODE
 			{
 				public:
-					virtual void clock (void) final;
-					virtual void writeOperation (const uint8_t count) final;
-				
-				private:
-					virtual void actionOnEnable (void) final;
+					virtual void enable (Counter& counter) final;
+					virtual void clock (Counter& counter) final;
+					virtual void writeOperation (Counter& counter, const uint8_t count) final;
 			};
 
 			class MODE5: public MODE
 			{
 				public:
-					virtual void clock (void) final;
-					virtual void writeOperation (const uint8_t count) final;
-				
-				private:
-					virtual void actionOnEnable (void) final;
+					virtual void enable (Counter& counter) final;
+					virtual void clock (Counter& counter) final;
+					virtual void writeOperation (Counter& counter, const uint8_t count) final;
 			};
 		
 		private:
@@ -151,11 +130,19 @@ namespace E5150
 			uint8_t readCounterDirectValue	(Counter& counter);
 			uint8_t readCounterLatchedValue	(Counter& counter);
 			uint8_t applyPICReadAlgorithm	(Counter& counter, const unsigned int value);
+		
+		private:
+			/* Declaration of all the modes so that their addresses can be taken when setting a mode */
+			static E5150::PIT::MODE0 mode0;
+			static E5150::PIT::MODE1 mode1;
+			static E5150::PIT::MODE2 mode2;
+			static E5150::PIT::MODE3 mode3;
+			static E5150::PIT::MODE4 mode4;
+			static E5150::PIT::MODE5 mode5;
 
 		private:
 			std::array<Counter, 3> m_counters;
 			PIC& m_connectedPIC;
-			std::array<std::array<std::unique_ptr<MODE>, 3>, 6> m_modes;
 	};
 }
 
