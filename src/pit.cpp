@@ -238,10 +238,7 @@ void E5150::PIT::MODE0::clock(Counter& counter)
 	}
 	#ifdef CLOCK_DEBUG
 	else
-	{
 		DEBUG("PIT: COUNTER{0}: MODE0: gate low, clock has no effects",counter.index);
-		PAUSE;
-	}
 	#endif
 }
 

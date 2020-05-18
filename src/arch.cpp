@@ -20,7 +20,7 @@ static void stop(const int signum)
 	INFO("Simulation stopped by signal {}", signum);
 }
 
-E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports, *this), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
+E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	INFO("This program use the library Intel XED to decode the instructions");

@@ -114,37 +114,37 @@ void CPU::FAR_RET()
 
 void CPU::JZ()
 {
-	if (get_flag_status(ZERRO))
+	if (getFlagStatus(ZERRO))
 		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
 }
 
 void CPU::JL()
 {
-	if (get_flag_status(SIGN) != get_flag_status(OVER))
+	if (getFlagStatus(SIGN) != getFlagStatus(OVER))
 		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
 }
 
 void CPU::JLE()
 {
-	if (get_flag_status(ZERRO) || (get_flag_status(SIGN) != get_flag_status(OVER)))
+	if (getFlagStatus(ZERRO) || (getFlagStatus(SIGN) != getFlagStatus(OVER)))
 		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
 }
 
 void CPU::JNZ()
 {
-	if (!get_flag_status(ZERRO))
+	if (!getFlagStatus(ZERRO))
 		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
 }
 
 void CPU::JNL()
 {
-	if (get_flag_status(SIGN) == get_flag_status(OVER))
+	if (getFlagStatus(SIGN) == getFlagStatus(OVER))
 		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
 }
 
 void CPU::JNLE()
 {
-	if (!(get_flag_status(ZERRO) || (get_flag_status(SIGN) != get_flag_status(OVER))))
+	if (!(getFlagStatus(ZERRO) || (getFlagStatus(SIGN) != getFlagStatus(OVER))))
 		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
 }
 
@@ -162,10 +162,9 @@ void CPU::JCXZ()
 
 void CPU::INT(void)
 {
-	clearFlags(INTF | TRAP | A_CARRY);
-
 	intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
-	interrupt();
+	interrupt(); //interrupt takes care of pushing flags and clearing IF
+	clearFlags(TRAP | A_CARRY);
 }
 
 void CPU::IRET (void)

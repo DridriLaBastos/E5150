@@ -23,7 +23,7 @@ namespace E5150{ class Arch; }
 class CPU
 {
 	public:
-		CPU(RAM& ram, PORTS& ports, E5150::Arch& arch);
+		CPU(RAM& ram, PORTS& ports);
 
 		void simulate (void);
 		void request_nmi (void);
@@ -50,7 +50,7 @@ class CPU
 		void testOF	(const unsigned int value, const bool byte);
 		void setFlags	(const unsigned int flags);
 		void clearFlags	(const unsigned int flags);
-		bool get_flag_status	(const unsigned int flag);
+		bool getFlagStatus	(const unsigned int flag);
 
 		void updateStatusFlags (const unsigned int value, const bool byte);
 
@@ -172,7 +172,6 @@ class CPU
 	private:
 		RAM&	m_ram;
 		PORTS&	m_ports;
-		E5150::Arch& m_arch;
 		xed_decoded_inst_t m_decoded_inst;
 };
 

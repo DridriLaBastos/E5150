@@ -12,6 +12,7 @@ namespace E5150
 	{
 		public:
 			PIT(PORTS& ports, PIC& connectedPIC);
+			friend void PITTest (void);
 
 		public:
 			void clock (void);

@@ -10,6 +10,7 @@ CXX := $(CXX) --std=c++11
 
 OBJ = $(CXXOBJ)
 SPDLOG_INCLUDE = third-party/spdlog/include
+CATCH2_INCLUDE = third-party/catch2/include
 
 CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
 CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
@@ -22,13 +23,19 @@ ifeq ($(DEBUG),1)
 endif
 
 PRODUCT = epc.out
+TESTING_PRODUCT = test.out
 
-.PHONY: clean mrproper cleanpch asm run
+.PHONY: clean mrproper cleanpch asm run testing all
+
+all: $(PRODUCT)
+asm: $(ASMOBJ)
+testing: $(TESTING_PRODUCT)
 
 $(PRODUCT): $(OBJ)
 	$(CXX) $(LDFLAGS) -lxed -lsfml-system $^ -o $@
 
-asm: $(ASMOBJ)
+$(TESTING_PRODUCT): $(wildcard testing/*.cpp) $(CXXOBJ)
+	$(CXX) $(CPPFLAGS) -I$(CATCH2_INCLUDE) $(CXXFLAGS) $^ -o $@
 
 $(PCHOBJ): $(PCHSRC) include/util.hpp include/config.hpp
 	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -x c++-header -arch x86_64 $(PCHSRC) -o $@

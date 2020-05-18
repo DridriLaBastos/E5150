@@ -1,7 +1,7 @@
-#include "arch.hpp" //arch.hpp includes 8086.hpp
+#include "8086.hpp"
 
-CPU::CPU(RAM &ram, PORTS &ports, E5150::Arch& arch) : m_flags(0), m_ip(0), m_regs(), m_ram(ram), hlt(false), m_ports(ports),
-								   intr(false), nmi(false), intr_v(0), m_gregs(), interrupt_enable(true), m_arch(arch),m_clockCountDown(0)
+CPU::CPU(RAM &ram, PORTS &ports) : m_flags(0), m_ip(0), m_regs(), m_ram(ram), hlt(false), m_ports(ports),
+								   intr(false), nmi(false), intr_v(0), m_gregs(), interrupt_enable(true),m_clockCountDown(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -146,7 +146,7 @@ void CPU::setFlags (const unsigned int flags)
 void CPU::clearFlags (const unsigned int flags)
 { m_flags &= (~flags); }
 
-bool CPU::get_flag_status (const unsigned int flag)
+bool CPU::getFlagStatus (const unsigned int flag)
 { return (m_flags & (unsigned int) flag) == flag; }
 
 void CPU::testCF (const unsigned int value, const bool byte)
@@ -582,7 +582,7 @@ void CPU::simulate()
 	}
 	else if (intr)
 	{
-		if (get_flag_status(INTF))
+		if (getFlagStatus(INTF))
 			interrupt();
 		intr = false;
 	}
