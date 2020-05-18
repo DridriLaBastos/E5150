@@ -8,7 +8,28 @@ void CPU::ADD()
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
 
-	unsigned int value1 = 0;
+	unsigned int value1;
+
+	switch (op_name1)
+	{
+		case XED_OPERAND_REG0:
+		{
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name1);
+			value1 = read_reg(reg);
+			write_reg(reg, value1);
+		} break;
+
+		case XED_OPERAND_MEM0:
+		{
+			const unsigned int addr = genEA();
+			value1 = cond ? readByte(addr) : readWord(addr);
+
+			if (cond)
+				writeByte(addr, value1);
+			else
+				writeWord(addr, value1);
+		} break;
+	}
 
 	switch (op_name2)
 	{
@@ -23,29 +44,8 @@ void CPU::ADD()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name2);
+			const unsigned int addr = genEA();
 			value1 += cond ? readByte(addr) : readWord(addr);
-		} break;
-	}
-
-	switch (op_name1)
-	{
-		case XED_OPERAND_REG0:
-		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name1);
-			value1 += read_reg(reg);
-			write_reg(reg, value1);
-		} break;
-
-		case XED_OPERAND_MEM0:
-		{
-			const unsigned int addr = genEA(op_name1);
-			value1 += cond ? readByte(addr) : readWord(addr);
-
-			if (cond)
-				writeByte(addr, value1);
-			else
-				writeWord(addr, value1);
 		} break;
 	}
 
@@ -72,7 +72,7 @@ void CPU::INC()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name);
+			const unsigned int addr = genEA();
 			value1 = (cond ? readByte(addr) : readWord(addr)) + 1;
 
 			if (cond)
@@ -96,6 +96,25 @@ void CPU::SUB()
 
 	unsigned int value1;
 
+	switch (op_name1)
+	{
+		case XED_OPERAND_REG0:
+		{
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name1);
+
+			value1 = read_reg(reg);
+			write_reg(reg, value1);
+		} break;
+
+		case XED_OPERAND_MEM0:
+		{
+			const unsigned int addr = genEA();
+			value1 = cond ? readByte(addr) : readWord(addr);
+
+			if (cond) writeByte(addr, value1); else writeWord(addr, value1);
+		} break;
+	}
+
 	switch (op_name2)
 	{
 		case XED_OPERAND_IMM0:
@@ -109,27 +128,8 @@ void CPU::SUB()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name2);
+			const unsigned int addr = genEA();
 			value1 -= cond ? readByte(addr) : readWord(addr);
-		} break;
-	}
-
-	switch (op_name1)
-	{
-		case XED_OPERAND_REG0:
-		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name1);
-
-			value1 += read_reg(reg);
-			write_reg(reg, value1);
-		} break;
-
-		case XED_OPERAND_MEM0:
-		{
-			const unsigned int addr = genEA(op_name1);
-			value1 += cond ? readByte(addr) : readWord(addr);
-
-			if (cond) writeByte(addr, value1); else writeWord(addr, value1);
 		} break;
 	}
 
@@ -156,7 +156,7 @@ void CPU::DEC()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name);
+			const unsigned int addr = genEA();
 			value1 = (cond ? readByte(addr) : readWord(addr)) - 1;
 
 			if (cond)
@@ -190,7 +190,7 @@ void CPU::NEG()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name);
+			const unsigned int addr = genEA();
 
 			value1 = cond ? readByte(addr) : readWord(addr);
 			value1 *= -1;
@@ -229,7 +229,7 @@ void CPU::CMP()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name1);
+			const unsigned int addr = genEA();
 			value1 += cond ? readByte(addr) : readWord(addr);
 		} break;
 	}
@@ -247,7 +247,7 @@ void CPU::CMP()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name2);
+			const unsigned int addr = genEA();
 			value1 -= cond ? readByte(addr) : readWord(addr);
 		} break;
 	}
@@ -270,7 +270,7 @@ void CPU::MUL()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= cond ? readByte(genEA(op_name)) : readWord(genEA(op_name));
+			value1 *= cond ? readByte(genEA()) : readWord(genEA());
 			break;
 	}
 
@@ -312,7 +312,7 @@ void CPU::IMUL()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= (signed)(cond ? readByte(genEA(op_name)) : readWord(genEA(op_name)));
+			value1 *= (signed)(cond ? readByte(genEA()) : readWord(genEA()));
 			break;
 	}
 
@@ -358,7 +358,7 @@ void CPU::DIV()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = cond ? readByte(genEA(op_name)) : readWord(genEA(op_name));
+			value2 = cond ? readByte(genEA()) : readWord(genEA());
 			break;
 	}
 
@@ -398,7 +398,7 @@ void CPU::IDIV()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = (signed)(cond ? readByte(genEA(op_name)) : readWord(genEA(op_name)));
+			value2 = (signed)(cond ? readByte(genEA()) : readWord(genEA()));
 			break;
 	}
 

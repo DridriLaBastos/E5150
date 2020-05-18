@@ -23,7 +23,7 @@ void CPU::MOV()
 			break;
 
 		case XED_OPERAND_MEM0:
-			move_v = readWord(genEA(op_name));
+			move_v = readWord(genEA());
 			break;
 	}
 
@@ -37,7 +37,7 @@ void CPU::MOV()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int write_addr = genEA(op_name);
+			const unsigned int write_addr = genEA();
 
 			if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1)
 				writeByte(write_addr, (uint8_t)move_v);
@@ -61,7 +61,7 @@ void CPU::PUSH (void)
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int data_to_push_addr = genEA(op_name);
+			const unsigned int data_to_push_addr = genEA();
 			push(readWord(data_to_push_addr));
 		}
 		break;
@@ -108,7 +108,7 @@ void CPU::XCHG()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA(op_name);
+			const unsigned int addr = genEA();
 			const unsigned int value2 = readWord(addr);
 			write_reg(register_xchg, value2);
 
@@ -165,7 +165,7 @@ void CPU::LEA()
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 1));
 
-	write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name0), genEA(op_name1));
+	write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name0), genEA());
 }
 
 void CPU::LDS()

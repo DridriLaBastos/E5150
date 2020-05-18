@@ -9,7 +9,7 @@ void CPU::NOT()
 		write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name), ~read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name)));
 	else
 	{
-		const unsigned int addr = genEA(op_name);
+		const unsigned int addr = genEA();
 		m_ram.m_ram[addr] = ~m_ram.m_ram[addr];
 
 		if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 2)

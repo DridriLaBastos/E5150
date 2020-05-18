@@ -15,6 +15,7 @@ times 0x500 - ($ - $$) db 0
 
 section interruptImpl follows=interruptVectors
 int0:
+	int 0
 	iret
 
 int1:

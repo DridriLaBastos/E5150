@@ -52,7 +52,7 @@ unsigned int CPU::gen_address (const xed_reg_enum_t segment, const xed_reg_enum_
  * word operands at odd addresses	+4
  * segment override					+2
  */
-unsigned int CPU::genEA (const xed_operand_enum_t op_name) 
+unsigned int CPU::genEA (void) 
 {
 	const unsigned int modrm = xed_decoded_inst_get_modrm(&m_decoded_inst);
 	const unsigned int mod = (modrm & 0b11000000) >> 6;
@@ -132,11 +132,12 @@ void CPU::far_ret (void)
 	m_regs[CS] = pop();
 }
 
-void CPU::interrupt (void)
+void CPU::interrupt (const bool isNMI)
 {
+	const unsigned int interruptVector = isNMI ? 2 : intr_v;
 	push(m_flags);
 	clearFlags(INTF);
-	far_call(readWord(gen_address(0, 4 * intr_v + 2)), readWord(gen_address(0, 4 * intr_v)));
+	far_call(readWord(gen_address(0, 4 * interruptVector + 2)), readWord(gen_address(0, 4 * interruptVector)));
 	hlt = false;
 }
 
@@ -577,13 +578,17 @@ void CPU::simulate()
 
 	if (nmi)
 	{
-		interrupt();
+		interrupt(true);
 		nmi = false;
 	}
 	else if (intr)
 	{
 		if (getFlagStatus(INTF))
 			interrupt();
+		else
+		{
+			DEBUG("CPU: INTERRUPT: interrupt request while IF is disabled");
+		}
 		intr = false;
 	}
 }

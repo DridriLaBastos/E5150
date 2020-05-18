@@ -34,7 +34,7 @@ class CPU
 		unsigned int gen_address (const reg_t base, const xed_reg_enum_t offset) const;
 		unsigned int gen_address (const xed_reg_enum_t segment, const uint16_t offset) const;
 		unsigned int gen_address (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const;
-		unsigned int genEA (const xed_operand_enum_t op_name);
+		unsigned int genEA (void);
 
 		uint8_t  readByte (const unsigned int addr) const;
 		uint16_t readWord (const unsigned int addr) const;
@@ -61,7 +61,7 @@ class CPU
 		void push (const uint16_t data);
 		void far_call (const reg_t seg, const uint16_t offset);
 		void far_ret (void);
-		void interrupt (void);
+		void interrupt (const bool isNMI = false);
 	
 		void printRegisters	(void) const;
 		void printFlags		(void) const;

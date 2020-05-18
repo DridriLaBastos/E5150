@@ -17,13 +17,8 @@ void CPU::NEAR_CALL()
 			break;
 		
 		case XED_OPERAND_MEM0:
-		{
-			const unsigned int ip_location = genEA(op_name);
-
-			m_ip = readWord(ip_location);
-
+			m_ip = readWord(genEA());
 			break;
-		}
 	}
 }
 
@@ -40,7 +35,7 @@ void CPU::FAR_CALL()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = genEA(op_name);
+			const unsigned far_addr_location = genEA();
 			
 			far_call(readWord(far_addr_location),
 					 readWord(far_addr_location + 2));
@@ -56,13 +51,8 @@ void CPU::NEAR_JMP()
 	switch (op_name)
 	{
 		case XED_OPERAND_MEM0:
-		{
-			const unsigned ip_location = genEA(op_name);
-
-			m_ip = readWord(ip_location);
-
+			m_ip = readWord(genEA());
 			break;
-		}
 
 		case XED_OPERAND_REG0:
 			m_ip = read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
@@ -82,7 +72,7 @@ void CPU::FAR_JMP()
 	{
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = genEA(op_name);
+			const unsigned far_addr_location = genEA();
 			
 			m_regs[CS] = readWord(far_addr_location);
 			m_ip = readWord(far_addr_location + 2);
@@ -164,7 +154,6 @@ void CPU::INT(void)
 {
 	intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
 	interrupt(); //interrupt takes care of pushing flags and clearing IF
-	clearFlags(TRAP | A_CARRY);
 }
 
 void CPU::IRET (void)
