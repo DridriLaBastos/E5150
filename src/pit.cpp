@@ -18,6 +18,7 @@ E5150::PIT::Counter::Counter()
 	isCounting = false;
 	readComplete = true;
 	index = counterIndex++;
+	gateValue = OUTPUT_VALUE::HIGH;
 	mode0.enable(*this);
 }
 
@@ -43,6 +44,8 @@ E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",0b11), m_conne
 	ports.connect(info0x41);
 	ports.connect(info0x42);
 	ports.connect(info0x43);
+
+	//TODO: gate value for counter 2
 }
 
 void E5150::PIT::toggleGateFor(const COUNTER counterNumber)
