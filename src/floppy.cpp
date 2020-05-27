@@ -58,7 +58,9 @@ uint8_t E5150::Floppy::read	(const unsigned int localAddress)
 		if ((localAddress == 4) || (localAddress == 5))
 		{
 			ret = (localAddress == 4) ? m_mainStatusRegister : m_dataRegisters[m_mainDataRegisterIndex];
-			m_mainDataRegisterIndex = (m_mainDataRegisterIndex + 1) % 4;
+			
+			if (localAddress == 5)
+				m_mainDataRegisterIndex = (m_mainDataRegisterIndex + 1) % 4;
 		}
 	}
 
