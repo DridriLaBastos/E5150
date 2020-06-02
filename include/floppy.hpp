@@ -17,12 +17,33 @@ namespace E5150
 			Floppy(PIC& pic,PORTS& ports);
 		
 		private:
-			void writeDOR(const uint8_t data);
-			void writeDataRegister(const uint8_t data);
+			enum class PHASE
+			{ COMMAND, EXECUTION, RESULT };
+
+			enum STATUS_REGISTER_MASK
+			{
+				D0 = 1 << 0,
+				D1 = 1 << 1,
+				D2 = 1 << 2,
+				D3 = 1 << 3,
+				D4 = 1 << 4,
+				D5 = 1 << 5,
+				D6 = 1 << 6,
+				D7 = 1 << 7
+			};
+
+
 		
 		private:
-			virtual void write		(const unsigned int localAddress, const uint8_t data) final;
+			bool areStatusBitSet (const STATUS_REGISTER_MASK statusRegisterToTestMask);
+
+			uint8_t readDataRegister(void);
+			uint8_t readStatusRegister (void);
 			virtual uint8_t read	(const unsigned int localAddress) final;
+
+			void writeDOR(const uint8_t data);
+			void writeDataRegister(const uint8_t data);
+			virtual void write		(const unsigned int localAddress, const uint8_t data) final;
 
 		//Connection private space
 		private:
@@ -30,9 +51,16 @@ namespace E5150
 
 		//Behaviour private space
 		private:
+			uint8_t m_dorRegister;
 			uint8_t m_statusRegister;
 			uint8_t m_dataRegister;
+
 			std::array<uint8_t, 4> m_STRegisters;
+
+			std::array<uint8_t, 5> m_resultCommandData;
+			int m_resultCommandDataToRead;
+
+			PHASE m_phase;
 	};
 }
 

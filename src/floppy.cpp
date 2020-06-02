@@ -6,7 +6,7 @@
 //0b00x --> nothing
 //0b010 --> DOR
 //0b10x --> FDC
-E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports): Component("Floppy Controller",0b111), m_pic(pic)
+E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports): Component("Floppy Controller",0b111), m_pic(pic), m_phase(PHASE::COMMAND)
 {
 	PortInfos dorStruct;
 	dorStruct.portNum = 0x3F2;
@@ -30,9 +30,7 @@ static bool isA1Set (const unsigned int localAddress) { return localAddress & 0b
 static bool isA2Set (const unsigned int localAddress) { return localAddress & 0b100; }
 
 void E5150::Floppy::writeDOR(const uint8_t data)
-{
-
-}
+{ m_dorRegister = data; }
 
 void E5150::Floppy::writeDataRegister(const uint8_t data)
 {
@@ -47,16 +45,47 @@ void E5150::Floppy::write	(const unsigned int localAddress, const uint8_t data)
 		writeDataRegister(data);
 }
 
+uint8_t E5150::Floppy::readDataRegister()
+{
+	m_dataRegister = m_resultCommandData[m_resultCommandDataToRead++];
+
+	if (m_resultCommandDataToRead >= 5)
+	{
+		m_phase == PHASE::COMMAND;
+		m_resultCommandDataToRead = -1;
+	}
+	
+	return m_dataRegister;
+}
+
+uint8_t E5150::Floppy::readStatusRegister()
+{
+	switch (m_phase)
+	{
+	case PHASE::COMMAND:
+		//TODO: check write from the data register
+		break;
+	
+	case PHASE::RESULT:
+		++m_resultCommandDataToRead;
+		break;
+	
+	default:
+		break;
+	}
+	return m_statusRegister;
+}
+
 uint8_t E5150::Floppy::read	(const unsigned int localAddress)
 {
 	uint8_t ret;//I don't initialized ret. If a wrong address is given, then the returned value of the read
 				//operation will be undefined
 	if (localAddress == 2)
-		ret = m_dor;
+		ret = m_dorRegister;
 	else
 	{
 		if ((localAddress == 4) || (localAddress == 5))
-			ret = (localAddress == 4) ? m_statusRegister : m_dataRegister;
+			ret = (localAddress == 4) ? readStatusRegister() : readDataRegister();
 	}
 
 	return ret;
