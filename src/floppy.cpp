@@ -5,8 +5,8 @@
 //from the UPD365 at 0x3F4, 0x3F5. The registers are maped like that:
 //0b00x --> nothing
 //0b010 --> DOR
-//0b10x --> UDP365
-E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports): Component("Floppy Controller",0b111), m_pic(pic), m_mainDataRegisterIndex(0)
+//0b10x --> FDC
+E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports): Component("Floppy Controller",0b111), m_pic(pic)
 {
 	PortInfos dorStruct;
 	dorStruct.portNum = 0x3F2;
@@ -56,12 +56,7 @@ uint8_t E5150::Floppy::read	(const unsigned int localAddress)
 	else
 	{
 		if ((localAddress == 4) || (localAddress == 5))
-		{
-			ret = (localAddress == 4) ? m_mainStatusRegister : m_dataRegisters[m_mainDataRegisterIndex];
-			
-			if (localAddress == 5)
-				m_mainDataRegisterIndex = (m_mainDataRegisterIndex + 1) % 4;
-		}
+			ret = (localAddress == 4) ? m_statusRegister : m_dataRegister;
 	}
 
 	return ret;

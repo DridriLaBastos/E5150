@@ -6,6 +6,7 @@
 
 namespace E5150
 {
+	//TODO: I am not sure about this public/protected stuff with the read/write functions
 	class Component
 	{
 		public:

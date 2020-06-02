@@ -8,6 +8,9 @@
 
 namespace E5150
 {
+	/**
+	 * This class will emulate the floppy disc controller in the IBM and the behaviour of the DOR register
+	 */
 	class Floppy: public Component
 	{
 		public:
@@ -27,10 +30,9 @@ namespace E5150
 
 		//Behaviour private space
 		private:
-			uint8_t m_dor;
-			uint8_t m_mainStatusRegister;//read only
-			std::array<uint8_t, 4> m_dataRegisters;
-			unsigned int m_mainDataRegisterIndex;
+			uint8_t m_statusRegister;
+			uint8_t m_dataRegister;
+			std::array<uint8_t, 4> m_STRegisters;
 	};
 }
 
