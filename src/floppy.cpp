@@ -1,8 +1,8 @@
 #include "floppy.hpp"
 
-//The IBM PC doc says that the floppy driver adapter have I/O port form 0x3F0 to 0x3F7 which means a 3 lines
-//addres bus. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register from the
-//UPD365 at 0x3F4, 0x3F5. The registers are maped like that:
+//The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
+//address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
+//from the UPD365 at 0x3F4, 0x3F5. The registers are maped like that:
 //0b00x --> nothing
 //0b010 --> DOR
 //0b10x --> UDP365
