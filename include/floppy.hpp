@@ -32,7 +32,32 @@ namespace E5150
 				D7 = 1 << 7
 			};
 
+			class Command
+			{
+				public:
+					Command(void): m_step(0){}
+					bool virtual configure (const uint8_t data) = 0;
+				
+				protected:
+					unsigned int m_step;
+			};
 
+			class ReadData: public Command {};
+			class ReadDeletedData: public Command {};
+			class ReadATrack: public Command {};
+			class ReadID: public Command {};
+			class FormatTrack: public Command {};
+			class ScanEqual: public Command {};
+
+			class WriteData: public Command {};
+			class WriteDeletedData: public Command {};
+			class ScanLEQ: public Command {};
+			class ScanHEQ: public Command {};
+			class Recalibrate: public Command {};
+			class SenseInterruptStatus: public Command {};
+			class Specify: public Command {};
+			class Seek: public Command {};
+			class Invalid: public Command {};
 		
 		private:
 			bool areStatusBitSet (const STATUS_REGISTER_MASK statusRegisterToTestMask);
@@ -56,8 +81,8 @@ namespace E5150
 			uint8_t m_dataRegister;
 
 			std::array<uint8_t, 4> m_STRegisters;
-
 			std::array<uint8_t, 5> m_resultCommandData;
+			std::array<Command, 16> m_commands;
 			int m_resultCommandDataToRead;
 
 			PHASE m_phase;

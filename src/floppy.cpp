@@ -34,7 +34,15 @@ void E5150::Floppy::writeDOR(const uint8_t data)
 
 void E5150::Floppy::writeDataRegister(const uint8_t data)
 {
+	uint8_t commandIndex = data & 0b1111;
 
+	//The first four digits of the first world identify the command except when the value is equals to 9 or 13
+	//9 and 13 both identifies 2 commands, so by adding the fifth bit wa can select one of both commands
+	if ((commandIndex == 9) || (commandIndex == 13))
+		commandIndex += (data & 0b10000) >> 5;
+
+	if (m_commands[commandIndex].configure(data))
+		m_phase = PHASE::EXECUTION;
 }
 
 void E5150::Floppy::write	(const unsigned int localAddress, const uint8_t data)
