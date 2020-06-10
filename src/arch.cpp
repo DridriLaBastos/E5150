@@ -1,5 +1,5 @@
 #include <thread>
-#include <unistd.h>
+#include <signal.h>
 #include <SFML/System/Clock.hpp>
 
 #include "arch.hpp"

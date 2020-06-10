@@ -8,13 +8,13 @@
 
 using reg_t = uint16_t;
 
-union greg_t
+//I would really like to call it greg_t (and it was the name when I first created it on macos)
+//but greg_t is already used somewhere in a file included via signal.h on linux so it will be greg_u... =(
+union greg_u
 {
 	uint16_t x;
-	struct { uint16_t l:8, h:8; };
+	uint16_t l:8, h:8;
 };
-
-namespace E5150{ class Arch; }
 
 //TODO: IMPORTANT: Implement Max Mode
 //TODO: go throught all the instructions and implements 
@@ -155,7 +155,7 @@ class CPU
 		void HLT (void);
 
 	private:
-		std::array<greg_t, 4> m_gregs;
+		std::array<greg_u, 4> m_gregs;
 		std::array<reg_t, 8> m_regs;
 		reg_t m_flags;
 		reg_t m_ip;
