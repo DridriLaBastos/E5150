@@ -23,6 +23,13 @@ E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports): Component("Floppy Controll
 	ports.connect(dorStruct);
 	ports.connect(mainStatusStruct);
 	ports.connect(dataRegStruct);
+
+	m_commands[0]  = &invalid;          m_commands[1]  = &scanEqual;      m_commands[2]  = &readATrack;
+	m_commands[3]  = &specify;          m_commands[4]  = &senseDriveStat; m_commands[5]  = &writeData;
+	m_commands[6]  = &readData;         m_commands[7]  = &recalibrate;    m_commands[8]  = &senseInterruptStatus;
+	m_commands[9]  = &writeDeletedData; m_commands[10] = &scanLEQ;        m_commands[11] = &readID;
+	m_commands[12] = &readDeletedData;  m_commands[13] = &formatTrack;    m_commands[14] = &formatTrack;
+	m_commands[15] = &seek;
 }
 
 static bool isA0Set (const unsigned int localAddress) { return localAddress & 0b1; }
@@ -41,7 +48,7 @@ void E5150::Floppy::writeDataRegister(const uint8_t data)
 	if ((commandIndex == 9) || (commandIndex == 13))
 		commandIndex += (data & 0b10000) >> 5;
 
-	if (m_commands[commandIndex].configure(data))
+	if (m_commands[commandIndex]->configure(data))
 		m_phase = PHASE::EXECUTION;
 }
 
