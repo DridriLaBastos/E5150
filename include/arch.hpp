@@ -7,6 +7,7 @@
 #include "ppi.hpp"
 #include "8086.hpp"
 #include "ports.hpp"
+#include "floppy.hpp"
 
 namespace E5150
 {
@@ -25,6 +26,7 @@ namespace E5150
 			PIC m_pic;
 			PIT m_pit;
 			PPI m_ppi;
+			Floppy m_floppy;
 	};
 }
 

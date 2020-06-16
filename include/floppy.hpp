@@ -1,6 +1,8 @@
 #ifndef KEYBOARD_HPP
 #define KEYBOARD_HPP
 
+#include <utility>
+
 #include "pic.hpp"
 #include "util.hpp"
 #include "ports.hpp"
@@ -36,41 +38,129 @@ namespace E5150
 			{
 				public:
 					Command(void): m_step(0){}
-					bool virtual configure (const uint8_t data) = 0;
+					//Return true when configuring is done
+					virtual bool configure (const uint8_t data) = 0;
+					//Return true when reading result is done
+					virtual std::pair<uint8_t,bool> readResult (void) = 0;
 				
 				protected:
 					unsigned int m_step;
 			};
 
-			class ReadData: public Command { virtual bool configure (const uint8_t data) final; };
-			class ReadDeletedData: public Command { virtual bool configure (const uint8_t data) final; };
-			class ReadATrack: public Command { virtual bool configure (const uint8_t data) final; };
-			class ReadID: public Command { virtual bool configure (const uint8_t data) final; };
-			class FormatTrack: public Command { virtual bool configure (const uint8_t data) final; };
-			class ScanEqual: public Command { virtual bool configure (const uint8_t data) final; };
+			class ReadData: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
 
-			class WriteData: public Command { virtual bool configure (const uint8_t data) final; };
-			class WriteDeletedData: public Command { virtual bool configure (const uint8_t data) final; };
-			class ScanLEQ: public Command { virtual bool configure (const uint8_t data) final; };
-			class ScanHEQ: public Command { virtual bool configure (const uint8_t data) final; };
-			class Recalibrate: public Command { virtual bool configure (const uint8_t data) final; };
-			class SenseInterruptStatus: public Command { virtual bool configure (const uint8_t data) final; };
-			class Specify: public Command { virtual bool configure (const uint8_t data) final; };
-			class SenseDriveStat: public Command { virtual bool configure (const uint8_t data) final; };
-			class Seek: public Command { virtual bool configure (const uint8_t data) final; };
+			class ReadDeletedData: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
 
-			class Invalid: public Command { virtual bool configure (const uint8_t) final { return false; } };
+			class ReadATrack: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class ReadID: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class FormatTrack: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class ScanEqual: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+
+			class WriteData: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class WriteDeletedData: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class ScanLEQ: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class ScanHEQ: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class Recalibrate: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class SenseInterruptStatus: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class Specify: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class SenseDriveStat: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+			class Seek: public Command 
+			{
+				virtual bool configure (const uint8_t data) final;
+				virtual std::pair<uint8_t, bool> readResult (void) final;
+			};
+
+
+			class Invalid: public Command
+			{
+				virtual bool configure (const uint8_t) final { return false; }
+				virtual std::pair<uint8_t,bool> readResult (void) final { return {0x80,true}; }
+			};
 		
 		private:
 			bool areStatusBitSet (const STATUS_REGISTER_MASK statusRegisterToTestMask);
 
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);
-			virtual uint8_t read	(const unsigned int localAddress) final;
+			virtual uint8_t read (const unsigned int localAddress) final;
 
 			void writeDOR(const uint8_t data);
+
+			void writeDataRegisterCommandPhase (const uint8_t data);
+			void writeDataRegisterExecutionPhase (const uint8_t data);
+			void writeDataRegisterResultPhase (const uint8_t data);
 			void writeDataRegister(const uint8_t data);
 			virtual void write		(const unsigned int localAddress, const uint8_t data) final;
+
+			void switchPhase (void);
 
 		//Connection private space
 		private:
@@ -105,11 +195,11 @@ namespace E5150
 			uint8_t m_dataRegister;
 
 			std::array<uint8_t, 4> m_STRegisters;
-			std::array<uint8_t, 5> m_resultCommandData;
 			std::array<Command*, 16> m_commands;
-			int m_resultCommandDataToRead;
 
 			PHASE m_phase;
+			bool m_statusRegisterRead;
+			unsigned int m_selectedCommand;
 	};
 }
 

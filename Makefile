@@ -6,7 +6,7 @@ PCHOBJ = $(PCHSRC).pch
 ASMSRC = $(wildcard test/*.s)
 ASMOBJ = $(ASMSRC:.s=.bin)
 
-CXX := $(CXX) --std=c++11
+CXX := $(CXX) --std=c++17
 
 OBJ = $(CXXOBJ)
 SPDLOG_INCLUDE = third-party/spdlog/include

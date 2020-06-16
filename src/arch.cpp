@@ -8,8 +8,8 @@
 using Clock = std::chrono::system_clock;
 using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 
-constexpr unsigned int CLOCK_PER_BLOCKS = 10000;
-static constexpr float I8284_CLOCKS_PER_SECOND = 4770000.f;
+static constexpr unsigned int CLOCK_PER_BLOCKS = 10000;
+static constexpr unsigned int I8284_CLOCKS_PER_SECOND = 4770000;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
 
 bool E5150::Util::_continue = true;
@@ -20,7 +20,7 @@ static void stop(const int signum)
 	INFO("Simulation stopped by signal {}", signum);
 }
 
-E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports)
+E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_floppy(m_pic,m_ports)
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	INFO("This program use the library Intel XED to decode the instructions");
