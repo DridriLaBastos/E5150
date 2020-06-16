@@ -7,7 +7,7 @@
 #include "ppi.hpp"
 #include "8086.hpp"
 #include "ports.hpp"
-#include "floppy.hpp"
+#include "fdc.hpp"
 
 namespace E5150
 {

@@ -1,4 +1,4 @@
-#include "floppy.hpp"
+#include "fdc.hpp"
 
 //The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
 //address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
