@@ -69,20 +69,17 @@ void E5150::Floppy::switchPhase (void)
 	}
 }
 
-static bool statusRegisterAllowsWritingInCommandPhase(const uint8_t statusRegister)
-{ return (statusRegister & (0b10 << 6)) >> 6 & 0b10; }
-
-void E5150::Floppy::writeDataRegisterCommandPhase (const uint8_t data)
+void E5150::Floppy::writeDataRegister(const uint8_t data)
 {
 	static bool firstCommandWorld = true;
-	if (statusRegisterAllowsWritingInCommandPhase(m_statusRegister) && m_statusRegisterRead)
+	if (m_statusRegisterRead)
 	{
 		if (firstCommandWorld)
 		{
 			uint8_t commandIndex = data & 0b1111;
 
-			//The first four digits of the first world identify the command except when the value is equals to 9 or 13
-			//9 and 13 both identifies 2 commands, so by adding the fifth bit wa can select one of both commands
+			//The first four digits of the first world identify the command except when the value equals 9 or 13
+			//9 and 13 both identifies 2 commands, so by adding the fifth bit we can select one of both commands
 			if ((commandIndex == 9) || (commandIndex == 13))
 				commandIndex += (data & 0b10000) >> 5;
 			
@@ -101,82 +98,63 @@ void E5150::Floppy::writeDataRegisterCommandPhase (const uint8_t data)
 	}
 }
 
-void E5150::Floppy::writeDataRegisterExecutionPhase (const uint8_t data)
-{
-	//TODO: what happens here ?
-}
-
-static bool statusRegisterAllowsWritingInResultPhase(const uint8_t statusRegister)
-{ return (statusRegister & (0b11 << 6)) >> 6; }
-
-void E5150::Floppy::writeDataRegisterResultPhase (const uint8_t data)
-{
-	if (statusRegisterAllowsWritingInResultPhase(m_statusRegister))
-	{
-
-	}
-}
-
-void E5150::Floppy::writeDataRegister(const uint8_t data)
-{
-	switch (m_phase)
-	{
-		case PHASE::COMMAND:
-		writeDataRegisterCommandPhase(data);
-		break;
-
-		default:
-			//TODO: what happens in this case
-			break;
-	}
-}
+static bool fdcAllowsWritingToDataRegister (const uint8_t statusRegister)
+{ return (statusRegister & (1 << 7)) >> 7; }
 
 void E5150::Floppy::write	(const unsigned int localAddress, const uint8_t data)
 {
 	if (localAddress == 2)
 		writeDOR(data);
 	else if (localAddress == 5)
-		writeDataRegister(data);
+	{
+		if (fdcAllowsWritingToDataRegister(m_statusRegister))
+			writeDataRegister(data);
+	}
 }
 
 uint8_t E5150::Floppy::readDataRegister()
 {
-	const auto [result,readDone] = m_commands[m_selectedCommand]->readResult();
+	if (m_statusRegisterRead)
+	{
+		const auto [result,readDone] = m_commands[m_selectedCommand]->readResult();
 
-	if (readDone)
-		m_phase = PHASE::COMMAND;
+		if (readDone)
+			switchPhase();
+		
+		m_dataRegister = result;
+		m_statusRegisterRead = false;
+	}
 	
-	return result;
+	return m_dataRegister;
 }
 
 uint8_t E5150::Floppy::readStatusRegister()
 {
 	m_statusRegisterRead = true;
-	switch (m_phase)
-	{
-	case PHASE::COMMAND:
-		//TODO: check write from the data register
-		break;
-	
-	case PHASE::RESULT:
-		break;
-	
-	default:
-		break;
-	}
 	return m_statusRegister;
 }
 
+static bool fdcAllowsReadingDataRegister(const uint8_t statusRegister)
+{ return (statusRegister & (0b11 << 6)) == (0b11 << 6); }
+
 uint8_t E5150::Floppy::read	(const unsigned int localAddress)
 {
-	uint8_t ret;//I don't initialized ret. If a wrong address is given, then the returned value of the read
+	uint8_t ret;//I don't initialized ret. If a wrong addres is given, then the returned value of the read
 				//operation will be undefined
 	if (localAddress == 2)
 		ret = m_dorRegister;
 	else
 	{
 		if ((localAddress == 4) || (localAddress == 5))
-			ret = (localAddress == 4) ? readStatusRegister() : readDataRegister();
+		{
+			if (localAddress == 4)
+				ret = readStatusRegister();
+			else
+			{
+				if (fdcAllowsReadingDataRegister(m_statusRegister))
+					ret = readDataRegister();
+			}
+		}
 	}
 
 	return ret;

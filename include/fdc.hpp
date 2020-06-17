@@ -49,93 +49,93 @@ namespace E5150
 
 			class ReadData: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class ReadDeletedData: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class ReadATrack: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class ReadID: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class FormatTrack: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class ScanEqual: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 
 			class WriteData: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class WriteDeletedData: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class ScanLEQ: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class ScanHEQ: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class Recalibrate: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class SenseInterruptStatus: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class Specify: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class SenseDriveStat: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 			class Seek: public Command 
 			{
-				virtual bool configure (const uint8_t data) final;
-				virtual std::pair<uint8_t, bool> readResult (void) final;
+				virtual bool configure (const uint8_t data) final{return false;}
+				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
 			};
 
 
@@ -146,17 +146,11 @@ namespace E5150
 			};
 		
 		private:
-			bool areStatusBitSet (const STATUS_REGISTER_MASK statusRegisterToTestMask);
-
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);
 			virtual uint8_t read (const unsigned int localAddress) final;
 
 			void writeDOR(const uint8_t data);
-
-			void writeDataRegisterCommandPhase (const uint8_t data);
-			void writeDataRegisterExecutionPhase (const uint8_t data);
-			void writeDataRegisterResultPhase (const uint8_t data);
 			void writeDataRegister(const uint8_t data);
 			virtual void write		(const unsigned int localAddress, const uint8_t data) final;
 
