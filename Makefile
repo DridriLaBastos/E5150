@@ -6,17 +6,17 @@ PCHOBJ = $(PCHSRC).pch
 ASMSRC = $(wildcard test/*.s)
 ASMOBJ = $(ASMSRC:.s=.bin)
 
-CXX := $(CXX) --std=c++17
+CXX := $(CXX) --std=c++17 -flto
 
 OBJ = $(CXXOBJ)
 SPDLOG_INCLUDE = third-party/spdlog/include
 CATCH2_INCLUDE = third-party/catch2/include
 
-CPPPCH_FLAGS = $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
+CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
 CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
 CXXFLAGS = -Wextra -Wall -Wno-switch -Ofast
 
-DEBUG=1
+DEBUG=0
 
 ifeq ($(DEBUG),1)
 	CPPFLAGS += -DDEBUG_BUILD
@@ -32,7 +32,7 @@ asm: $(ASMOBJ)
 testing: $(TESTING_PRODUCT)
 
 $(PRODUCT): $(OBJ)
-	$(CXX) $(LDFLAGS) -lxed -lsfml-system $^ -o $@
+	$(CXX) $(LDFLAGS) -flto -lxed -lsfml-system $^ -o $@
 
 $(TESTING_PRODUCT): $(wildcard testing/*.cpp) $(CXXOBJ)
 	$(CXX) $(CPPFLAGS) -I$(CATCH2_INCLUDE) $(CXXFLAGS) $^ -o $@

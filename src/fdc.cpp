@@ -43,6 +43,7 @@ E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports):
 void E5150::Floppy::writeDOR(const uint8_t data)
 { m_dorRegister = data; }
 
+//TODO: check again the value of the bits
 void E5150::Floppy::switchPhase (void)
 {
 	switch (m_phase)
@@ -51,13 +52,15 @@ void E5150::Floppy::switchPhase (void)
 		{
 			m_phase = PHASE::EXECUTION;
 			//clear the last bits without touching the other ones
-			m_statusRegister &= ~(1 << 7); 
+			m_statusRegister &= ~(1 << 7);
+			m_statusRegister |= (1 << 6);
 		} break;
 
 		case PHASE::EXECUTION:
 		{
 			m_phase = PHASE::RESULT;
-			m_statusRegister |= (0b11 << 6);
+			m_statusRegister |= (1 << 6);
+			m_statusRegister &= ~(1 << 7);
 		} break;
 
 		case PHASE::RESULT:
@@ -159,3 +162,33 @@ uint8_t E5150::Floppy::read	(const unsigned int localAddress)
 
 	return ret;
 }
+
+///////////////////////////////////
+/*** IMPLEMENTING THE COMMANDS ***/
+///////////////////////////////////
+E5150::Floppy::Command::Command(const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
+	m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber)
+{}
+
+bool E5150::Floppy::Command::configure (const uint8_t data)
+{
+	static unsigned int configurationStep = 0;
+	m_configurationWords[configurationStep++] = data;
+	return (configurationStep % m_configurationWords.size()) == 0;
+}
+
+std::pair<uint8_t,bool> E5150::Floppy::Command::readResult (void)
+{
+	static unsigned int readingStep = 0;
+	const uint8_t ret = m_resultWords[readingStep++];
+	return {ret, (readingStep % m_resultWords.size()) == 0};
+}
+
+E5150::Floppy::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)
+{}
+
+E5150::Floppy::COMMAND::Seek::Seek(): Command(3,0)
+{}
+
+E5150::Floppy::COMMAND::Invalid::Invalid(): Command(1,1)
+{ m_resultWords[0] = 0x80; }

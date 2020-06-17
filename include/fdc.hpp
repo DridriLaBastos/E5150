@@ -1,8 +1,6 @@
 #ifndef KEYBOARD_HPP
 #define KEYBOARD_HPP
 
-#include <utility>
-
 #include "pic.hpp"
 #include "util.hpp"
 #include "ports.hpp"
@@ -37,114 +35,42 @@ namespace E5150
 			class Command
 			{
 				public:
-					Command(void): m_step(0){}
+					Command (const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=5);
+
+				public:
 					//Return true when configuring is done
-					virtual bool configure (const uint8_t data) = 0;
+					bool configure (const uint8_t data);
+
 					//Return true when reading result is done
-					virtual std::pair<uint8_t,bool> readResult (void) = 0;
+					std::pair<uint8_t,bool> readResult (void);
 				
 				protected:
-					unsigned int m_step;
+					//TODO: I don't like having vectors here
+					std::vector<uint8_t> m_configurationWords;
+					std::vector<uint8_t> m_resultWords;
 			};
 
-			class ReadData: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class ReadDeletedData: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class ReadATrack: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class ReadID: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class FormatTrack: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class ScanEqual: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-
-			class WriteData: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class WriteDeletedData: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class ScanLEQ: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class ScanHEQ: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class Recalibrate: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class SenseInterruptStatus: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class Specify: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class SenseDriveStat: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-			class Seek: public Command 
-			{
-				virtual bool configure (const uint8_t data) final{return false;}
-				virtual std::pair<uint8_t, bool> readResult (void) final{return {0,true}; }
-			};
-
-
-			class Invalid: public Command
-			{
-				virtual bool configure (const uint8_t) final { return false; }
-				virtual std::pair<uint8_t,bool> readResult (void) final { return {0x80,true}; }
-			};
-		
+		class COMMAND
+		{
+			public:
+			class ReadData: public Command {};
+			class ReadDeletedData: public Command {};
+			class ReadATrack: public Command {};
+			class ReadID: public Command {};
+			class FormatTrack: public Command {};
+			class ScanEqual: public Command {};
+			class WriteData: public Command {};
+			class WriteDeletedData: public Command {};
+			class ScanLEQ: public Command {};
+			class ScanHEQ: public Command {};
+			class Recalibrate: public Command {};
+			class SenseInterruptStatus: public Command {};
+			class Specify: public Command {};
+			class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
+			class Seek: public Command { public: Seek(void); };
+			class Invalid: public Command { public: Invalid(void); };
+		};
+	
 		private:
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);
@@ -162,25 +88,25 @@ namespace E5150
 		
 		//Commands
 		//TODO: maybe they should become static members because all the commands are the same for FDCs so we don't
-		//have to create instances for each classes (but do we even need multiple classes ? I don't know now yet so
+		//have to create instances for each classes (but do we even need multiple classes ? I don't know yet so
 		//we go non static)
 		private:
-			ReadData readData;
-			ReadDeletedData readDeletedData;
-			ReadATrack readATrack;
-			ReadID readID;
-			FormatTrack formatTrack;
-			ScanEqual scanEqual;
-			WriteData writeData;
-			WriteDeletedData writeDeletedData;
-			ScanLEQ scanLEQ;
-			ScanHEQ scanHEQ;
-			Recalibrate recalibrate;
-			SenseInterruptStatus senseInterruptStatus;
-			Specify specify;
-			SenseDriveStat senseDriveStat;
-			Seek seek;
-			Invalid invalid;
+			COMMAND::ReadData readData;
+			COMMAND::ReadDeletedData readDeletedData;
+			COMMAND::ReadATrack readATrack;
+			COMMAND::ReadID readID;
+			COMMAND::FormatTrack formatTrack;
+			COMMAND::ScanEqual scanEqual;
+			COMMAND::WriteData writeData;
+			COMMAND::WriteDeletedData writeDeletedData;
+			COMMAND::ScanLEQ scanLEQ;
+			COMMAND::ScanHEQ scanHEQ;
+			COMMAND::Recalibrate recalibrate;
+			COMMAND::SenseInterruptStatus senseInterruptStatus;
+			COMMAND::Specify specify;
+			COMMAND::SenseDriveStatus senseDriveStat;
+			COMMAND::Seek seek;
+			COMMAND::Invalid invalid;
 
 		//Behaviour private space
 		private:

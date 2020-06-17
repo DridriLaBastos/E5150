@@ -17,7 +17,7 @@ bool E5150::Util::_continue = true;
 static void stop(const int signum)
 {
 	E5150::Util::_continue = false;
-	INFO("Simulation stopped by signal {}", signum);
+	INFO("Simulation stopped by 'signal {}'", signum);
 }
 
 E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_floppy(m_pic,m_ports)
@@ -64,7 +64,7 @@ void E5150::Arch::startSimulation()
 				}
 				++blockCount;
 			}
-			const sf::Time blockDuration = clock.getElapsedTime();
+			//const sf::Time blockDuration = clock.getElapsedTime();
 
 			if (elapsedSinceLastSecond >= sf::seconds(1.f))
 			{
