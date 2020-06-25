@@ -1,5 +1,7 @@
 #include "fdc.hpp"
 
+E5150::Floppy* fpc = nullptr;
+
 //The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
 //address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
 //from the UPD365 at 0x3F4, 0x3F5. The registers are maped like that:
@@ -9,6 +11,7 @@
 E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports):
 	Component("Floppy Controller",0b111), m_pic(pic), m_phase(PHASE::COMMAND), m_statusRegisterRead(false)
 {
+	fpc = this;
 	PortInfos dorStruct;
 	dorStruct.portNum = 0x3F2;
 	dorStruct.component = this;
@@ -43,32 +46,44 @@ E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports):
 void E5150::Floppy::writeDOR(const uint8_t data)
 { m_dorRegister = data; }
 
+void E5150::Floppy::switchToCommandMode (void)
+{
+	m_phase = PHASE::COMMAND;
+	m_statusRegister &= ~(1 << 6);
+	m_statusRegister |= (1 << 7);
+}
+
+void E5150::Floppy::switchToExecutionMode (void)
+{
+	m_phase = PHASE::EXECUTION;
+	//clears the last bits without touching the other ones
+	m_statusRegister &= ~(1 << 7);
+	m_statusRegister |= (1 << 6);
+}
+
+void E5150::Floppy::switchToResultMode (void)
+{
+	m_phase = PHASE::RESULT;
+	m_statusRegister |= (1 << 6);
+	m_statusRegister &= ~(1 << 7);
+}
+
 //TODO: check again the value of the bits
 void E5150::Floppy::switchPhase (void)
 {
 	switch (m_phase)
 	{
 		case PHASE::COMMAND:
-		{
-			m_phase = PHASE::EXECUTION;
-			//clear the last bits without touching the other ones
-			m_statusRegister &= ~(1 << 7);
-			m_statusRegister |= (1 << 6);
-		} break;
+			switchToExecutionMode();
+			break;
 
 		case PHASE::EXECUTION:
-		{
-			m_phase = PHASE::RESULT;
-			m_statusRegister |= (1 << 6);
-			m_statusRegister &= ~(1 << 7);
-		} break;
+			switchToResultMode();
+			break;
 
 		case PHASE::RESULT:
-		{
-			m_phase = PHASE::COMMAND;
-			m_statusRegister &= ~(1 << 6);
-			m_statusRegister |= (1 << 7);
-		} break;
+			switchToCommandMode();
+			break;
 	}
 }
 
@@ -90,14 +105,8 @@ void E5150::Floppy::writeDataRegister(const uint8_t data)
 				m_selectedCommand = commandIndex;
 		}
 
-		if (m_commands[m_selectedCommand]->configure(data))
-		{
-			switchPhase();
-			firstCommandWorld = true;
-		}
-		
 		m_statusRegisterRead = false;
-		firstCommandWorld = false;
+		firstCommandWorld = m_commands[m_selectedCommand]->configure(data);
 	}
 }
 
@@ -174,7 +183,15 @@ bool E5150::Floppy::Command::configure (const uint8_t data)
 {
 	static unsigned int configurationStep = 0;
 	m_configurationWords[configurationStep++] = data;
-	return (configurationStep % m_configurationWords.size()) == 0;
+	configurationStep %= m_configurationWords.size();
+
+	if (configurationStep == 0)
+	{
+		fpc->switchToExecutionMode();
+		onConfigureFinish();
+	}
+
+	return (configurationStep == 0);
 }
 
 std::pair<uint8_t,bool> E5150::Floppy::Command::readResult (void)
@@ -192,3 +209,19 @@ E5150::Floppy::COMMAND::Seek::Seek(): Command(3,0)
 
 E5150::Floppy::COMMAND::Invalid::Invalid(): Command(1,1)
 { m_resultWords[0] = 0x80; }
+
+E5150::Floppy::COMMAND::Specify::Specify(): Command(3,0)
+{}
+
+void E5150::Floppy::COMMAND::Specify::onConfigureFinish()
+{
+	const uint8_t SRTValue = (m_configurationWords[1] & (0b111 << 5)) >> 5;
+	const uint8_t HUTValue = m_configurationWords[1] & 0b111;
+	const uint8_t HLTValue = (m_configurationWords[2] & ~1) >> 1;
+
+	m_timers[TIMER::STEP_RATE_TIME] = SRTValue;
+	m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
+	m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
+	
+	fpc->switchToCommandMode();
+}

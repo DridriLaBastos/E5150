@@ -43,6 +43,9 @@ namespace E5150
 
 					//Return true when reading result is done
 					std::pair<uint8_t,bool> readResult (void);
+
+				private:
+					virtual void onConfigureFinish (void) {}
 				
 				protected:
 					//TODO: I don't like having vectors here
@@ -50,28 +53,35 @@ namespace E5150
 					std::vector<uint8_t> m_resultWords;
 			};
 
-		class COMMAND
-		{
-			public:
-			class ReadData: public Command {};
-			class ReadDeletedData: public Command {};
-			class ReadATrack: public Command {};
-			class ReadID: public Command {};
-			class FormatTrack: public Command {};
-			class ScanEqual: public Command {};
-			class WriteData: public Command {};
-			class WriteDeletedData: public Command {};
-			class ScanLEQ: public Command {};
-			class ScanHEQ: public Command {};
-			class Recalibrate: public Command {};
-			class SenseInterruptStatus: public Command {};
-			class Specify: public Command {};
-			class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
-			class Seek: public Command { public: Seek(void); };
-			class Invalid: public Command { public: Invalid(void); };
-		};
+			class COMMAND
+			{
+				public:
+				class ReadData: public Command {};
+				class ReadDeletedData: public Command {};
+				class ReadATrack: public Command {};
+				class ReadID: public Command {};
+				class FormatTrack: public Command {};
+				class ScanEqual: public Command {};
+				class WriteData: public Command {};
+				class WriteDeletedData: public Command {};
+				class ScanLEQ: public Command {};
+				class ScanHEQ: public Command {};
+				class Recalibrate: public Command {};
+				class SenseInterruptStatus: public Command {};
+				class Specify: public Command{ public: Specify(void); private: virtual void onConfigureFinish(void) override final; };
+				class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
+				class Seek: public Command { public: Seek(void); };
+				class Invalid: public Command { public: Invalid(void); };
+			};
+
+			enum TIMER
+			{ STEP_RATE_TIME, HEAD_UNLOAD_TIME, HEAD_LOAD_TIME };
 	
 		private:
+			void switchToCommandMode (void);
+			void switchToExecutionMode (void);
+			void switchToResultMode (void);
+
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);
 			virtual uint8_t read (const unsigned int localAddress) final;
@@ -116,6 +126,7 @@ namespace E5150
 
 			std::array<uint8_t, 4> m_STRegisters;
 			std::array<Command*, 16> m_commands;
+			std::array<uint8_t, 3> m_timers;
 
 			PHASE m_phase;
 			bool m_statusRegisterRead;
