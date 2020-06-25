@@ -1,6 +1,6 @@
 #include "fdc.hpp"
 
-E5150::Floppy* fpc = nullptr;
+E5150::Floppy* fdc = nullptr;
 
 //The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
 //address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
@@ -11,7 +11,7 @@ E5150::Floppy* fpc = nullptr;
 E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports):
 	Component("Floppy Controller",0b111), m_pic(pic), m_phase(PHASE::COMMAND), m_statusRegisterRead(false)
 {
-	fpc = this;
+	fdc = this;
 	PortInfos dorStruct;
 	dorStruct.portNum = 0x3F2;
 	dorStruct.component = this;
@@ -187,7 +187,7 @@ bool E5150::Floppy::Command::configure (const uint8_t data)
 
 	if (configurationStep == 0)
 	{
-		fpc->switchToExecutionMode();
+		fdc->switchToExecutionMode();
 		onConfigureFinish();
 	}
 
@@ -219,9 +219,9 @@ void E5150::Floppy::COMMAND::Specify::onConfigureFinish()
 	const uint8_t HUTValue = m_configurationWords[1] & 0b111;
 	const uint8_t HLTValue = (m_configurationWords[2] & ~1) >> 1;
 
-	m_timers[TIMER::STEP_RATE_TIME] = SRTValue;
-	m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
-	m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
+	fdc->m_timers[TIMER::STEP_RATE_TIME] = SRTValue;
+	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
+	fdc->m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
 	
-	fpc->switchToCommandMode();
+	fdc->switchToCommandMode();
 }
