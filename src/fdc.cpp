@@ -1,6 +1,7 @@
 #include "fdc.hpp"
 
-E5150::Floppy* fdc = nullptr;
+//mmmh...
+E5150::FDC* fdc = nullptr;
 
 //The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
 //address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
@@ -8,7 +9,7 @@ E5150::Floppy* fdc = nullptr;
 //0b00x --> nothing
 //0b010 --> DOR
 //0b10x --> FDC
-E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports):
+E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	Component("Floppy Controller",0b111), m_pic(pic), m_phase(PHASE::COMMAND), m_statusRegisterRead(false)
 {
 	fdc = this;
@@ -43,17 +44,22 @@ E5150::Floppy::Floppy(E5150::PIC& pic, PORTS& ports):
 	m_statusRegister = 0b10 << 6;
 }
 
-void E5150::Floppy::writeDOR(const uint8_t data)
+void E5150::FDC::clock()
+{
+
+}
+
+void E5150::FDC::writeDOR(const uint8_t data)
 { m_dorRegister = data; }
 
-void E5150::Floppy::switchToCommandMode (void)
+void E5150::FDC::switchToCommandMode (void)
 {
 	m_phase = PHASE::COMMAND;
 	m_statusRegister &= ~(1 << 6);
 	m_statusRegister |= (1 << 7);
 }
 
-void E5150::Floppy::switchToExecutionMode (void)
+void E5150::FDC::switchToExecutionMode (void)
 {
 	m_phase = PHASE::EXECUTION;
 	//clears the last bits without touching the other ones
@@ -61,7 +67,7 @@ void E5150::Floppy::switchToExecutionMode (void)
 	m_statusRegister |= (1 << 6);
 }
 
-void E5150::Floppy::switchToResultMode (void)
+void E5150::FDC::switchToResultMode (void)
 {
 	m_phase = PHASE::RESULT;
 	m_statusRegister |= (1 << 6);
@@ -69,7 +75,7 @@ void E5150::Floppy::switchToResultMode (void)
 }
 
 //TODO: check again the value of the bits
-void E5150::Floppy::switchPhase (void)
+void E5150::FDC::switchPhase (void)
 {
 	switch (m_phase)
 	{
@@ -87,7 +93,7 @@ void E5150::Floppy::switchPhase (void)
 	}
 }
 
-void E5150::Floppy::writeDataRegister(const uint8_t data)
+void E5150::FDC::writeDataRegister(const uint8_t data)
 {
 	static bool firstCommandWorld = true;
 	if (m_statusRegisterRead)
@@ -113,7 +119,7 @@ void E5150::Floppy::writeDataRegister(const uint8_t data)
 static bool fdcAllowsWritingToDataRegister (const uint8_t statusRegister)
 { return (statusRegister & (1 << 7)) >> 7; }
 
-void E5150::Floppy::write	(const unsigned int localAddress, const uint8_t data)
+void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 {
 	if (localAddress == 2)
 		writeDOR(data);
@@ -124,7 +130,7 @@ void E5150::Floppy::write	(const unsigned int localAddress, const uint8_t data)
 	}
 }
 
-uint8_t E5150::Floppy::readDataRegister()
+uint8_t E5150::FDC::readDataRegister()
 {
 	if (m_statusRegisterRead)
 	{
@@ -140,7 +146,7 @@ uint8_t E5150::Floppy::readDataRegister()
 	return m_dataRegister;
 }
 
-uint8_t E5150::Floppy::readStatusRegister()
+uint8_t E5150::FDC::readStatusRegister()
 {
 	m_statusRegisterRead = true;
 	return m_statusRegister;
@@ -149,7 +155,7 @@ uint8_t E5150::Floppy::readStatusRegister()
 static bool fdcAllowsReadingDataRegister(const uint8_t statusRegister)
 { return (statusRegister & (0b11 << 6)) == (0b11 << 6); }
 
-uint8_t E5150::Floppy::read	(const unsigned int localAddress)
+uint8_t E5150::FDC::read	(const unsigned int localAddress)
 {
 	uint8_t ret;//I don't initialized ret. If a wrong addres is given, then the returned value of the read
 				//operation will be undefined
@@ -175,11 +181,11 @@ uint8_t E5150::Floppy::read	(const unsigned int localAddress)
 ///////////////////////////////////
 /*** IMPLEMENTING THE COMMANDS ***/
 ///////////////////////////////////
-E5150::Floppy::Command::Command(const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
+E5150::FDC::Command::Command(const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
 	m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber)
 {}
 
-bool E5150::Floppy::Command::configure (const uint8_t data)
+bool E5150::FDC::Command::configure (const uint8_t data)
 {
 	static unsigned int configurationStep = 0;
 	m_configurationWords[configurationStep++] = data;
@@ -194,26 +200,26 @@ bool E5150::Floppy::Command::configure (const uint8_t data)
 	return (configurationStep == 0);
 }
 
-std::pair<uint8_t,bool> E5150::Floppy::Command::readResult (void)
+std::pair<uint8_t,bool> E5150::FDC::Command::readResult (void)
 {
 	static unsigned int readingStep = 0;
 	const uint8_t ret = m_resultWords[readingStep++];
 	return {ret, (readingStep % m_resultWords.size()) == 0};
 }
 
-E5150::Floppy::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)
+E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)
 {}
 
-E5150::Floppy::COMMAND::Seek::Seek(): Command(3,0)
+E5150::FDC::COMMAND::Seek::Seek(): Command(3,0)
 {}
 
-E5150::Floppy::COMMAND::Invalid::Invalid(): Command(1,1)
+E5150::FDC::COMMAND::Invalid::Invalid(): Command(1,1)
 { m_resultWords[0] = 0x80; }
 
-E5150::Floppy::COMMAND::Specify::Specify(): Command(3,0)
+E5150::FDC::COMMAND::Specify::Specify(): Command(3,0)
 {}
 
-void E5150::Floppy::COMMAND::Specify::onConfigureFinish()
+void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 {
 	const uint8_t SRTValue = (m_configurationWords[1] & (0b111 << 5)) >> 5;
 	const uint8_t HUTValue = m_configurationWords[1] & 0b111;

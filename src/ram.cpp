@@ -21,7 +21,7 @@ uint8_t RAM::read (const unsigned int address)
 void RAM::write (const unsigned int address, const uint8_t data)
 {
 	auto f = std::find_if(m_mappedDevices.begin(), m_mappedDevices.end(), 
-	[this, address] (MapInfo info) -> bool {return (address >= info.begin) && (address <= info.end);});
+	[address] (MapInfo info) -> bool {return (address >= info.begin) && (address <= info.end);});
 
 	if (f == m_mappedDevices.end())
 			m_ram[address] = data;
@@ -38,8 +38,7 @@ void RAM::load (const std::string path, size_t pos)
 
 	if (!stream.is_open())
 	{
-		ERROR("ERROR when openning '{}'",path);
-		ERROR("      file not loaded");
+		ERROR("cannot open file '{}'",path);
 	}
 	else
 	{

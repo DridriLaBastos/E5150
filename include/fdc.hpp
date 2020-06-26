@@ -4,6 +4,7 @@
 #include "pic.hpp"
 #include "util.hpp"
 #include "ports.hpp"
+#include "floppy.hpp"
 #include "component.hpp"
 
 namespace E5150
@@ -11,10 +12,14 @@ namespace E5150
 	/**
 	 * This class will emulate the floppy disc controller in the IBM and the behaviour of the DOR register
 	 */
-	class Floppy: public Component
+	//TODO: at what frequency does the fdc really runs ? I assume 8MHz but it could be 4MHz.
+	class FDC: public Component
 	{
 		public:
-			Floppy(PIC& pic,PORTS& ports);
+			FDC(PIC& pic,PORTS& ports);
+		
+		public:
+			void clock (void);
 		
 		private:
 			enum class PHASE
@@ -125,6 +130,7 @@ namespace E5150
 			uint8_t m_dataRegister;
 
 			std::array<uint8_t, 4> m_STRegisters;
+			std::array<Floppy,4> m_floppyDrives;
 			std::array<Command*, 16> m_commands;
 			std::array<uint8_t, 3> m_timers;
 

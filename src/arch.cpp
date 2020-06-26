@@ -20,7 +20,7 @@ static void stop(const int signum)
 	INFO("Simulation stopped by 'signal {}'", signum);
 }
 
-E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_floppy(m_pic,m_ports)
+E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_fdc(m_pic,m_ports)
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	INFO("This program use the library Intel XED to decode the instructions");
@@ -44,6 +44,7 @@ void E5150::Arch::startSimulation()
 	sf::Clock clock;
 	sf::Time elapsedSinceLastSecond = sf::Time::Zero;
 	unsigned int blockCount = 0;
+	unsigned int fdcClock = 0;
 #endif
 
 	try
@@ -55,14 +56,25 @@ void E5150::Arch::startSimulation()
 			//The next block is launch if we have enougth time (we can run at less clock than specified but not more)
 			if ((blockCount+1)*CLOCK_PER_BLOCKS <= I8284_CLOCKS_PER_SECOND)
 			{
+				++blockCount;
 				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
 				{
-	#endif
+	#endif			
+					++fdcClock;
+					const unsigned int currentClock = blockCount*CLOCK_PER_BLOCKS+i;
+					const unsigned int currentFdcClock = 167*currentClock;
+					const unsigned int nextFdcClockValue = (fdcClock+1)*100;
 					m_cpu.simulate();
 					m_pit.clock();
+					m_fdc.clock();
+					
+					if (nextFdcClockValue < currentFdcClock)
+					{
+						m_fdc.clock();
+						++fdcClock;
+					}
 	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 				}
-				++blockCount;
 			}
 			//const sf::Time blockDuration = clock.getElapsedTime();
 
@@ -70,9 +82,13 @@ void E5150::Arch::startSimulation()
 			{
 				std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
 				std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
+				const float value = 1.f - (float)fdcClock/8000000.f;
+				const float acuraccy = (value < 0 ? (-value) : value) * 100.f;
+				std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
 				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
 				blockCount = 0;
 				elapsedSinceLastSecond = sf::Time::Zero;
+				fdcClock = 0;
 			}
 
 			while (clock.getElapsedTime() < TIME_PER_BLOCK);

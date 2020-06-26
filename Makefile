@@ -14,7 +14,7 @@ CATCH2_INCLUDE = third-party/catch2/include
 
 CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
 CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
-CXXFLAGS = -Wextra -Wall -Wno-switch -Ofast
+CXXFLAGS = -Wall -Wextra -Wno-switch -Ofast
 
 DEBUG=0
 

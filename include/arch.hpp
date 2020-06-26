@@ -26,7 +26,7 @@ namespace E5150
 			PIC m_pic;
 			PIT m_pit;
 			PPI m_ppi;
-			Floppy m_floppy;
+			FDC m_fdc;
 	};
 }
 
