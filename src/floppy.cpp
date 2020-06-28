@@ -38,6 +38,9 @@ uint8_t Floppy::read(const size_t dataPos)
 	return ret;
 }
 
+unsigned int Floppy::moveHeadToTrack(const unsigned int newTrack)
+{ return 8; }
+
 void Floppy::write (const uint8_t data, const size_t dataPos)
 {
 	if (m_file.is_open())

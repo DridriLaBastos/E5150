@@ -44,9 +44,21 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	m_statusRegister = 0b10 << 6;
 }
 
+unsigned int E5150::FDC::onClock ()
+{
+	return m_commands[m_selectedCommand]->exec();
+}
+
 void E5150::FDC::clock()
 {
+	static unsigned int passClocks = 0;
+	static const unsigned int clockForOneMs = 8;//8 clocks for 1 ms at 8MHz
 
+	if (passClocks-- == 0)
+	{
+		if (m_phase == PHASE::EXECUTION)
+			passClocks = onClock();
+	}
 }
 
 void E5150::FDC::writeDOR(const uint8_t data)

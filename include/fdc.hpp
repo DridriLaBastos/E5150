@@ -49,6 +49,8 @@ namespace E5150
 					//Return true when reading result is done
 					std::pair<uint8_t,bool> readResult (void);
 
+					virtual unsigned int exec (void);
+
 				private:
 					virtual void onConfigureFinish (void) {}
 				
@@ -61,7 +63,7 @@ namespace E5150
 			class COMMAND
 			{
 				public:
-				class ReadData: public Command {};
+				class ReadData: public Command { virtual unsigned int exec (void) final; };
 				class ReadDeletedData: public Command {};
 				class ReadATrack: public Command {};
 				class ReadID: public Command {};
@@ -83,6 +85,7 @@ namespace E5150
 			{ STEP_RATE_TIME, HEAD_UNLOAD_TIME, HEAD_LOAD_TIME };
 	
 		private:
+			unsigned int onClock (void);
 			void switchToCommandMode (void);
 			void switchToExecutionMode (void);
 			void switchToResultMode (void);
