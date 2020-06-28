@@ -219,9 +219,48 @@ std::pair<uint8_t,bool> E5150::FDC::Command::readResult (void)
 	return {ret, (readingStep % m_resultWords.size()) == 0};
 }
 
-unsigned int E5150::FDC::COMMAND::ReadData::exec()
+void E5150::FDC::Command::onConfigureFinish()
 {
-	return 0;
+	m_floppyDrive = m_configurationWords[1] & 0b11;
+}
+
+unsigned int E5150::FDC::Command::exec()
+{
+	onExec();
+	return m_waitTime;
+}
+
+///////////////////////////////////
+/*** IMPLEMENTING READ DATA ***/
+///////////////////////////////////
+
+void E5150::FDC::COMMAND::ReadData::loadHeads()
+{
+	if (!fdc->m_floppyDrives[m_floppyDrive].areHeadsLoaded())
+		m_waitTime = fdc->m_floppyDrives[m_floppyDrive].loadHeads();
+	
+	m_status = STATUS::WAIT_HEAD_SETTLING;
+
+}
+
+void E5150::FDC::COMMAND::ReadData::waitHeadSettling()
+{
+	m_waitTime = fdc->m_timers[TIMER::HEAD_LOAD_TIME];
+	//TODO: switch to next command stage
+}
+
+void E5150::FDC::COMMAND::ReadData::onExec()
+{
+	switch (m_status)
+	{
+		case STATUS::LOADING_HEADS:
+			loadHeads();
+			break;
+		
+		case STATUS::WAIT_HEAD_SETTLING:
+			waitHeadSettling();
+			break;
+	}
 }
 
 E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)

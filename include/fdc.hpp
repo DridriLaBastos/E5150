@@ -49,21 +49,37 @@ namespace E5150
 					//Return true when reading result is done
 					std::pair<uint8_t,bool> readResult (void);
 
-					virtual unsigned int exec (void) {}
+					unsigned int exec (void);
 
-				private:
-					virtual void onConfigureFinish (void) {}
-				
 				protected:
 					//TODO: I don't like having vectors here
 					std::vector<uint8_t> m_configurationWords;
 					std::vector<uint8_t> m_resultWords;
+					unsigned int m_waitTime;
+					unsigned int m_floppyDrive;
+				
+				private:
+					virtual void onConfigureFinish (void);
+					virtual void onExec (void);
+				
 			};
 
 			class COMMAND
 			{
 				public:
-				class ReadData: public Command { virtual unsigned int exec (void) final; };
+				class ReadData: public Command
+				{
+					void loadHeads(void);
+					void waitHeadSettling(void);
+					virtual void onExec (void) final;
+					virtual void onConfigurationFinish(void) final;
+					enum class STATUS
+					{
+						LOADING_HEADS, WAIT_HEAD_SETTLING
+					};
+
+					STATUS m_status { STATUS::LOADING_HEADS };
+				};
 				class ReadDeletedData: public Command {};
 				class ReadATrack: public Command {};
 				class ReadID: public Command {};
@@ -75,7 +91,7 @@ namespace E5150
 				class ScanHEQ: public Command {};
 				class Recalibrate: public Command {};
 				class SenseInterruptStatus: public Command {};
-				class Specify: public Command{ public: Specify(void); private: virtual void onConfigureFinish(void) override final; };
+				class Specify: public Command{ public: Specify(void); private: virtual void onConfigureFinish(void) final; };
 				class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
 				class Seek: public Command { public: Seek(void); };
 				class Invalid: public Command { public: Invalid(void); };
