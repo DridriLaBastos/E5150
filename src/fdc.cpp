@@ -219,6 +219,11 @@ std::pair<uint8_t,bool> E5150::FDC::Command::readResult (void)
 	return {ret, (readingStep % m_resultWords.size()) == 0};
 }
 
+unsigned int E5150::FDC::COMMAND::ReadData::exec()
+{
+	return 0;
+}
+
 E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)
 {}
 
