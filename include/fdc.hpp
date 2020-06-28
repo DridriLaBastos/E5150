@@ -49,7 +49,7 @@ namespace E5150
 					//Return true when reading result is done
 					std::pair<uint8_t,bool> readResult (void);
 
-					virtual unsigned int exec (void);
+					virtual unsigned int exec (void) {}
 
 				private:
 					virtual void onConfigureFinish (void) {}

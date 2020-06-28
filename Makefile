@@ -32,7 +32,7 @@ asm: $(ASMOBJ)
 testing: $(TESTING_PRODUCT)
 
 $(PRODUCT): $(OBJ)
-	$(CXX) $(LDFLAGS) -flto -lxed -lsfml-system $^ -o $@
+	$(CXX) $(LDFLAGS) $^ -lxed -lsfml-system -o $@
 
 $(TESTING_PRODUCT): $(wildcard testing/*.cpp) $(CXXOBJ)
 	$(CXX) $(CPPFLAGS) -I$(CATCH2_INCLUDE) $(CXXFLAGS) $^ -o $@

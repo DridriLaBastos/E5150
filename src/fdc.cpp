@@ -57,7 +57,7 @@ void E5150::FDC::clock()
 	if (passClocks-- == 0)
 	{
 		if (m_phase == PHASE::EXECUTION)
-			passClocks = onClock();
+			passClocks = onClock() * clockForOneMs;
 	}
 }
 
