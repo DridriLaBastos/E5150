@@ -1,0 +1,27 @@
+floppy
+model: 100
+	40 tracks
+	1 head
+	8 sectors/track
+	512 o/sector
+	total capacity: 163 840 o
+
+motor must be on to select a drive
+
+seek time : 8 msec
+head setting time: 25 msec
+head load time: 35 msec
+start/stop time: 500 msec
+transfer rate: 250 kb/s (=32000 o/s) --> 31.25 usec/o 250 clocks at 8MHz
+
+fdc:
+from IBM doc:
+	N  = 2
+	SC = 8
+	HUT = 0xF
+	SRT = 0xC
+	GPL FORMAT = 0x05
+	GPL R/W = 0x2A
+	HLT = 01
+	8ms track to track
+clock 8MHz ~125 ns/clk (4MHz 250ns/clk)
