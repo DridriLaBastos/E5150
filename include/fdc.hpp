@@ -60,7 +60,7 @@ namespace E5150
 				
 				private:
 					virtual void onConfigureFinish (void);
-					virtual void onExec (void);
+					virtual void onExec (void){}
 				
 			};
 
@@ -72,7 +72,7 @@ namespace E5150
 					void loadHeads(void);
 					void waitHeadSettling(void);
 					virtual void onExec (void) final;
-					virtual void onConfigurationFinish(void) final;
+					//virtual void onConfigureFinish(void) final;
 					enum class STATUS
 					{
 						LOADING_HEADS, WAIT_HEAD_SETTLING

@@ -60,18 +60,14 @@ void E5150::Arch::startSimulation()
 				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
 				{
 	#endif			
-					++fdcClock;
 					const unsigned int currentClock = blockCount*CLOCK_PER_BLOCKS+i;
-					const unsigned int currentFdcClock = 167*currentClock;
-					const unsigned int nextFdcClockValue = (fdcClock+1)*100;
 					m_cpu.simulate();
 					m_pit.clock();
-					m_fdc.clock();
 					
-					if (nextFdcClockValue < currentFdcClock)
+					while ((fdcClock+1)*100 <= 167*currentClock)
 					{
-						m_fdc.clock();
 						++fdcClock;
+						m_fdc.clock();
 					}
 	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 				}
