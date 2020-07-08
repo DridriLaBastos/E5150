@@ -49,19 +49,18 @@ namespace E5150
 					//Return true when reading result is done
 					std::pair<uint8_t,bool> readResult (void);
 
-					unsigned int exec (void);
+					virtual void exec (void);//TODO: should be pure virtual
 
 				protected:
 					//TODO: I don't like having vectors here
 					std::vector<uint8_t> m_configurationWords;
 					std::vector<uint8_t> m_resultWords;
-					unsigned int m_waitTime;
+					unsigned int m_clockWait;
 					unsigned int m_floppyDrive;
 					unsigned int m_configurationStep;
 				
 				private:
 					virtual void onConfigureFinish (void);
-					virtual void onExec (void){}
 				
 			};
 
@@ -70,14 +69,12 @@ namespace E5150
 				public:
 				class ReadData: public Command
 				{
-					void loadHeads(void);
-					void waitHeadSettling(void);
-					virtual void onExec (void) final;
-					//virtual void onConfigureFinish(void) final;
 					enum class STATUS
-					{
-						LOADING_HEADS, WAIT_HEAD_SETTLING
-					};
+					{ LOADING_HEADS, READ_DATA };
+
+					void loadHeads(void);
+					virtual void exec (void) final;
+					//virtual void onConfigureFinish(void) final;
 
 					STATUS m_status { STATUS::LOADING_HEADS };
 				};
@@ -99,13 +96,18 @@ namespace E5150
 			};
 
 			enum TIMER
-			{ STEP_RATE_TIME, HEAD_UNLOAD_TIME, HEAD_LOAD_TIME };
+			{
+				STEP_RATE_TIME   /*time interval between adjacent step pulse*/,
+				HEAD_UNLOAD_TIME /*Time of the end of the execution phase of one of the read/write command to the head unload state*/,
+				HEAD_LOAD_TIME   /*Time that the heads take to be loaded after a head load signal*/
+			};
 	
 		private:
-			unsigned int onClock (void);
-			void switchToCommandMode (void);
+			void waitMicro (const unsigned int microseconds);
+			void waitMilli (const unsigned int milliseconds);
+			void switchToCommandMode   (void);
 			void switchToExecutionMode (void);
-			void switchToResultMode (void);
+			void switchToResultMode    (void);
 
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);
@@ -157,6 +159,8 @@ namespace E5150
 			PHASE m_phase;
 			bool m_statusRegisterRead;
 			unsigned int m_selectedCommand;
+
+			unsigned int m_passClock;
 	};
 }
 

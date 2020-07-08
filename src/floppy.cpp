@@ -47,5 +47,6 @@ void Floppy::write (const uint8_t data, const size_t dataPos)
 	{
 		m_file.seekg(dataPos);
 		m_file.put(data);
+		m_clock.restart();
 	}
 }

@@ -1,7 +1,7 @@
 #include "fdc.hpp"
 
 //mmmh...
-E5150::FDC* fdc = nullptr;
+static E5150::FDC* fdc = nullptr;
 
 //The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
 //address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
@@ -44,20 +44,15 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	m_statusRegister = 0b10 << 6;
 }
 
-unsigned int E5150::FDC::onClock ()
-{
-	return m_commands[m_selectedCommand]->exec();
-}
+void E5150::FDC::waitMicro (const unsigned int microsconds) { m_passClock += 8*microsconds; }
+void E5150::FDC::waitMilli (const unsigned int millisconds) { waitMicro(millisconds*1000); }
 
 void E5150::FDC::clock()
 {
-	static unsigned int passClocks = 0;
-	static const unsigned int clockForOneMs = 8;//8 clocks for 1 ms at 8MHz
-
-	if (passClocks-- == 0)
+	if (m_passClock-- == 0)
 	{
 		if (m_phase == PHASE::EXECUTION)
-			passClocks = onClock() * clockForOneMs;
+			m_commands[m_selectedCommand]->exec();
 	}
 }
 
@@ -228,11 +223,8 @@ void E5150::FDC::Command::onConfigureFinish()
 	m_floppyDrive = m_configurationWords[1] & 0b11;
 }
 
-unsigned int E5150::FDC::Command::exec()
-{
-	onExec();
-	return m_waitTime;
-}
+void E5150::FDC::Command::exec()
+{}
 
 ///////////////////////////////////
 /*** IMPLEMENTING READ DATA ***/
@@ -241,19 +233,16 @@ unsigned int E5150::FDC::Command::exec()
 void E5150::FDC::COMMAND::ReadData::loadHeads()
 {
 	if (!fdc->m_floppyDrives[m_floppyDrive].areHeadsLoaded())
-		m_waitTime = fdc->m_floppyDrives[m_floppyDrive].loadHeads();
+	{
+		fdc->m_floppyDrives[m_floppyDrive].loadHeads();
+		fdc->waitMilli(fdc->m_timers[TIMER::HEAD_LOAD_TIME]*16);
+	}
 	
-	m_status = STATUS::WAIT_HEAD_SETTLING;
+	m_status = STATUS::READ_DATA;
 
 }
 
-void E5150::FDC::COMMAND::ReadData::waitHeadSettling()
-{
-	m_waitTime = fdc->m_timers[TIMER::HEAD_LOAD_TIME];
-	//TODO: switch to next command stage
-}
-
-void E5150::FDC::COMMAND::ReadData::onExec()
+void E5150::FDC::COMMAND::ReadData::exec()
 {
 	switch (m_status)
 	{
@@ -261,8 +250,7 @@ void E5150::FDC::COMMAND::ReadData::onExec()
 			loadHeads();
 			break;
 		
-		case STATUS::WAIT_HEAD_SETTLING:
-			waitHeadSettling();
+		case STATUS::READ_DATA:
 			break;
 	}
 }
@@ -282,8 +270,16 @@ E5150::FDC::COMMAND::Specify::Specify(): Command(3,0)
 void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 {
 	const uint8_t SRTValue = (m_configurationWords[1] & (0b111 << 5)) >> 5;
-	const uint8_t HUTValue = m_configurationWords[1] & 0b111;
+	const uint8_t HUTValue = m_configurationWords[1] & 0xF;
 	const uint8_t HLTValue = (m_configurationWords[2] & ~1) >> 1;
+
+	if (HUTValue == 0 || HUTValue > 0xF)
+		throw std::logic_error("HUT value should be in [0x1, 0xF]");
+	
+	if ((HLTValue == 0) || (HLTValue == 0xFF))
+		throw std::logic_error("HLT value should be in [0x1, 0xFE]");
+	
+	if (SRTValue < 0xF)
 
 	fdc->m_timers[TIMER::STEP_RATE_TIME] = SRTValue;
 	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;

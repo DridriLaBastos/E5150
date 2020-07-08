@@ -10,18 +10,18 @@ motor must be on to select a drive
 
 seek time : 8 msec
 head setting time: 25 msec
-head load time: 35 msec
-start/stop time: 500 msec
+head load time: 35 msec (heads are loaded when the drive is selected)
+motor start/stop time: 500 msec
 transfer rate: 250 kb/s (=32000 o/s) --> 31.25 usec/o 250 clocks at 8MHz
 
 fdc:
 from IBM doc:
 	N  = 2
 	SC = 8
-	HUT = 0xF
+	HUT = 0xF (heads unload time ~= 240ms)
 	SRT = 0xC
 	GPL FORMAT = 0x05
 	GPL R/W = 0x2A
 	HLT = 01
 	8ms track to track
-clock 8MHz ~125 ns/clk (4MHz 250ns/clk)
+clock 8MHz ~125 ns/clk (4MHz 250ns/clk) --> 8clocks per micro seconds

@@ -18,8 +18,10 @@ class Floppy
 		 * \return time in ms to perform the action 
 		 */
 		unsigned int moveHeadToTrack (const unsigned int newTrack);
-		bool areHeadsLoaded(void) const { return m_headLoaded; }
-		unsigned int loadHeads(void) { m_headLoaded = true; return 35; }
+		bool areHeadsLoaded(void) const
+		{ return m_clock.getElapsedTime().asMilliseconds() < 240; }
+
+		unsigned int loadHeads(void) { m_clock.restart(); return 35; }
 		void write (const uint8_t data, const size_t dataPos);
 
 		const unsigned int driverNumber;
@@ -27,7 +29,8 @@ class Floppy
 		std::fstream m_file;
 		size_t m_readPos;
 		bool m_isOpen;
-		bool m_headLoaded = false;
+		bool m_headLoaded;
+		sf::Clock m_clock;
 		static unsigned int floppyNumber;
 };
 

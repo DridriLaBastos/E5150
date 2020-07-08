@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <exception>
 #include <functional>
+#include <SFML/System.hpp>
 
 extern "C"
 {
