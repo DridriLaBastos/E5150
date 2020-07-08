@@ -255,6 +255,13 @@ void E5150::FDC::COMMAND::ReadData::exec()
 	}
 }
 
+//////////////////////////////
+/*** IMPLEMENTING READ ID ***/
+//////////////////////////////
+
+E5150::FDC::COMMAND::ReadID::ReadID(): Command(2) {}
+
+
 E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)
 {}
 

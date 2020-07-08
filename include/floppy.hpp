@@ -3,6 +3,14 @@
 
 #include "util.hpp"
 
+struct ID
+{
+	unsigned int head;
+	unsigned int track;
+	unsigned int sector;
+	unsigned int byte;
+}
+
 //TODO: implements error state
 class Floppy
 {
@@ -25,6 +33,7 @@ class Floppy
 		void write (const uint8_t data, const size_t dataPos);
 
 		const unsigned int driverNumber;
+
 	private:
 		std::fstream m_file;
 		size_t m_readPos;
@@ -32,6 +41,7 @@ class Floppy
 		bool m_headLoaded;
 		sf::Clock m_clock;
 		static unsigned int floppyNumber;
+		ID m_id;
 };
 
 #endif

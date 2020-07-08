@@ -40,7 +40,7 @@ namespace E5150
 			class Command
 			{
 				public:
-					Command (const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=5);
+					Command (const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7);
 
 				public:
 					//Return true when configuring is done
