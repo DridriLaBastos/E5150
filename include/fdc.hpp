@@ -57,6 +57,7 @@ namespace E5150
 					std::vector<uint8_t> m_resultWords;
 					unsigned int m_waitTime;
 					unsigned int m_floppyDrive;
+					unsigned int m_configurationStep;
 				
 				private:
 					virtual void onConfigureFinish (void);

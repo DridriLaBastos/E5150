@@ -194,22 +194,26 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 /*** IMPLEMENTING THE COMMANDS ***/
 ///////////////////////////////////
 E5150::FDC::Command::Command(const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
-	m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber)
+	m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0)
 {}
 
 bool E5150::FDC::Command::configure (const uint8_t data)
 {
-	static unsigned int configurationStep = 0;
-	m_configurationWords[configurationStep++] = data;
-	configurationStep %= m_configurationWords.size();
+	if (!(data & (1 << 6)))
+		throw std::logic_error("FM mode is not supported with the floppy drive");
 
-	if (configurationStep == 0)
+	m_configurationWords[m_configurationStep++] = data;
+
+	const bool configurationFinished = m_configurationStep == m_configurationWords.size();
+
+	if (configurationFinished)
 	{
 		fdc->switchToExecutionMode();
 		onConfigureFinish();
+		m_configurationStep = 0;
 	}
 
-	return (configurationStep == 0);
+	return configurationFinished;
 }
 
 std::pair<uint8_t,bool> E5150::FDC::Command::readResult (void)
