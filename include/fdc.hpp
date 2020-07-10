@@ -80,7 +80,7 @@ namespace E5150
 				};
 				class ReadDeletedData: public Command {};
 				class ReadATrack: public Command {};
-				class ReadID: public Command { public: ReadID(void); };
+				class ReadID: public Command { public: ReadID(void); private: virtual void exec (void) final; };
 				class FormatTrack: public Command {};
 				class ScanEqual: public Command {};
 				class WriteData: public Command {};
@@ -152,7 +152,7 @@ namespace E5150
 			uint8_t m_dataRegister;
 
 			std::array<uint8_t, 4> m_STRegisters;
-			std::array<Floppy,4> m_floppyDrives;
+			std::array<Floppy100,4> m_floppyDrives;
 			std::array<Command*, 16> m_commands;
 			std::array<uint8_t, 3> m_timers;
 

@@ -5,17 +5,18 @@
 
 struct ID
 {
-	unsigned int head;
 	unsigned int track;
 	unsigned int sector;
-	unsigned int byte;
 };
 
 //TODO: implements error state
-class Floppy
+/**
+ * Floppy model 100 implementation
+ */
+class Floppy100
 {
 	public:
-		Floppy(const std::string& path = "");
+		Floppy100(const std::string& path = "");
 		void open (const std::string& path);
 		uint8_t read(const size_t dataPos);
 		/**
@@ -26,6 +27,9 @@ class Floppy
 		 * \return time in ms to perform the action 
 		 */
 		unsigned int moveHeadToTrack (const unsigned int newTrack);
+
+		ID getID (void) const;
+
 		bool areHeadsLoaded(void) const
 		{ return m_clock.getElapsedTime().asMilliseconds() < 240; }
 

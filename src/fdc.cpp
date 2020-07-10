@@ -261,6 +261,23 @@ void E5150::FDC::COMMAND::ReadData::exec()
 
 E5150::FDC::COMMAND::ReadID::ReadID(): Command(2) {}
 
+//TODO: timing !
+void E5150::FDC::COMMAND::ReadID::exec()
+{
+	const unsigned int selectedHead = (m_configurationWords[1] & 0b100) >> 2;
+	const auto& [track, sector] = fdc->m_floppyDrives[selectedHead].getID();
+
+	m_resultWords[0] = fdc->m_STRegisters[0];
+	m_resultWords[1] = fdc->m_STRegisters[1];
+	m_resultWords[2] = fdc->m_STRegisters[2];
+	m_resultWords[3] = track;
+	m_resultWords[4] = selectedHead;
+	m_resultWords[5] = sector;
+	m_resultWords[6] = 0; //TODO: why is this set to 1 un bochs ?
+
+	fdc->switchToResultMode();
+}
+
 
 E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)
 {}

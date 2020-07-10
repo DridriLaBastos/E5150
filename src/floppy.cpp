@@ -1,8 +1,8 @@
 #include "floppy.hpp"
 
-unsigned int Floppy::floppyNumber = 0;
+unsigned int Floppy100::floppyNumber = 0;
 
-Floppy::Floppy(const std::string& path):driverNumber(floppyNumber++),m_readPos(0)
+Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_readPos(0)
 {
 	srand(time(NULL));
 
@@ -10,7 +10,7 @@ Floppy::Floppy(const std::string& path):driverNumber(floppyNumber++),m_readPos(0
 		open(path);
 }
 
-void Floppy::open(const std::string& path)
+void Floppy100::open(const std::string& path)
 {
 	m_file.close();
 
@@ -25,7 +25,7 @@ void Floppy::open(const std::string& path)
 	}
 }
 
-uint8_t Floppy::read(const size_t dataPos)
+uint8_t Floppy100::read(const size_t dataPos)
 {
 	uint8_t ret = rand();
 
@@ -38,10 +38,11 @@ uint8_t Floppy::read(const size_t dataPos)
 	return ret;
 }
 
-unsigned int Floppy::moveHeadToTrack(const unsigned int newTrack)
+unsigned int Floppy100::moveHeadToTrack(const unsigned int newTrack)
 { return 8; }
 
-void Floppy::write (const uint8_t data, const size_t dataPos)
+//TODO: review this
+void Floppy100::write (const uint8_t data, const size_t dataPos)
 {
 	if (m_file.is_open())
 	{
@@ -50,3 +51,5 @@ void Floppy::write (const uint8_t data, const size_t dataPos)
 		m_clock.restart();
 	}
 }
+
+ID Floppy100::getID() const { return m_id; }
