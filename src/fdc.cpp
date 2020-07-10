@@ -10,7 +10,7 @@ static E5150::FDC* fdc = nullptr;
 //0b010 --> DOR
 //0b10x --> FDC
 E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
-	Component("Floppy Controller",0b111), m_pic(pic), m_phase(PHASE::COMMAND), m_statusRegisterRead(false)
+	Component("Floppy Controller",0b111), m_pic(pic), m_dorRegister(0), m_dataRegister(0), m_phase(PHASE::COMMAND), m_passClock(0)
 {
 	fdc = this;
 	PortInfos dorStruct;
@@ -103,28 +103,28 @@ void E5150::FDC::switchPhase (void)
 void E5150::FDC::writeDataRegister(const uint8_t data)
 {
 	static bool firstCommandWorld = true;
-	if (m_statusRegisterRead)
+	
+	if (firstCommandWorld)
 	{
+		uint8_t commandIndex = data & 0b1111;
+
+		//The first four digits of the first world identify the command except when the value equals 9 or 13
+		//9 and 13 both identifies 2 commands, so by adding the fifth bit we can select one of both commands
+		if ((commandIndex == 9) || (commandIndex == 13))
+			commandIndex += (data & 0b10000) >> 5;
+		
 		if (firstCommandWorld)
-		{
-			uint8_t commandIndex = data & 0b1111;
-
-			//The first four digits of the first world identify the command except when the value equals 9 or 13
-			//9 and 13 both identifies 2 commands, so by adding the fifth bit we can select one of both commands
-			if ((commandIndex == 9) || (commandIndex == 13))
-				commandIndex += (data & 0b10000) >> 5;
-			
-			if (firstCommandWorld)
-				m_selectedCommand = commandIndex;
-		}
-
-		m_statusRegisterRead = false;
-		firstCommandWorld = m_commands[m_selectedCommand]->configure(data);
+			m_selectedCommand = commandIndex;
 	}
+	
+	firstCommandWorld = m_commands[m_selectedCommand]->configure(data);
 }
 
 static bool fdcAllowsWritingToDataRegister (const uint8_t statusRegister)
 { return (statusRegister & (1 << 7)) >> 7; }
+
+static void makeDataRegisterNotReady (uint8_t& statusRegister)
+{ statusRegister &= 0b1111111; }
 
 void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 {
@@ -133,38 +133,40 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 	else if (localAddress == 5)
 	{
 		if (fdcAllowsWritingToDataRegister(m_statusRegister))
+		{
 			writeDataRegister(data);
+			makeDataRegisterNotReady(m_statusRegister);
+		}
 	}
 }
 
 uint8_t E5150::FDC::readDataRegister()
 {
-	if (m_statusRegisterRead)
-	{
-		const auto [result,readDone] = m_commands[m_selectedCommand]->readResult();
+	const auto [result,readDone] = m_commands[m_selectedCommand]->readResult();
 
-		if (readDone)
-			switchPhase();
-		
-		m_dataRegister = result;
-		m_statusRegisterRead = false;
-	}
+	if (readDone)
+		switchPhase();
+	
+	m_dataRegister = result;
 	
 	return m_dataRegister;
-}
-
-uint8_t E5150::FDC::readStatusRegister()
-{
-	m_statusRegisterRead = true;
-	return m_statusRegister;
 }
 
 static bool fdcAllowsReadingDataRegister(const uint8_t statusRegister)
 { return (statusRegister & (0b11 << 6)) == (0b11 << 6); }
 
+static void makeDataRegisterReady (uint8_t& statusRegister)
+{ statusRegister |= 0b10000000; }
+
+uint8_t E5150::FDC::readStatusRegister()
+{
+	makeDataRegisterReady(m_statusRegister);
+	return m_statusRegister;
+}
+
 uint8_t E5150::FDC::read	(const unsigned int localAddress)
 {
-	uint8_t ret;//I don't initialized ret. If a wrong addres is given, then the returned value of the read
+	uint8_t ret;//I don't initialized ret. If a wrong address is given, then the returned value of the read
 				//operation will be undefined
 	if (localAddress == 2)
 		ret = m_dorRegister;
@@ -177,7 +179,10 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 			else
 			{
 				if (fdcAllowsReadingDataRegister(m_statusRegister))
+				{
 					ret = readDataRegister();
+					makeDataRegisterNotReady(m_statusRegister);
+				}
 			}
 		}
 	}

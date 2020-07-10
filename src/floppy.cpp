@@ -52,4 +52,5 @@ void Floppy100::write (const uint8_t data, const size_t dataPos)
 	}
 }
 
+//TODO: take in account that the floppy is spinning
 ID Floppy100::getID() const { return m_id; }

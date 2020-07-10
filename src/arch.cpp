@@ -44,8 +44,9 @@ void E5150::Arch::startSimulation()
 	sf::Clock clock;
 	sf::Time elapsedSinceLastSecond = sf::Time::Zero;
 	unsigned int blockCount = 0;
-	unsigned int fdcClock = 0;
 #endif
+	unsigned int fdcClock = 0;
+	unsigned int currentClock = 0;
 
 	try
 	{
@@ -59,8 +60,11 @@ void E5150::Arch::startSimulation()
 				++blockCount;
 				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
 				{
-	#endif			
 					const unsigned int currentClock = blockCount*CLOCK_PER_BLOCKS+i;
+	#else
+					++currentClock;
+	#endif
+
 					m_cpu.simulate();
 					m_pit.clock();
 					
@@ -90,6 +94,9 @@ void E5150::Arch::startSimulation()
 			while (clock.getElapsedTime() < TIME_PER_BLOCK);
 
 			elapsedSinceLastSecond += clock.restart();
+	#else
+		if (currentClock >= I8284_CLOCKS_PER_SECOND)
+			currentClock = 0;
 	#endif
 		}
 	}

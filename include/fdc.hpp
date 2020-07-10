@@ -147,7 +147,22 @@ namespace E5150
 
 		//Behaviour private space
 		private:
+			//7654 motors of the drives - 3 enable DMA and IO on the FDC - 10 select one drive if the motors is on
+			/**
+			 * {0,1} select one drive if its motor is on
+			 * 2 - enable/disable FDC
+			 * 3 - enable/disable IO and DMA request
+			 * {4,5,6,7} - enable/disbale motor of drive #
+			 */
 			uint8_t m_dorRegister;
+			
+			/**
+			 * {0,1,2,3} - FDD number # is in seek mode
+			 * 4 - FDC is busy
+			 * 5 - non-DMA mode
+			 * 6 - data transfer direction : {0: CPU --> Resgister, 1: Register --> CPU}
+			 * 7 - data register ready to send or receive datas
+			 */
 			uint8_t m_statusRegister;
 			uint8_t m_dataRegister;
 
@@ -157,7 +172,6 @@ namespace E5150
 			std::array<uint8_t, 3> m_timers;
 
 			PHASE m_phase;
-			bool m_statusRegisterRead;
 			unsigned int m_selectedCommand;
 
 			unsigned int m_passClock;
