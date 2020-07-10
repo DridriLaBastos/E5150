@@ -9,7 +9,7 @@ struct ID
 	unsigned int track;
 	unsigned int sector;
 	unsigned int byte;
-}
+};
 
 //TODO: implements error state
 class Floppy

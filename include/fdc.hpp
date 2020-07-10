@@ -80,7 +80,7 @@ namespace E5150
 				};
 				class ReadDeletedData: public Command {};
 				class ReadATrack: public Command {};
-				class ReadID: public Command {};
+				class ReadID: public Command { public: ReadID(void); };
 				class FormatTrack: public Command {};
 				class ScanEqual: public Command {};
 				class WriteData: public Command {};
