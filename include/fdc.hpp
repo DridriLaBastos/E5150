@@ -40,7 +40,7 @@ namespace E5150
 			class Command
 			{
 				public:
-					Command (const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7);
+					Command (const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7, const bool checkMFM = true);
 
 				public:
 					//Return true when configuring is done
@@ -61,6 +61,7 @@ namespace E5150
 				
 				private:
 					virtual void onConfigureFinish (void);
+					bool m_checkMFM;
 				
 			};
 
@@ -103,11 +104,26 @@ namespace E5150
 			};
 	
 		private:
+			void waitClock (const unsigned int clock);
 			void waitMicro (const unsigned int microseconds);
 			void waitMilli (const unsigned int milliseconds);
+
 			void switchToCommandMode   (void);
 			void switchToExecutionMode (void);
 			void switchToResultMode    (void);
+
+			void makeDataRegisterReady (void);
+			void makeDataRegisterNotReady (void);
+			void makeDataRegisterInReadMode (void);
+			void makeDataRegisterInWriteMode (void);
+
+			bool dataRegisterReady (void) const;
+			bool dataRegisterInReadMode (void) const;
+			bool dataRegisterInWriteMode (void) const;
+
+			bool statusRegisterAllowReading (void) const;
+			bool statusRegisterAllowWriting (void) const;
+
 
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);
@@ -173,8 +189,8 @@ namespace E5150
 
 			PHASE m_phase;
 			unsigned int m_selectedCommand;
-
 			unsigned int m_passClock;
+			bool m_statusRegisterRead;
 	};
 }
 

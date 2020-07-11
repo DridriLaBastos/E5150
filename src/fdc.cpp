@@ -10,7 +10,7 @@ static E5150::FDC* fdc = nullptr;
 //0b010 --> DOR
 //0b10x --> FDC
 E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
-	Component("Floppy Controller",0b111), m_pic(pic), m_dorRegister(0), m_dataRegister(0), m_phase(PHASE::COMMAND), m_passClock(0)
+	Component("Floppy Controller",0b111), m_pic(pic), m_dorRegister(0), m_dataRegister(0), m_phase(PHASE::COMMAND), m_passClock(0), m_statusRegisterRead(false)
 {
 	fdc = this;
 	PortInfos dorStruct;
@@ -38,22 +38,34 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 
 	//TODO: search more info of the init state of the status register. For now is is set to the status:
 	// + all drives in seek mode
-	// + non DMA mode (but there is a DMA : more serch must be done)
-	// + D6 = 0: data transfert is from the processor to the controller
-	// + D7 = 1: data register ready to receive(/send)data from the processor(/to the processor)
-	m_statusRegister = 0b10 << 6;
+	switchToCommandMode();
 }
 
-void E5150::FDC::waitMicro (const unsigned int microsconds) { m_passClock += 8*microsconds; }
-void E5150::FDC::waitMilli (const unsigned int millisconds) { waitMicro(millisconds*1000); }
+void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; }
+void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
+void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 
+void E5150::FDC::makeDataRegisterReady (void) { m_statusRegister |= (1 << 7); }
+void E5150::FDC::makeDataRegisterNotReady (void) { m_statusRegister &= ~(1 << 7); }
+void E5150::FDC::makeDataRegisterInReadMode (void) { m_statusRegister |= 1 << 6; }
+void E5150::FDC::makeDataRegisterInWriteMode (void) { m_statusRegister &= ~(1 << 6); }
+
+bool E5150::FDC::dataRegisterReady (void) const { return m_statusRegister & (1 << 7); }
+bool E5150::FDC::dataRegisterInReadMode (void) const { return m_statusRegister & (1 << 6); }
+bool E5150::FDC::dataRegisterInWriteMode (void) const { return m_statusRegister & ~(1 << 6); }
+bool E5150::FDC::statusRegisterAllowReading (void) const { return dataRegisterReady() && dataRegisterInReadMode() && m_statusRegisterRead; }
+bool E5150::FDC::statusRegisterAllowWriting (void) const { return dataRegisterReady() && dataRegisterInWriteMode() && m_statusRegisterRead; }
+
+//ok
 void E5150::FDC::clock()
 {
-	if (m_passClock-- == 0)
+if (m_passClock == 0)
 	{
 		if (m_phase == PHASE::EXECUTION)
 			m_commands[m_selectedCommand]->exec();
 	}
+	else
+		--m_passClock;
 }
 
 void E5150::FDC::writeDOR(const uint8_t data)
@@ -62,23 +74,25 @@ void E5150::FDC::writeDOR(const uint8_t data)
 void E5150::FDC::switchToCommandMode (void)
 {
 	m_phase = PHASE::COMMAND;
-	m_statusRegister &= ~(1 << 6);
-	m_statusRegister |= (1 << 7);
+	makeDataRegisterReady();
+	makeDataRegisterInWriteMode();
+	std::cout << "FDC switched to command mode\n";
 }
 
 void E5150::FDC::switchToExecutionMode (void)
 {
 	m_phase = PHASE::EXECUTION;
 	//clears the last bits without touching the other ones
-	m_statusRegister &= ~(1 << 7);
-	m_statusRegister |= (1 << 6);
+	makeDataRegisterNotReady();
+	std::cout << "FDC switched to execution mode\n";
 }
 
 void E5150::FDC::switchToResultMode (void)
 {
 	m_phase = PHASE::RESULT;
-	m_statusRegister |= (1 << 6);
-	m_statusRegister &= ~(1 << 7);
+	makeDataRegisterReady();
+	makeDataRegisterInReadMode();
+	std::cout << "FDC switched to result mode\n";
 }
 
 //TODO: check again the value of the bits
@@ -118,13 +132,8 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 	}
 	
 	firstCommandWorld = m_commands[m_selectedCommand]->configure(data);
+	m_statusRegisterRead = false;
 }
-
-static bool fdcAllowsWritingToDataRegister (const uint8_t statusRegister)
-{ return (statusRegister & (1 << 7)) >> 7; }
-
-static void makeDataRegisterNotReady (uint8_t& statusRegister)
-{ statusRegister &= 0b1111111; }
 
 void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 {
@@ -132,11 +141,13 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 		writeDOR(data);
 	else if (localAddress == 5)
 	{
-		if (fdcAllowsWritingToDataRegister(m_statusRegister))
+		if (m_statusRegisterRead)
 		{
-			writeDataRegister(data);
-			makeDataRegisterNotReady(m_statusRegister);
+			if (dataRegisterInWriteMode())
+				writeDataRegister(data);
 		}
+		else
+			DEBUG("Writing data register while not reading status register first does nothing !");
 	}
 }
 
@@ -148,26 +159,19 @@ uint8_t E5150::FDC::readDataRegister()
 		switchPhase();
 	
 	m_dataRegister = result;
-	
+	m_statusRegisterRead = false;
 	return m_dataRegister;
 }
 
-static bool fdcAllowsReadingDataRegister(const uint8_t statusRegister)
-{ return (statusRegister & (0b11 << 6)) == (0b11 << 6); }
-
-static void makeDataRegisterReady (uint8_t& statusRegister)
-{ statusRegister |= 0b10000000; }
-
 uint8_t E5150::FDC::readStatusRegister()
 {
-	makeDataRegisterReady(m_statusRegister);
+	m_statusRegisterRead = true;
 	return m_statusRegister;
 }
 
 uint8_t E5150::FDC::read	(const unsigned int localAddress)
 {
-	uint8_t ret;//I don't initialized ret. If a wrong address is given, then the returned value of the read
-				//operation will be undefined
+	uint8_t ret = E5150::Util::undefinedValue;
 	if (localAddress == 2)
 		ret = m_dorRegister;
 	else
@@ -178,11 +182,15 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 				ret = readStatusRegister();
 			else
 			{
-				if (fdcAllowsReadingDataRegister(m_statusRegister))
+				if (m_statusRegisterRead)
 				{
-					ret = readDataRegister();
-					makeDataRegisterNotReady(m_statusRegister);
+					if (dataRegisterInReadMode())
+						ret = readDataRegister();
+					else
+						DEBUG("Data register not in read mode");
 				}
+				else
+					DEBUG("Status register not read");
 			}
 		}
 	}
@@ -193,14 +201,17 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 ///////////////////////////////////
 /*** IMPLEMENTING THE COMMANDS ***/
 ///////////////////////////////////
-E5150::FDC::Command::Command(const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
-	m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0)
+E5150::FDC::Command::Command(const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber, const bool checkMFM):
+	m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0), m_checkMFM(checkMFM)
 {}
 
 bool E5150::FDC::Command::configure (const uint8_t data)
 {
-	if (!(data & (1 << 6)))
-		throw std::logic_error("FM mode is not supported with the floppy drive");
+	if (m_checkMFM)
+	{
+		if (!(data & (1 << 6)))
+			throw std::logic_error("FM mode is not supported with the floppy drive");
+	}
 
 	m_configurationWords[m_configurationStep++] = data;
 
@@ -280,6 +291,8 @@ void E5150::FDC::COMMAND::ReadID::exec()
 	m_resultWords[5] = sector;
 	m_resultWords[6] = 0; //TODO: why is this set to 1 un bochs ?
 
+	//TODO: investigate timing : I assume one write per clock, it might be more or less
+	fdc->waitClock(7);
 	fdc->switchToResultMode();
 }
 
@@ -293,14 +306,14 @@ E5150::FDC::COMMAND::Seek::Seek(): Command(3,0)
 E5150::FDC::COMMAND::Invalid::Invalid(): Command(1,1)
 { m_resultWords[0] = 0x80; }
 
-E5150::FDC::COMMAND::Specify::Specify(): Command(3,0)
+E5150::FDC::COMMAND::Specify::Specify(): Command(3,0,false)
 {}
 
 void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 {
-	const uint8_t SRTValue = (m_configurationWords[1] & (0b111 << 5)) >> 5;
+	const uint8_t SRTValue = m_configurationWords[1] >> 4;
 	const uint8_t HUTValue = m_configurationWords[1] & 0xF;
-	const uint8_t HLTValue = (m_configurationWords[2] & ~1) >> 1;
+	const uint8_t HLTValue = m_configurationWords[2] >> 1;
 
 	if (HUTValue == 0 || HUTValue > 0xF)
 		throw std::logic_error("HUT value should be in [0x1, 0xF]");
@@ -313,6 +326,12 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	fdc->m_timers[TIMER::STEP_RATE_TIME] = SRTValue;
 	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
 	fdc->m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
+
+	spdlog::debug("SRT Value set to {}",fdc->m_timers[TIMER::STEP_RATE_TIME]);
+	spdlog::debug("HUT Value set to {}",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
+	spdlog::debug("HLT Value set to {}",fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
 	
 	fdc->switchToCommandMode();
+	//TODO: investigate timing : I assume one write per clock, it might be more or less
+	fdc->waitClock(3);
 }

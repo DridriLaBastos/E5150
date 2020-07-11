@@ -13,6 +13,7 @@ static constexpr unsigned int I8284_CLOCKS_PER_SECOND = 4770000;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
 
 bool E5150::Util::_continue = true;
+unsigned int E5150::Util::undefinedValue;
 
 static void stop(const int signum)
 {
@@ -55,19 +56,16 @@ void E5150::Arch::startSimulation()
 	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
 			//The next block is launch if we have enougth time (we can run at less clock than specified but not more)
-			if ((blockCount+1)*CLOCK_PER_BLOCKS <= I8284_CLOCKS_PER_SECOND)
+			if ((blockCount++)*CLOCK_PER_BLOCKS <= I8284_CLOCKS_PER_SECOND)
 			{
-				++blockCount;
 				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
 				{
-					const unsigned int currentClock = blockCount*CLOCK_PER_BLOCKS+i;
-	#else
-					++currentClock;
 	#endif
-
+					++currentClock;
 					m_cpu.simulate();
 					m_pit.clock();
 					
+					//Explain this code
 					while ((fdcClock+1)*100 <= 167*currentClock)
 					{
 						++fdcClock;
@@ -86,17 +84,21 @@ void E5150::Arch::startSimulation()
 				const float acuraccy = (value < 0 ? (-value) : value) * 100.f;
 				std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
 				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
-				blockCount = 0;
 				elapsedSinceLastSecond = sf::Time::Zero;
+				blockCount = 0;
 				fdcClock = 0;
+				currentClock = 0;
 			}
 
 			while (clock.getElapsedTime() < TIME_PER_BLOCK);
 
 			elapsedSinceLastSecond += clock.restart();
 	#else
-		if (currentClock >= I8284_CLOCKS_PER_SECOND)
-			currentClock = 0;
+			if (currentClock >= I8284_CLOCKS_PER_SECOND)
+			{
+				currentClock = 0;
+				fdcClock = 0;
+			}
 	#endif
 		}
 	}
