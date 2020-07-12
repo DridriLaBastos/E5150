@@ -40,7 +40,7 @@ namespace E5150
 			class Command
 			{
 				public:
-					Command (const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7, const bool checkMFM = true);
+					Command (const std::string& name = "", const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7, const bool checkMFM = true);
 
 				public:
 					//Return true when configuring is done
@@ -50,7 +50,8 @@ namespace E5150
 					std::pair<uint8_t,bool> readResult (void);
 
 					virtual void exec (void);//TODO: should be pure virtual
-
+					const std::string m_name;
+					
 				protected:
 					//TODO: I don't like having vectors here
 					std::vector<uint8_t> m_configurationWords;
@@ -81,7 +82,7 @@ namespace E5150
 				};
 				class ReadDeletedData: public Command {};
 				class ReadATrack: public Command {};
-				class ReadID: public Command { public: ReadID(void); private: virtual void exec (void) final; };
+				class ReadID: public Command { virtual void exec (void) final; public: ReadID(void); };
 				class FormatTrack: public Command {};
 				class ScanEqual: public Command {};
 				class WriteData: public Command {};
@@ -90,10 +91,10 @@ namespace E5150
 				class ScanHEQ: public Command {};
 				class Recalibrate: public Command {};
 				class SenseInterruptStatus: public Command {};
-				class Specify: public Command{ public: Specify(void); private: virtual void onConfigureFinish(void) final; };
+				class Specify: public Command{ virtual void onConfigureFinish(void) final;public: Specify(void); };
 				class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
 				class Seek: public Command { public: Seek(void); };
-				class Invalid: public Command { public: Invalid(void); };
+				class Invalid: public Command { virtual void exec(void) final; public: Invalid(void); };
 			};
 
 			enum TIMER

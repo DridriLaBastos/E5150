@@ -8,6 +8,8 @@ Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_rea
 
 	if (!path.empty())
 		open(path);
+	
+	m_id.track = 0xA;   m_id.sector = 2;
 }
 
 void Floppy100::open(const std::string& path)

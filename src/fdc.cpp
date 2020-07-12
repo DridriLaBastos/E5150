@@ -32,8 +32,8 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	m_commands[0]  = &invalid;          m_commands[1]  = &scanEqual;      m_commands[2]  = &readATrack;
 	m_commands[3]  = &specify;          m_commands[4]  = &senseDriveStat; m_commands[5]  = &writeData;
 	m_commands[6]  = &readData;         m_commands[7]  = &recalibrate;    m_commands[8]  = &senseInterruptStatus;
-	m_commands[9]  = &writeDeletedData; m_commands[10] = &scanLEQ;        m_commands[11] = &readID;
-	m_commands[12] = &readDeletedData;  m_commands[13] = &formatTrack;    m_commands[14] = &formatTrack;
+	m_commands[9]  = &writeDeletedData; m_commands[10] = &readID;         m_commands[11] = &scanLEQ;
+	m_commands[12] = &readDeletedData;  m_commands[13] = &formatTrack;    m_commands[14] = &scanHEQ;
 	m_commands[15] = &seek;
 
 	//TODO: search more info of the init state of the status register. For now is is set to the status:
@@ -52,7 +52,7 @@ void E5150::FDC::makeDataRegisterInWriteMode (void) { m_statusRegister &= ~(1 <<
 
 bool E5150::FDC::dataRegisterReady (void) const { return m_statusRegister & (1 << 7); }
 bool E5150::FDC::dataRegisterInReadMode (void) const { return m_statusRegister & (1 << 6); }
-bool E5150::FDC::dataRegisterInWriteMode (void) const { return m_statusRegister & ~(1 << 6); }
+bool E5150::FDC::dataRegisterInWriteMode (void) const { return !dataRegisterInReadMode(); }
 bool E5150::FDC::statusRegisterAllowReading (void) const { return dataRegisterReady() && dataRegisterInReadMode() && m_statusRegisterRead; }
 bool E5150::FDC::statusRegisterAllowWriting (void) const { return dataRegisterReady() && dataRegisterInWriteMode() && m_statusRegisterRead; }
 
@@ -117,7 +117,6 @@ void E5150::FDC::switchPhase (void)
 void E5150::FDC::writeDataRegister(const uint8_t data)
 {
 	static bool firstCommandWorld = true;
-	
 	if (firstCommandWorld)
 	{
 		uint8_t commandIndex = data & 0b1111;
@@ -125,10 +124,17 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 		//The first four digits of the first world identify the command except when the value equals 9 or 13
 		//9 and 13 both identifies 2 commands, so by adding the fifth bit we can select one of both commands
 		if ((commandIndex == 9) || (commandIndex == 13))
-			commandIndex += (data & 0b10000) >> 5;
+		{
+			const bool hasCommandIndexOffset = data & 0b10000;
+
+			if (hasCommandIndexOffset)
+				commandIndex += (commandIndex == 9) ? 2 : 1;
+		}
 		
 		if (firstCommandWorld)
 			m_selectedCommand = commandIndex;
+		
+		DEBUG("Selecting command '{}'",m_commands[m_selectedCommand]->m_name);
 	}
 	
 	firstCommandWorld = m_commands[m_selectedCommand]->configure(data);
@@ -137,6 +143,7 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 
 void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 {
+	bool writingDone = true;
 	if (localAddress == 2)
 		writeDOR(data);
 	else if (localAddress == 5)
@@ -145,10 +152,21 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 		{
 			if (dataRegisterInWriteMode())
 				writeDataRegister(data);
+			else
+			{
+				DEBUG("Data register {}", dataRegisterReady() ? "not in write mode" : "not ready");
+				writingDone = false;
+			}
 		}
 		else
-			DEBUG("Writing data register while not reading status register first does nothing !");
+		{
+			DEBUG("Status register not read before writing to data register");
+			writingDone = false;
+		}
 	}
+
+	if (!writingDone)
+		DEBUG("Writing not done");
 }
 
 uint8_t E5150::FDC::readDataRegister()
@@ -207,7 +225,6 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 		{
 			DEBUG("Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register");
 			undefinedRead = true;
-
 		}
 	}
 
@@ -220,13 +237,13 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 ///////////////////////////////////
 /*** IMPLEMENTING THE COMMANDS ***/
 ///////////////////////////////////
-E5150::FDC::Command::Command(const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber, const bool checkMFM):
-	m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0), m_checkMFM(checkMFM)
+E5150::FDC::Command::Command(const std::string& name, const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber, const bool checkMFM):
+	m_name(name), m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0), m_checkMFM(checkMFM)
 {}
 
 bool E5150::FDC::Command::configure (const uint8_t data)
 {
-	if (m_checkMFM)
+	if ((m_configurationStep == 0) && m_checkMFM)
 	{
 		if (!(data & (1 << 6)))
 			throw std::logic_error("FM mode is not supported with the floppy drive");
@@ -294,7 +311,7 @@ void E5150::FDC::COMMAND::ReadData::exec()
 /*** IMPLEMENTING READ ID ***/
 //////////////////////////////
 
-E5150::FDC::COMMAND::ReadID::ReadID(): Command(2) {}
+E5150::FDC::COMMAND::ReadID::ReadID(): Command("Read ID",2) {}
 
 //TODO: timing !
 void E5150::FDC::COMMAND::ReadID::exec()
@@ -316,16 +333,22 @@ void E5150::FDC::COMMAND::ReadID::exec()
 }
 
 
-E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command(2,1)
+E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1,false)
 {}
 
-E5150::FDC::COMMAND::Seek::Seek(): Command(3,0)
+E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0,false)
 {}
 
-E5150::FDC::COMMAND::Invalid::Invalid(): Command(1,1)
+//////////////////////////////
+/*** IMPLEMENTING INVLAID ***/
+//////////////////////////////
+
+E5150::FDC::COMMAND::Invalid::Invalid(): Command("Invalid",1,1,false)
 { m_resultWords[0] = 0x80; }
 
-E5150::FDC::COMMAND::Specify::Specify(): Command(3,0,false)
+void E5150::FDC::COMMAND::Invalid::exec() { fdc->switchToResultMode(); }
+
+E5150::FDC::COMMAND::Specify::Specify(): Command("Specify",3,0,false)
 {}
 
 void E5150::FDC::COMMAND::Specify::onConfigureFinish()
@@ -334,21 +357,22 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	const uint8_t HUTValue = m_configurationWords[1] & 0xF;
 	const uint8_t HLTValue = m_configurationWords[2] >> 1;
 
-	if (HUTValue == 0 || HUTValue > 0xF)
-		throw std::logic_error("HUT value should be in [0x1, 0xF]");
+	if (HUTValue == 0)
+		throw std::logic_error("HUT cannot be 0");
+	
+	if (SRTValue == 0)
+		throw std::logic_error("STR value cannot be 0");
 	
 	if ((HLTValue == 0) || (HLTValue == 0xFF))
 		throw std::logic_error("HLT value should be in [0x1, 0xFE]");
-	
-	if (SRTValue < 0xF)
 
 	fdc->m_timers[TIMER::STEP_RATE_TIME] = SRTValue;
 	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
 	fdc->m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
 
-	spdlog::debug("SRT Value set to {}",fdc->m_timers[TIMER::STEP_RATE_TIME]);
-	spdlog::debug("HUT Value set to {}",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
-	spdlog::debug("HLT Value set to {}",fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
+	DEBUG("SRT Value set to {}",fdc->m_timers[TIMER::STEP_RATE_TIME]);
+	DEBUG("HUT Value set to {}",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
+	DEBUG("HLT Value set to {}",fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
 	
 	fdc->switchToCommandMode();
 	//TODO: investigate timing : I assume one write per clock, it might be more or less
