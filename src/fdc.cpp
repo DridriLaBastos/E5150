@@ -171,7 +171,10 @@ uint8_t E5150::FDC::readStatusRegister()
 
 uint8_t E5150::FDC::read	(const unsigned int localAddress)
 {
-	uint8_t ret = E5150::Util::undefinedValue;
+	bool undefinedRead = false;
+	//No value here because if we don't provide a good address, the value put in the data bus is undertemined
+	uint8_t ret;
+
 	if (localAddress == 2)
 		ret = m_dorRegister;
 	else
@@ -187,13 +190,29 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 					if (dataRegisterInReadMode())
 						ret = readDataRegister();
 					else
-						DEBUG("Data register not in read mode");
+					{
+						DEBUG("Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");
+						undefinedRead = true;
+					}
+						
 				}
 				else
-					DEBUG("Status register not read");
+				{
+					DEBUG("Status register not read before reading data register");
+					undefinedRead = true;
+				}
 			}
 		}
+		else
+		{
+			DEBUG("Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register");
+			undefinedRead = true;
+
+		}
 	}
+
+	if (undefinedRead)
+		DEBUG("Value outputed will be undetermined");
 
 	return ret;
 }

@@ -13,7 +13,6 @@ static constexpr unsigned int I8284_CLOCKS_PER_SECOND = 4770000;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
 
 bool E5150::Util::_continue = true;
-unsigned int E5150::Util::undefinedValue;
 
 static void stop(const int signum)
 {
