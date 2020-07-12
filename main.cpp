@@ -14,8 +14,9 @@ int main (void)
 	ram.load("test/interrupts.bin",0);
 	ram.load("test/jmp.bin", 0xFFFF0);
 	ram.load("test/bios.bin",0xE0000);
+	std::cout << std::showbase;
 	arch.startSimulation();
-
+	std::cout << std::noshowbase;
 	return EXIT_SUCCESS;
 }
 

@@ -41,7 +41,7 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	switchToCommandMode();
 }
 
-void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; }
+void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; std::cout << "FDC will wait " << m_passClock << " clock(s)\n"; }
 void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
 void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 
@@ -59,13 +59,16 @@ bool E5150::FDC::statusRegisterAllowWriting (void) const { return dataRegisterRe
 //ok
 void E5150::FDC::clock()
 {
-if (m_passClock == 0)
+	if (m_passClock == 0)
 	{
 		if (m_phase == PHASE::EXECUTION)
 			m_commands[m_selectedCommand]->exec();
 	}
 	else
+	{
 		--m_passClock;
+		std::cout << m_passClock << " to wait\n";
+	}
 }
 
 void E5150::FDC::writeDOR(const uint8_t data)

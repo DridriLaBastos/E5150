@@ -242,10 +242,10 @@ void CPU::updateStatusFlags (const unsigned int value, const bool byte)
 
 void CPU::printRegisters() const
 {
-	std::cout << std::hex << std::showbase << "CS: " << m_regs[CS] << "  DS: " << m_regs[DS] << "   ES: " << m_regs[ES] << "   SS: " << m_regs[SS] << std::endl;
+	std::cout << std::hex << "CS: " << m_regs[CS] << "  DS: " << m_regs[DS] << "   ES: " << m_regs[ES] << "   SS: " << m_regs[SS] << std::endl;
 	std::cout << "AX: " << m_gregs[AX].x << "  BX: " << m_gregs[BX].x << "   CX: " << m_gregs[CX].x << "   DX: " << m_gregs[DX].x << std::endl;
 	std::cout << "SI: " << m_regs[SI] << "  DI: " << m_regs[DI] << "   BP: " << m_regs[BP] << "   SP: " << m_regs[SP] << '\n'
-			  << std::noshowbase << std::dec << std::endl;
+			  << std::dec << std::endl;
 }
 
 void CPU::printFlags() const
@@ -256,60 +256,94 @@ void CPU::printFlags() const
 void CPU::printCurrentInstruction() const
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
-	std::cout << std::hex << std::showbase << m_regs[CS] << ":" << m_ip << " (" << gen_address(m_regs[CS], m_ip) << ")" << std::dec << std::endl;
-	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&m_decoded_inst)) << " : length = " << xed_decoded_inst_get_length(&m_decoded_inst) << std::endl;
+	std::cout << std::hex << m_regs[CS] << ":" << m_ip << " (" << gen_address(m_regs[CS], m_ip) << ")" << std::dec << ": ";
+	//std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&m_decoded_inst)) << " : length = " << xed_decoded_inst_get_length(&m_decoded_inst) << std::endl;
+	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&m_decoded_inst)) << " ";
+	unsigned int realOperandPos = 0;
+	bool foundPtr = false;
 
 	for (unsigned int i = 0; i < xed_decoded_inst_noperands(&m_decoded_inst); ++i)
 	{
 		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
 		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
 
-		if (op_vis == XED_OPVIS_SUPPRESSED)
-			std::cout << "( ";
-
-		std::cout << "operand" << i << ": ";
-
-		switch (op_name)
+		if (op_vis != XED_OPVIS_SUPPRESSED)
 		{
-		case XED_OPERAND_RELBR:
-			std::cout << xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
-			break;
+			if (foundPtr)
+			{
+				std::cout << ":";
+				foundPtr = false;
+			}
+			else
+			{
+				if (realOperandPos > 0)
+					std::cout << ", ";
+			}
 
-		case XED_OPERAND_PTR:
-			std::cout << xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
-			break;
+			switch (op_name)
+			{
+			case XED_OPERAND_RELBR:
+				std::cout << xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+				break;
 
-		case XED_OPERAND_REG0:
-		case XED_OPERAND_REG1:
-		case XED_OPERAND_REG2:
-			std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
-			break;
+			case XED_OPERAND_PTR:
+				std::cout << xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+				foundPtr = true;
+				break;
 
-		case XED_OPERAND_IMM0:
-		case XED_OPERAND_IMM1:
-			std::cout << xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
-			break;
+			case XED_OPERAND_REG0:
+			case XED_OPERAND_REG1:
+			case XED_OPERAND_REG2:
+				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+				break;
 
-		case XED_OPERAND_MEM0:
-			std::cout << ((xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1) ? "BYTE" : "WORD") << " ";
-			std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0)) << ":[";
-			std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_index_reg(&m_decoded_inst, 0)) << "(index) + ";
-			std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_base_reg(&m_decoded_inst, 0)) << "(base) + ";
-			std::cout << xed_decoded_inst_get_memory_displacement(&m_decoded_inst, 0);
-			std::cout << "]";
-			break;
+			case XED_OPERAND_IMM0:
+			case XED_OPERAND_IMM1:
+				std::cout << std::hex << xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst) << std::dec;
+				break;
 
-		default:
-			break;
+			//Displaying memory operand woth format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
+			case XED_OPERAND_MEM0:
+			{
+				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&m_decoded_inst, 0);
+				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&m_decoded_inst, 0);
+				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&m_decoded_inst,0);
+				std::cout << ((xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1) ? "BYTE" : "WORD") << " ";
+				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0)) << ":[";
+
+				if (baseReg != XED_REG_INVALID)
+					std::cout << xed_reg_enum_t2str(baseReg);
+				
+				if (indexReg != XED_REG_INVALID)
+				{
+					if (baseReg != XED_REG_INVALID)
+						std::cout << " + ";
+					std::cout << xed_reg_enum_t2str(indexReg);
+				}
+
+				if ((indexReg != XED_REG_INVALID) || (baseReg != XED_REG_INVALID))
+				{
+					if (memDisplacement != 0)
+					{
+						if (memDisplacement > 0)
+							std::cout << " + " << memDisplacement;
+						else
+							std::cout << " - " << -memDisplacement;
+					}
+				}
+				else
+					std::cout << memDisplacement;
+				std::cout << "]";
+			}	break;
+
+			default:
+				break;
+			}
+
+			++realOperandPos;
 		}
-
-		std::cout << " (" << xed_operand_enum_t2str(op_name) << ") ";
-
-		if (op_vis == XED_OPVIS_SUPPRESSED)
-			std::cout << ")";
-
-		std::cout << std::endl;
 	}
+		std::cout << std::endl;
 }
 
 bool CPU::execNonControlTransferInstruction()
