@@ -37,10 +37,18 @@ namespace E5150
 				D7 = 1 << 7
 			};
 
+			enum class FLOPPY_DRIVE
+			{
+				A = 1 << 0,
+				B = 1 << 1,
+				C = 1 << 2,
+				D = 1 << 3
+			};
+
 			class Command
 			{
 				public:
-					Command (const std::string& name = "", const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7, const bool checkMFM = true);
+					Command (const std::string& name = "", const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7);
 
 				public:
 					//Return true when configuring is done
@@ -60,9 +68,11 @@ namespace E5150
 					unsigned int m_floppyDrive;
 					unsigned int m_configurationStep;
 				
+					bool m_checkMFM = true;
+					bool m_saveHDS_DSx = true;
 				private:
+					virtual void onConfigureBegin  (void);
 					virtual void onConfigureFinish (void);
-					bool m_checkMFM;
 				
 			};
 
@@ -93,8 +103,8 @@ namespace E5150
 				class SenseInterruptStatus: public Command {};
 				class Specify: public Command{ virtual void onConfigureFinish(void) final;public: Specify(void); };
 				class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
-				class Seek: public Command { public: Seek(void); };
-				class Invalid: public Command { virtual void exec(void) final; public: Invalid(void); };
+				class Seek: public Command { virtual void onConfigureBegin(void) final; virtual void onConfigureFinish(void) final; public: Seek(void); };
+				class Invalid: public Command { virtual void onConfigureFinish(void) final;; public: Invalid(void); };
 			};
 
 			enum TIMER
@@ -108,6 +118,12 @@ namespace E5150
 			void waitClock (const unsigned int clock);
 			void waitMicro (const unsigned int microseconds);
 			void waitMilli (const unsigned int milliseconds);
+			
+			void makeBusy (void);
+			void makeNotBusy (void);
+
+			void setSeekStatusOn(const FLOPPY_DRIVE drive);
+			void resetSeekStatusOn (const FLOPPY_DRIVE drive);
 
 			void switchToCommandMode   (void);
 			void switchToExecutionMode (void);
@@ -124,7 +140,6 @@ namespace E5150
 
 			bool statusRegisterAllowReading (void) const;
 			bool statusRegisterAllowWriting (void) const;
-
 
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);

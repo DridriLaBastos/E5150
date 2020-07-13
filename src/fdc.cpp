@@ -45,6 +45,12 @@ void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; st
 void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
 void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 
+void E5150::FDC::makeBusy () { m_statusRegister |= (1 << 4); }
+void E5150::FDC::makeNotBusy () { m_statusRegister &= ~(1 << 4); }
+
+void E5150::FDC::setSeekStatusOn (const FLOPPY_DRIVE drive) { m_statusRegister |= static_cast<unsigned>(drive); }
+void E5150::FDC::resetSeekStatusOn (const FLOPPY_DRIVE drive) { m_statusRegister &= ~(static_cast<unsigned>(drive)); }
+
 void E5150::FDC::makeDataRegisterReady (void) { m_statusRegister |= (1 << 7); }
 void E5150::FDC::makeDataRegisterNotReady (void) { m_statusRegister &= ~(1 << 7); }
 void E5150::FDC::makeDataRegisterInReadMode (void) { m_statusRegister |= 1 << 6; }
@@ -240,16 +246,21 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 ///////////////////////////////////
 /*** IMPLEMENTING THE COMMANDS ***/
 ///////////////////////////////////
-E5150::FDC::Command::Command(const std::string& name, const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber, const bool checkMFM):
-	m_name(name), m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0), m_checkMFM(checkMFM)
+E5150::FDC::Command::Command(const std::string& name, const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
+	m_name(name), m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0)
 {}
 
 bool E5150::FDC::Command::configure (const uint8_t data)
 {
-	if ((m_configurationStep == 0) && m_checkMFM)
+	if (m_configurationStep == 0)
 	{
-		if (!(data & (1 << 6)))
-			throw std::logic_error("FM mode is not supported with the floppy drive");
+		onConfigureBegin();
+
+		if (m_checkMFM)
+		{
+			if (!(data & (1 << 6)))
+				throw std::logic_error("FM mode is not supported with the floppy drive");
+		}
 	}
 
 	m_configurationWords[m_configurationStep++] = data;
@@ -259,8 +270,16 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 	if (configurationFinished)
 	{
 		fdc->switchToExecutionMode();
-		onConfigureFinish();
 		m_configurationStep = 0;
+
+		if (m_saveHDS_DSx)
+		{
+			//TODO: do I really want it that way ?
+			//TODO: save HDS
+			m_floppyDrive = m_configurationWords[1] & 0b11;
+		}
+
+		onConfigureFinish();
 	}
 
 	return configurationFinished;
@@ -274,12 +293,10 @@ std::pair<uint8_t,bool> E5150::FDC::Command::readResult (void)
 }
 
 void E5150::FDC::Command::onConfigureFinish()
-{
-	m_floppyDrive = m_configurationWords[1] & 0b11;
-}
+{  }
 
-void E5150::FDC::Command::exec()
-{}
+void E5150::FDC::Command::onConfigureBegin() {}
+void E5150::FDC::Command::exec() {}
 
 ///////////////////////////////////
 /*** IMPLEMENTING READ DATA ***/
@@ -331,28 +348,24 @@ void E5150::FDC::COMMAND::ReadID::exec()
 	m_resultWords[6] = 0; //TODO: why is this set to 1 un bochs ?
 
 	//TODO: investigate timing : I assume one write per clock, it might be more or less
+	//In bochs this took 11 111 clocks
 	fdc->waitClock(7);
 	fdc->switchToResultMode();
 }
 
 
-E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1,false)
-{}
-
-E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0,false)
-{}
+E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1)
+{
+	m_checkMFM = false;
+	m_saveHDS_DSx = false;
+}
 
 //////////////////////////////
-/*** IMPLEMENTING INVLAID ***/
+/*** IMPLEMENTING SPECIFY ***/
 //////////////////////////////
 
-E5150::FDC::COMMAND::Invalid::Invalid(): Command("Invalid",1,1,false)
-{ m_resultWords[0] = 0x80; }
-
-void E5150::FDC::COMMAND::Invalid::exec() { fdc->switchToResultMode(); }
-
-E5150::FDC::COMMAND::Specify::Specify(): Command("Specify",3,0,false)
-{}
+E5150::FDC::COMMAND::Specify::Specify(): Command("Specify",3,0)
+{ m_checkMFM = false;   m_saveHDS_DSx = false; }
 
 void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 {
@@ -381,3 +394,35 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	//TODO: investigate timing : I assume one write per clock, it might be more or less
 	fdc->waitClock(3);
 }
+
+//////////////////////////////
+/*** IMPLEMENTING    SEEK ***/
+//////////////////////////////
+
+E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0) { m_checkMFM = false; }
+
+void E5150::FDC::COMMAND::Seek::onConfigureBegin () { fdc->makeBusy(); }
+void E5150::FDC::COMMAND::Seek::onConfigureFinish()
+{
+	fdc->makeNotBusy();
+	FLOPPY_DRIVE floppyDriveSeeking;
+
+	switch (m_floppyDrive)
+	{
+		case 0: floppyDriveSeeking = FLOPPY_DRIVE::A; break;
+		case 1: floppyDriveSeeking = FLOPPY_DRIVE::B; break;
+		case 2: floppyDriveSeeking = FLOPPY_DRIVE::C; break;
+		case 3: floppyDriveSeeking = FLOPPY_DRIVE::D; break;
+	}
+
+	fdc->setSeekStatusOn(floppyDriveSeeking);
+}
+
+//////////////////////////////
+/*** IMPLEMENTING INVALID ***/
+//////////////////////////////
+
+E5150::FDC::COMMAND::Invalid::Invalid(): Command("Invalid",1,1)
+{ m_resultWords[0] = 0x80;   m_checkMFM = false;   m_saveHDS_DSx = false;}
+
+void E5150::FDC::COMMAND::Invalid::onConfigureFinish() { fdc->switchToResultMode(); }
