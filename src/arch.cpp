@@ -65,7 +65,7 @@ void E5150::Arch::startSimulation()
 					m_pit.clock();
 					
 					//Explain this code
-					while ((fdcClock+1)*100 <= 167*currentClock)
+					while ((fdcClock+1)*100 <= 84*currentClock)
 					{
 						++fdcClock;
 						m_fdc.clock();
@@ -79,7 +79,7 @@ void E5150::Arch::startSimulation()
 			{
 				std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
 				std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
-				const float value = 1.f - (float)fdcClock/8000000.f;
+				const float value = 1.f - (float)fdcClock/4000000.f;
 				const float acuraccy = (value < 0 ? (-value) : value) * 100.f;
 				std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
 				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";

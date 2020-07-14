@@ -306,7 +306,7 @@ void E5150::FDC::COMMAND::ReadData::loadHeads()
 {
 	if (!fdc->m_floppyDrives[m_floppyDrive].areHeadsLoaded())
 	{
-		fdc->m_floppyDrives[m_floppyDrive].loadHeads();
+		fdc->m_floppyDrives[m_floppyDrive].pepare();
 		fdc->waitMilli(fdc->m_timers[TIMER::HEAD_LOAD_TIME]*16);
 	}
 	
@@ -399,7 +399,8 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 /*** IMPLEMENTING    SEEK ***/
 //////////////////////////////
 
-E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0) { m_checkMFM = false; }
+//TODO: should motor be spinning for this ? No from what I understan but... mmmh
+E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0), m_floppyToApply(0) { m_checkMFM = false; }
 
 void E5150::FDC::COMMAND::Seek::onConfigureBegin () { fdc->makeBusy(); }
 void E5150::FDC::COMMAND::Seek::onConfigureFinish()
@@ -416,6 +417,21 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 	}
 
 	fdc->setSeekStatusOn(floppyDriveSeeking);
+	m_floppyToApply |= static_cast<unsigned>(floppyDriveSeeking);
+}
+
+void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(const unsigned int i) const
+{
+	Floppy100& floppyDrive = fdc->m_floppyDrives[i];
+}
+
+void E5150::FDC::COMMAND::Seek::exec()
+{
+	for (unsigned int i = 0; i < 4; ++i)
+	{
+		if ((1 << i) & m_floppyToApply)
+			execOnFloppyDrive(i);
+	}
 }
 
 //////////////////////////////

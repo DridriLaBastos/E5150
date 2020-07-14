@@ -103,7 +103,18 @@ namespace E5150
 				class SenseInterruptStatus: public Command {};
 				class Specify: public Command{ virtual void onConfigureFinish(void) final;public: Specify(void); };
 				class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
-				class Seek: public Command { virtual void onConfigureBegin(void) final; virtual void onConfigureFinish(void) final; public: Seek(void); };
+				class Seek: public Command
+				{
+					public: Seek(void);
+					private:
+					virtual void exec (void) final;
+					virtual void onConfigureBegin(void) final;
+					virtual void onConfigureFinish(void) final;
+					void execOnFloppyDrive (const unsigned int floppyDriveNumber) const;
+
+					private:
+						unsigned int m_floppyToApply;
+				};
 				class Invalid: public Command { virtual void onConfigureFinish(void) final;; public: Invalid(void); };
 			};
 

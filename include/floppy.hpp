@@ -31,9 +31,20 @@ class Floppy100
 		ID getID (void) const;
 
 		bool areHeadsLoaded(void) const
-		{ return m_clock.getElapsedTime().asMilliseconds() < 240; }
+		{ return m_clock.getElapsedTime().asMilliseconds() >= 35; }
 
-		unsigned int loadHeads(void) { m_clock.restart(); return 35; }
+		bool isMotorAtFullSpeed (void) const
+		{ return m_clock.getElapsedTime().asMilliseconds() >= 500; }
+		
+		/**
+		 * @brief Prepare the floppy drive to performe an action.
+		 * 
+		 * This function restart the clock so that we can measure time and tell later if an action can be done or not.
+		 * For exemple, if we want to start the motor we should first call prepare. This will restart the clock. Then,
+		 * to know if the mototor is at full speed or not, we should call the funtion isMotorAtFullSpeed. This function will
+		 * return true if the time of the clock is greater than the time needed for the motor to be at full speed or not.
+		 */
+		void pepare (void) { m_clock.restart(); }
 		void write (const uint8_t data, const size_t dataPos);
 
 		const unsigned int driverNumber;
