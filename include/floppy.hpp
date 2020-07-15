@@ -24,9 +24,9 @@ class Floppy100
 		 * 
 		 * \param newTrack the new track
 		 * 
-		 * \return time in ms to perform the action 
+		 * \return (operation possible, time in milliseconds to perform the whole action) 
 		 */
-		unsigned int moveHeadToTrack (const unsigned int newTrack);
+		std::pair<bool, unsigned int> moveHeadToTrack (const unsigned int newTrack);
 
 		ID getID (void) const;
 
@@ -49,13 +49,29 @@ class Floppy100
 
 		const unsigned int driverNumber;
 
+		struct COMMAND
+		{
+			class SEEK;
+		};
+
+		template <class CommandName, class... Args>
+		std::pair<bool, sf::Time> performeCommand (Args... args)
+		{ return (m_clock.getElapsedTime() >= m_timeToWait ) ? command<CommandName>(args...) : std::pair <bool, sf::Time>{false, sf::Time::Zero}; }
+
+		private:
+			template <class CommandName, class... Args>
+			std::pair<bool, sf::Time> command(Args... args);
+
 	private:
 		std::fstream m_file;
 		size_t m_readPos;
 		bool m_isOpen;
 		bool m_headLoaded;
+		bool m_floppyReady;
 		sf::Clock m_clock;
+		sf::Time m_timeToWait;
 		static unsigned int floppyNumber;
+		unsigned int m_totalTrackNumber;
 		ID m_id;
 };
 

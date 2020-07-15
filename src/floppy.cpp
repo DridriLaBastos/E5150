@@ -2,7 +2,7 @@
 
 unsigned int Floppy100::floppyNumber = 0;
 
-Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_readPos(0)
+Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_readPos(0),m_timeToWait(sf::Time::Zero)
 {
 	srand(time(NULL));
 
@@ -40,9 +40,6 @@ uint8_t Floppy100::read(const size_t dataPos)
 	return ret;
 }
 
-unsigned int Floppy100::moveHeadToTrack(const unsigned int newTrack)
-{ return 8; }
-
 //TODO: review this
 void Floppy100::write (const uint8_t data, const size_t dataPos)
 {
@@ -56,3 +53,21 @@ void Floppy100::write (const uint8_t data, const size_t dataPos)
 
 //TODO: take in account that the floppy is spinning
 ID Floppy100::getID() const { return m_id; }
+
+template<>
+std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const uint8_t newTrack)
+{
+	std::pair<bool, sf::Time> ret = (newTrack > m_totalTrackNumber) ?
+		std::pair<bool,sf::Time>{false,sf::Time::Zero} : std::pair<bool,sf::Time>{true,sf::Time::Zero};
+
+	if (ret.first)
+	{
+		const int deltaPos = (int)m_id.track - (int)newTrack;
+		m_id.track = newTrack;
+		const sf::Time timeToWait = sf::milliseconds(((deltaPos < 0) ? -deltaPos : deltaPos)*8);//Track to track movement takes 8 ms
+		ret.second = timeToWait;
+		m_timeToWait = timeToWait;
+	}
+	m_clock.restart();
+	return ret; 
+}

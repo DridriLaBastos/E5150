@@ -110,7 +110,7 @@ namespace E5150
 					virtual void exec (void) final;
 					virtual void onConfigureBegin(void) final;
 					virtual void onConfigureFinish(void) final;
-					void execOnFloppyDrive (const unsigned int floppyDriveNumber) const;
+					void execOnFloppyDrive (Floppy100& drive) const;
 
 					private:
 						unsigned int m_floppyToApply;

@@ -420,17 +420,20 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 	m_floppyToApply |= static_cast<unsigned>(floppyDriveSeeking);
 }
 
-void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(const unsigned int i) const
+void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(Floppy100& drive) const
 {
-	Floppy100& floppyDrive = fdc->m_floppyDrives[i];
+	drive.performeCommand<Floppy100::COMMAND::SEEK>(m_configurationWords[2]);
 }
 
 void E5150::FDC::COMMAND::Seek::exec()
 {
-	for (unsigned int i = 0; i < 4; ++i)
+	for (unsigned int driveNumber = 0; driveNumber < 4; ++driveNumber)
 	{
-		if ((1 << i) & m_floppyToApply)
-			execOnFloppyDrive(i);
+		if ((1 << driveNumber) & m_floppyToApply)
+		{
+			//TODO: what to do if there is no floppy drive ?
+			execOnFloppyDrive(fdc->m_floppyDrives[driveNumber]);
+		}
 	}
 }
 
