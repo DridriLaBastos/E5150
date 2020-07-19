@@ -399,7 +399,6 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 /*** IMPLEMENTING    SEEK ***/
 //////////////////////////////
 
-//TODO: should motor be spinning for this ? No from what I understan but... mmmh
 E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0), m_floppyToApply(0) { m_checkMFM = false; }
 
 void E5150::FDC::COMMAND::Seek::onConfigureBegin () { fdc->makeBusy(); }
@@ -425,6 +424,7 @@ void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(Floppy100& drive) const
 	drive.performeCommand<Floppy100::COMMAND::SEEK>(m_configurationWords[2]);
 }
 
+//TODO: what happens when SRT timer isn't well configured
 void E5150::FDC::COMMAND::Seek::exec()
 {
 	for (unsigned int driveNumber = 0; driveNumber < 4; ++driveNumber)

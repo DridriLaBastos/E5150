@@ -54,10 +54,11 @@ void Floppy100::write (const uint8_t data, const size_t dataPos)
 //TODO: take in account that the floppy is spinning
 ID Floppy100::getID() const { return m_id; }
 
+//TODO: what happen when the heads are unloaded
 template<>
-std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const uint8_t newTrack)
+std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const bool up)
 {
-	std::pair<bool, sf::Time> ret = (newTrack > m_totalTrackNumber) ?
+	std::pair<bool, sf::Time> ret (false,0) ?
 		std::pair<bool,sf::Time>{false,sf::Time::Zero} : std::pair<bool,sf::Time>{true,sf::Time::Zero};
 
 	if (ret.first)
@@ -71,3 +72,7 @@ std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const uint
 	m_clock.restart();
 	return ret; 
 }
+
+template<>
+std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::READ>(void)
+{ return  std::pair<bool,sf::Time>(false,sf::seconds(1)); }
