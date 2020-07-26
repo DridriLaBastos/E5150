@@ -404,7 +404,6 @@ E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0), m_floppyToApply(0) { m_c
 void E5150::FDC::COMMAND::Seek::onConfigureBegin () { fdc->makeBusy(); }
 void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 {
-	fdc->makeNotBusy();
 	FLOPPY_DRIVE floppyDriveSeeking;
 
 	switch (m_floppyDrive)
@@ -415,13 +414,14 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 		case 3: floppyDriveSeeking = FLOPPY_DRIVE::D; break;
 	}
 
-	fdc->setSeekStatusOn(floppyDriveSeeking);
 	m_floppyToApply |= static_cast<unsigned>(floppyDriveSeeking);
+	fdc->makeNotBusy();
+	fdc->setSeekStatusOn(floppyDriveSeeking);
 }
 
 void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(Floppy100& drive) const
 {
-	drive.performeCommand<Floppy100::COMMAND::SEEK>((unsigned int&)m_configurationWords[2]);
+	drive.performeCommand<Floppy100::COMMAND::SEEK>((unsigned int)m_configurationWords[2]);
 }
 
 //TODO: what happens when SRT timer isn't well configured
