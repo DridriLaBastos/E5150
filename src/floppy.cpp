@@ -2,7 +2,7 @@
 
 unsigned int Floppy100::floppyNumber = 0;
 
-Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_readPos(0),m_timeToWait(sf::Time::Zero)
+Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_readPos(0),m_timeToWait(0)
 {
 	srand(time(NULL));
 
@@ -11,6 +11,49 @@ Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_rea
 	
 	m_id.track = 0xA;   m_id.sector = 2;
 }
+
+bool Floppy100::select(void)
+{
+	if (m_spinning)
+	{
+		m_selected = true;
+		DEBUG("Floppy {}: selected", driverNumber);
+	}
+	else
+		DEBUG("Floppy {}: can't be selected because motor is not spinning",driverNumber);
+	
+	return m_spinning;
+}
+void Floppy100::unselect (void)
+{ m_selected = false; DEBUG("Floppy {}: unselected",driverNumber); }
+
+bool Floppy100::waitingDone() const
+{ return std::chrono::high_resolution_clock::now() - m_lastTimeBeforeWait >= m_timeToWait; }
+
+//TODO: check needed ?
+void Floppy100::waitMilliseconds (const unsigned int millisecondsToWait)
+{
+	if (!waitingDone())
+		throw std::logic_error("Cannot wait will previous wait is not finished");
+	
+	m_lastTimeBeforeWait = std::chrono::high_resolution_clock::now();
+	m_timeToWait = std::chrono::milliseconds(millisecondsToWait);
+}
+
+//TODO: timing
+void Floppy100::setMotorSpinning (const bool spinning)
+{
+	if (spinning != m_spinning)
+		DEBUG("Floppy {}: motor {} spinning",driverNumber,spinning ? "start" : "stop");
+	
+	if (spinning)
+		waitMilliseconds(500);
+
+	m_spinning = spinning;
+}
+
+bool Floppy100::isReady() const
+{ return m_selected && m_spinning && waitingDone(); }
 
 void Floppy100::open(const std::string& path)
 {
@@ -47,7 +90,6 @@ void Floppy100::write (const uint8_t data, const size_t dataPos)
 	{
 		m_file.seekg(dataPos);
 		m_file.put(data);
-		m_clock.restart();
 	}
 }
 
@@ -67,9 +109,7 @@ std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const unsi
 		m_id.track = newTrack;
 		const sf::Time timeToWait = sf::milliseconds(((deltaPos < 0) ? -deltaPos : deltaPos)*8);//Track to track movement takes 8 ms
 		ret.second = timeToWait;
-		m_timeToWait = timeToWait;
 	}
-	m_clock.restart();
 	return ret; 
 }
 

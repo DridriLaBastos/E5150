@@ -20,6 +20,10 @@ class Floppy100
 		void open (const std::string& path);
 
 		bool isReady (void) const;
+		bool select(void);
+		void unselect (void);
+		void setMotorSpinning (const bool spinning);
+		bool isReady (void) const;
 
 		void write (const uint8_t data, const size_t dataPos);
 		ID getID (void) const;
@@ -44,14 +48,22 @@ class Floppy100
 		template <class CommandName, class... Args>
 		std::pair<bool, sf::Time> command(Args... args);
 
+		bool waitingDone (void) const;
+		void waitMilliseconds (const unsigned int millisecondsToWait);
+
 	private:
 		std::fstream m_file;
 		size_t m_readPos;
 		bool m_isOpen;
 		bool m_headLoaded;
 		bool m_floppyReady;
-		sf::Clock m_clock;
-		sf::Time m_timeToWait;
+
+		bool m_selected = false;
+		bool m_spinning = false;
+
+		std::chrono::time_point<std::chrono::high_resolution_clock> m_lastTimeBeforeWait;
+		std::chrono::milliseconds m_timeToWait;
+
 		static unsigned int floppyNumber;
 		unsigned int m_totalTrackNumber;
 		ID m_id;

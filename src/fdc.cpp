@@ -77,8 +77,23 @@ void E5150::FDC::clock()
 	}
 }
 
+//TODO: if selected while motor not on, does it unselect the previously selected floppy ?
 void E5150::FDC::writeDOR(const uint8_t data)
-{ m_dorRegister = data; }
+{
+	static Floppy100* previouslySelected = nullptr;
+
+	m_floppyDrives[0].setMotorSpinning(data & (1 << 4));
+	m_floppyDrives[1].setMotorSpinning(data & (1 << 5));
+	m_floppyDrives[2].setMotorSpinning(data & (1 << 6));
+	m_floppyDrives[3].setMotorSpinning(data & (1 << 7));
+
+	if (m_floppyDrives[data & 0b11].select())
+	{
+		if (previouslySelected != nullptr)
+			previouslySelected->unselect();
+		previouslySelected = &m_floppyDrives[data & 0b11];
+	}
+}
 
 void E5150::FDC::switchToCommandMode (void)
 {
@@ -276,6 +291,7 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 		{
 			//TODO: do I really want it that way ?
 			//TODO: save HDS
+			//TODO: what happens if the floppy is not ready
 			m_floppyDrive = m_configurationWords[1] & 0b11;
 		}
 
