@@ -27,7 +27,7 @@ void Floppy100::open(const std::string& path)
 	}
 }
 
-uint8_t Floppy100::read(const size_t dataPos)
+/*uint8_t Floppy100::read(const size_t dataPos)
 {
 	uint8_t ret = rand();
 
@@ -38,7 +38,7 @@ uint8_t Floppy100::read(const size_t dataPos)
 	}
 
 	return ret;
-}
+}*/
 
 //TODO: review this
 void Floppy100::write (const uint8_t data, const size_t dataPos)
@@ -56,10 +56,10 @@ ID Floppy100::getID() const { return m_id; }
 
 //TODO: what happen when the heads are unloaded
 template<>
-std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const bool up)
+std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const unsigned int newTrack)
 {
-	std::pair<bool, sf::Time> ret (false,0) ?
-		std::pair<bool,sf::Time>{false,sf::Time::Zero} : std::pair<bool,sf::Time>{true,sf::Time::Zero};
+	std::pair<bool, sf::Time> ret (false,sf::Time::Zero);
+		//? std::pair<bool,sf::Time>{false,sf::Time::Zero} : std::pair<bool,sf::Time>{true,sf::Time::Zero};
 
 	if (ret.first)
 	{

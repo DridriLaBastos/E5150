@@ -304,11 +304,11 @@ void E5150::FDC::Command::exec() {}
 
 void E5150::FDC::COMMAND::ReadData::loadHeads()
 {
-	if (!fdc->m_floppyDrives[m_floppyDrive].areHeadsLoaded())
+	/*if (!fdc->m_floppyDrives[m_floppyDrive].areHeadsLoaded())
 	{
 		fdc->m_floppyDrives[m_floppyDrive].pepare();
 		fdc->waitMilli(fdc->m_timers[TIMER::HEAD_LOAD_TIME]*16);
-	}
+	}*/
 	
 	m_status = STATUS::READ_DATA;
 
@@ -421,7 +421,7 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 
 void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(Floppy100& drive) const
 {
-	drive.performeCommand<Floppy100::COMMAND::SEEK>(m_configurationWords[2]);
+	drive.performeCommand<Floppy100::COMMAND::SEEK>((unsigned int&)m_configurationWords[2]);
 }
 
 //TODO: what happens when SRT timer isn't well configured
