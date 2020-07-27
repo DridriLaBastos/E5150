@@ -98,21 +98,13 @@ ID Floppy100::getID() const { return m_id; }
 
 //TODO: what happen when the heads are unloaded
 template<>
-std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::SEEK>(const unsigned int newTrack)
+std::pair<bool, uint8_t> Floppy100::command<Floppy100::COMMAND::STEP>(const bool direction)
 {
-	std::pair<bool, sf::Time> ret (false,sf::Time::Zero);
-		//? std::pair<bool,sf::Time>{false,sf::Time::Zero} : std::pair<bool,sf::Time>{true,sf::Time::Zero};
+	std::pair<bool, uint8_t> ret (false,0);
 
-	if (ret.first)
-	{
-		const int deltaPos = (int)m_id.track - (int)newTrack;
-		m_id.track = newTrack;
-		const sf::Time timeToWait = sf::milliseconds(((deltaPos < 0) ? -deltaPos : deltaPos)*8);//Track to track movement takes 8 ms
-		ret.second = timeToWait;
-	}
 	return ret; 
 }
 
 template<>
-std::pair<bool,sf::Time> Floppy100::command<Floppy100::COMMAND::READ>(void)
-{ return  std::pair<bool,sf::Time>(false,sf::seconds(1)); }
+std::pair<bool, uint8_t>Floppy100::command<Floppy100::COMMAND::READ>(void)
+{ return  std::pair<bool, uint8_t>(false,0); }

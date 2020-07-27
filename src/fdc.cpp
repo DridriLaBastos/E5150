@@ -417,27 +417,36 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 
 E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0), m_floppyToApply(0) { m_checkMFM = false; }
 
-void E5150::FDC::COMMAND::Seek::onConfigureBegin () { fdc->makeBusy(); }
+void E5150::FDC::COMMAND::Seek::onConfigureBegin ()
+{ fdc->makeBusy(); }
+
 void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 {
-	FLOPPY_DRIVE floppyDriveSeeking;
-
-	switch (m_floppyDrive)
+	if (fdc->m_floppyDrives[m_floppyToApply].isReady())
 	{
-		case 0: floppyDriveSeeking = FLOPPY_DRIVE::A; break;
-		case 1: floppyDriveSeeking = FLOPPY_DRIVE::B; break;
-		case 2: floppyDriveSeeking = FLOPPY_DRIVE::C; break;
-		case 3: floppyDriveSeeking = FLOPPY_DRIVE::D; break;
-	}
+		FLOPPY_DRIVE floppyDriveSeeking;
 
-	m_floppyToApply |= static_cast<unsigned>(floppyDriveSeeking);
-	fdc->makeNotBusy();
-	fdc->setSeekStatusOn(floppyDriveSeeking);
+		switch (m_floppyDrive)
+		{
+			case 0: floppyDriveSeeking = FLOPPY_DRIVE::A; break;
+			case 1: floppyDriveSeeking = FLOPPY_DRIVE::B; break;
+			case 2: floppyDriveSeeking = FLOPPY_DRIVE::C; break;
+			case 3: floppyDriveSeeking = FLOPPY_DRIVE::D; break;
+		}
+
+		m_floppyToApply |= static_cast<unsigned>(floppyDriveSeeking);
+		fdc->makeNotBusy();
+		fdc->setSeekStatusOn(floppyDriveSeeking);
+	}
+	else
+	{
+		//TODO: set NR flag in status register 0 and quit
+	}
 }
 
 void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(Floppy100& drive) const
 {
-	drive.performeCommand<Floppy100::COMMAND::SEEK>((unsigned int)m_configurationWords[2]);
+	drive.performeCommand<Floppy100::COMMAND::STEP>((unsigned int)m_configurationWords[2]);
 }
 
 //TODO: what happens when SRT timer isn't well configured

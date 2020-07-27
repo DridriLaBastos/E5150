@@ -23,16 +23,13 @@ class Floppy100
 		bool select(void);
 		void unselect (void);
 		void setMotorSpinning (const bool spinning);
-		bool isReady (void) const;
 
 		void write (const uint8_t data, const size_t dataPos);
 		ID getID (void) const;
 
 		template <class CommandName, class... Args>
-		std::pair<bool, sf::Time> performeCommand (Args... args)
-		{
-			return (m_clock.getElapsedTime() >= m_timeToWait ) ? command<CommandName>(args...) : std::pair <bool, sf::Time>{false, sf::Time::Zero};
-		}
+		std::pair<bool, uint8_t> performeCommand (Args... args)
+		{ return isReady() ? command<CommandName>(args...) : std::pair <bool, uint8_t>{false, 0}; }
 
 	public:
 		const unsigned int driverNumber;
@@ -40,13 +37,12 @@ class Floppy100
 	public:
 		struct COMMAND
 		{
-			class SEEK;
-			class READ;
+			class STEP;
 		};
 
 	private:
 		template <class CommandName, class... Args>
-		std::pair<bool, sf::Time> command(Args... args);
+		std::pair<bool, uint8_t> command(Args... args);
 
 		bool waitingDone (void) const;
 		void waitMilliseconds (const unsigned int millisecondsToWait);
