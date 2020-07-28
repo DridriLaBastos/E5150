@@ -167,8 +167,6 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 
 void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 {
-	bool writingDone = true;
-
 	switch (localAddress)
 	{
 		case 2:
@@ -244,7 +242,6 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 	}
 
 	DEBUG("Value outputed will be undetermined");
-	return;
 }
 
 ///////////////////////////////////
