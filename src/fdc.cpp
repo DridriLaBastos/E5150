@@ -71,10 +71,7 @@ void E5150::FDC::clock()
 			m_commands[m_selectedCommand]->exec();
 	}
 	else
-	{
 		--m_passClock;
-		std::cout << m_passClock << " to wait\n";
-	}
 }
 
 //TODO: if selected while motor not on, does it unselect the previously selected floppy ?
@@ -106,7 +103,6 @@ void E5150::FDC::switchToCommandMode (void)
 void E5150::FDC::switchToExecutionMode (void)
 {
 	m_phase = PHASE::EXECUTION;
-	//clears the last bits without touching the other ones
 	makeDataRegisterNotReady();
 	std::cout << "FDC switched to execution mode\n";
 }
@@ -119,7 +115,6 @@ void E5150::FDC::switchToResultMode (void)
 	std::cout << "FDC switched to result mode\n";
 }
 
-//TODO: check again the value of the bits
 void E5150::FDC::switchPhase (void)
 {
 	switch (m_phase)
@@ -155,8 +150,7 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 				commandIndex += (commandIndex == 9) ? 2 : 1;
 		}
 		
-		if (firstCommandWorld)
-			m_selectedCommand = commandIndex;
+		m_selectedCommand = commandIndex;
 		
 		DEBUG("Selecting command '{}'",m_commands[m_selectedCommand]->m_name);
 	}
@@ -432,7 +426,8 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 
 void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(Floppy100& drive) const
 {
-	drive.performeCommand<Floppy100::COMMAND::STEP>((unsigned int)m_configurationWords[2]);
+	const auto& [commandEnds, msWaitTime] = drive.performeCommand<Floppy100::OPERATION::SEEK>((unsigned int)m_configurationWords[2]);
+	fdc->waitMilli(msWaitTime);
 }
 
 //TODO: what happens when SRT timer isn't well configured

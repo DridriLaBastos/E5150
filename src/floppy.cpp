@@ -1,5 +1,8 @@
 #include "floppy.hpp"
 
+constexpr unsigned int track_to_trackTimeInMS = 8;
+constexpr unsigned int trackCount = 40;
+
 unsigned int Floppy100::floppyNumber = 0;
 
 Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_readPos(0),m_timeToWait(0)
@@ -98,9 +101,15 @@ ID Floppy100::getID() const { return m_id; }
 
 //TODO: what happen when the heads are unloaded
 template<>
-std::pair<bool, uint8_t> Floppy100::command<Floppy100::COMMAND::STEP>(const bool direction)
+std::pair<bool, unsigned int> Floppy100::operation<Floppy100::OPERATION::SEEK>(const unsigned int ncn)
 {
-	std::pair<bool, uint8_t> ret (false,0);
+	const unsigned int currentTrackNumber = m_id.track;
+	const unsigned int newTrackNumber = (ncn >= trackCount) ? trackCount : ncn;
+	const unsigned int offset = currentTrackNumber > newTrackNumber ? (currentTrackNumber - newTrackNumber) : (newTrackNumber - currentTrackNumber);
+	const unsigned int millisecondsToWait = offset * track_to_trackTimeInMS;
+	
+	waitMilliseconds(millisecondsToWait);
 
+	std::pair<bool, unsigned int> ret (ncn <= trackCount,millisecondsToWait);
 	return ret; 
 }

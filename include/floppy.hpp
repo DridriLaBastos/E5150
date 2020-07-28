@@ -28,21 +28,21 @@ class Floppy100
 		ID getID (void) const;
 
 		template <class CommandName, class... Args>
-		std::pair<bool, uint8_t> performeCommand (Args... args)
-		{ return isReady() ? command<CommandName>(args...) : std::pair <bool, uint8_t>{false, 0}; }
+		std::pair<bool, unsigned int> performeCommand (Args... args)
+		{ return isReady() ? command<CommandName>(args...) : std::make_pair(false, 0); }
 
 	public:
 		const unsigned int driverNumber;
 		
 	public:
-		struct COMMAND
+		struct OPERATION
 		{
-			class STEP;
+			class SEEK;
 		};
 
 	private:
 		template <class CommandName, class... Args>
-		std::pair<bool, uint8_t> command(Args... args);
+		std::pair<bool, unsigned int> operation(Args... args);
 
 		bool waitingDone (void) const;
 		void waitMilliseconds (const unsigned int millisecondsToWait);
