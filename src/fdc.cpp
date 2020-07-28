@@ -46,7 +46,7 @@ void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microse
 void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 
 void E5150::FDC::makeBusy () { m_statusRegister |= (1 << 4); }
-void E5150::FDC::makeNotBusy () { m_statusRegister &= ~(1 << 4); }
+void E5150::FDC::makeAvailable () { m_statusRegister &= ~(1 << 4); }
 
 void E5150::FDC::setSeekStatusOn (const FLOPPY_DRIVE drive) { m_statusRegister |= static_cast<unsigned>(drive); }
 void E5150::FDC::resetSeekStatusOn (const FLOPPY_DRIVE drive) { m_statusRegister &= ~(static_cast<unsigned>(drive)); }
@@ -168,29 +168,34 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 {
 	bool writingDone = true;
-	if (localAddress == 2)
-		writeDOR(data);
-	else if (localAddress == 5)
+
+	switch (localAddress)
 	{
-		if (m_statusRegisterRead)
+		case 2:
+			writeDOR(data);
+			return;
+		
+		case 5:
 		{
-			if (dataRegisterInWriteMode())
-				writeDataRegister(data);
-			else
+			if (m_statusRegisterRead)
 			{
-				DEBUG("Data register {}", dataRegisterReady() ? "not in write mode" : "not ready");
-				writingDone = false;
+				if (dataRegisterInWriteMode())
+				{
+					writeDataRegister(data);
+					return;
+				}
+				else
+					DEBUG("Data register {}", dataRegisterReady() ? "not in write mode" : "not ready");
 			}
+			else
+				DEBUG("Status register not read before writing to data register");
 		}
-		else
-		{
-			DEBUG("Status register not read before writing to data register");
-			writingDone = false;
-		}
+
+		default:
+			DEBUG("Cannot write address {:b}. Address should be 0x3F2 for DOR or 0x3F5 for data register",localAddress);
 	}
 
-	if (!writingDone)
-		DEBUG("Writing not done");
+	DEBUG("Writing not done");
 }
 
 uint8_t E5150::FDC::readDataRegister()
@@ -213,49 +218,33 @@ uint8_t E5150::FDC::readStatusRegister()
 
 uint8_t E5150::FDC::read	(const unsigned int localAddress)
 {
-	bool undefinedRead = false;
-	//No value here because if we don't provide a good address, the value put in the data bus is undertemined
-	uint8_t ret;
-
-	if (localAddress == 2)
-		ret = m_dorRegister;
-	else
+	switch (localAddress)
 	{
-		if ((localAddress == 4) || (localAddress == 5))
+		case 2:
+			return m_dorRegister;
+		
+		case 4:
+			return readStatusRegister();
+		
+		case 5:
 		{
-			if (localAddress == 4)
-				ret = readStatusRegister();
-			else
+			if (m_statusRegisterRead)
 			{
-				if (m_statusRegisterRead)
-				{
-					if (dataRegisterInReadMode())
-						ret = readDataRegister();
-					else
-					{
-						DEBUG("Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");
-						undefinedRead = true;
-					}
-						
-				}
+				if (dataRegisterInReadMode())
+					return readDataRegister();
 				else
-				{
-					DEBUG("Status register not read before reading data register");
-					undefinedRead = true;
-				}
+					DEBUG("Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");
 			}
+			else
+				DEBUG("Status register not read before reading data register");
 		}
-		else
-		{
-			DEBUG("Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register");
-			undefinedRead = true;
-		}
+		
+		default:
+			DEBUG("Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register",localAddress);
 	}
 
-	if (undefinedRead)
-		DEBUG("Value outputed will be undetermined");
-
-	return ret;
+	DEBUG("Value outputed will be undetermined");
+	return;
 }
 
 ///////////////////////////////////
@@ -435,7 +424,7 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 		}
 
 		m_floppyToApply |= static_cast<unsigned>(floppyDriveSeeking);
-		fdc->makeNotBusy();
+		fdc->makeAvailable();
 		fdc->setSeekStatusOn(floppyDriveSeeking);
 	}
 	else

@@ -131,7 +131,7 @@ namespace E5150
 			void waitMilli (const unsigned int milliseconds);
 			
 			void makeBusy (void);
-			void makeNotBusy (void);
+			void makeAvailable (void);
 
 			void setSeekStatusOn(const FLOPPY_DRIVE drive);
 			void resetSeekStatusOn (const FLOPPY_DRIVE drive);

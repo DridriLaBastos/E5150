@@ -104,7 +104,3 @@ std::pair<bool, uint8_t> Floppy100::command<Floppy100::COMMAND::STEP>(const bool
 
 	return ret; 
 }
-
-template<>
-std::pair<bool, uint8_t>Floppy100::command<Floppy100::COMMAND::READ>(void)
-{ return  std::pair<bool, uint8_t>(false,0); }
