@@ -292,7 +292,7 @@ void E5150::FDC::Command::onConfigureFinish()
 {  }
 
 void E5150::FDC::Command::onConfigureBegin() {}
-void E5150::FDC::Command::exec() {}
+void E5150::FDC::Command::exec(const unsigned int) {}
 
 ///////////////////////////////////
 /*** IMPLEMENTING READ DATA ***/
@@ -395,14 +395,24 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 /*** IMPLEMENTING    SEEK ***/
 //////////////////////////////
 
-E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0), m_floppyToApply(0) { m_checkMFM = false; }
+E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0) { m_checkMFM = false; }
 
 void E5150::FDC::COMMAND::Seek::onConfigureBegin ()
-{ fdc->makeBusy(); }
+{
+	fdc->makeBusy();
+	m_firstStep = true; //The next step issued will be the first of the command
+}
 
 void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 {
-	if (fdc->m_floppyDrives[m_floppyToApply].isReady())
+	const unsigned int floppyIndex = m_configurationWords[2] & 0b11;
+	m_floppyToApply = &fdc->m_floppyDrives[floppyIndex];
+
+	const unsigned int pcn = m_floppyToApply->m_pcn;
+	const unsigned int ncn = m_configurationWords[2];
+	m_direction = ncn > pcn;
+
+	if (m_floppyToApply->isReady())
 	{
 		FLOPPY_DRIVE floppyDriveSeeking;
 
@@ -414,7 +424,6 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 			case 3: floppyDriveSeeking = FLOPPY_DRIVE::D; break;
 		}
 
-		m_floppyToApply |= static_cast<unsigned>(floppyDriveSeeking);
 		fdc->makeAvailable();
 		fdc->setSeekStatusOn(floppyDriveSeeking);
 	}
@@ -424,23 +433,14 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 	}
 }
 
-void E5150::FDC::COMMAND::Seek::execOnFloppyDrive(Floppy100& drive) const
-{
-	const auto& [commandEnds, msWaitTime] = drive.performeCommand<Floppy100::OPERATION::SEEK>((unsigned int)m_configurationWords[2]);
-	fdc->waitMilli(msWaitTime);
-}
-
 //TODO: what happens when SRT timer isn't well configured
-void E5150::FDC::COMMAND::Seek::exec()
+//TODO: how multiple seek work ?
+void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 {
-	for (unsigned int driveNumber = 0; driveNumber < 4; ++driveNumber)
-	{
-		if ((1 << driveNumber) & m_floppyToApply)
-		{
-			//TODO: what to do if there is no floppy drive ?
-			execOnFloppyDrive(fdc->m_floppyDrives[driveNumber]);
-		}
-	}
+	const Milliseconds timeElapsdeSinceLastStep (fdcClockElapsed);
+	//TODO: continue this
+	const bool stepSuccess = m_floppyToApply->step(m_direction,Milliseconds(0),m_firstStep);
+	fdc->waitMilli(0xF-fdc->m_timers[FDC::TIMER::STEP_RATE_TIME] + 1);
 }
 
 //////////////////////////////

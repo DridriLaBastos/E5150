@@ -5,7 +5,6 @@
 #include "arch.hpp"
 #include "util.hpp"
 
-using Clock = std::chrono::system_clock;
 using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 10000;

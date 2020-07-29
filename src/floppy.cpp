@@ -1,62 +1,81 @@
 #include "floppy.hpp"
 
-constexpr unsigned int track_to_trackTimeInMS = 8;
-constexpr unsigned int trackCount = 40;
-
 unsigned int Floppy100::floppyNumber = 0;
 
-Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_readPos(0),m_timeToWait(0)
+Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_timeToWait(0),m_pcn(0)
 {
 	srand(time(NULL));
 
 	if (!path.empty())
 		open(path);
-	
-	m_id.track = 0xA;   m_id.sector = 2;
 }
 
-bool Floppy100::select(void)
+//TODO: will be removed
+ID Floppy100::getID (void) const
+{ return { m_pcn, 0 }; }
+
+bool Floppy100::select (void)
 {
-	if (m_spinning)
+	if (m_status.motorSpinning)
 	{
-		m_selected = true;
+		m_status.selected = true;
 		DEBUG("Floppy {}: selected", driverNumber);
+
+		if (!m_status.headLoaded)
+			loadHeads();
+		
+		return true;
 	}
 	else
 		DEBUG("Floppy {}: can't be selected because motor is not spinning",driverNumber);
 	
-	return m_spinning;
+	return false;
 }
+
 void Floppy100::unselect (void)
-{ m_selected = false; DEBUG("Floppy {}: unselected",driverNumber); }
+{ m_status.selected = false; DEBUG("Floppy {}: unselected", driverNumber); }
+
+void Floppy100::motorOn(void)
+{
+	if (!m_status.motorSpinning)
+	{
+		DEBUG("Floppy {}: motor start spinning", driverNumber);
+		wait(Milliseconds(500));
+	}
+
+	m_status.motorSpinning = true;
+}
+
+void Floppy100::motorOff(void)
+{
+	DEBUG("Floppy {}: motor stop spinning", driverNumber);
+	m_status.motorSpinning = false;
+}
+
+void Floppy100::setMotorSpinning(const bool spinning)
+{ if (spinning) { motorOn(); } else { motorOff(); } }
+
+void Floppy100::loadHeads(void)
+{
+	m_status.headLoaded = true;
+	m_timing.lastTimeHeadLoaded = Clock::now() + std::chrono::milliseconds(24);
+	wait(Milliseconds(24));
+}
 
 bool Floppy100::waitingDone() const
 { return std::chrono::high_resolution_clock::now() - m_lastTimeBeforeWait >= m_timeToWait; }
 
-//TODO: check needed ?
-void Floppy100::waitMilliseconds (const unsigned int millisecondsToWait)
+void Floppy100::wait(const Milliseconds& toWait)
 {
 	if (!waitingDone())
 		throw std::logic_error("Cannot wait will previous wait is not finished");
-	
-	m_lastTimeBeforeWait = std::chrono::high_resolution_clock::now();
-	m_timeToWait = std::chrono::milliseconds(millisecondsToWait);
-}
 
-//TODO: timing
-void Floppy100::setMotorSpinning (const bool spinning)
-{
-	if (spinning != m_spinning)
-		DEBUG("Floppy {}: motor {} spinning",driverNumber,spinning ? "start" : "stop");
-	
-	if (spinning)
-		waitMilliseconds(500);
-
-	m_spinning = spinning;
+	m_lastTimeBeforeWait = Clock::now();
+	m_timeToWait = toWait;
 }
 
 bool Floppy100::isReady() const
-{ return m_selected && m_spinning && waitingDone(); }
+{ return m_status.selected && m_status.motorSpinning && waitingDone(); }
 
 void Floppy100::open(const std::string& path)
 {
@@ -73,19 +92,6 @@ void Floppy100::open(const std::string& path)
 	}
 }
 
-/*uint8_t Floppy100::read(const size_t dataPos)
-{
-	uint8_t ret = rand();
-
-	if (m_file.is_open())
-	{
-		m_file.seekg(dataPos);
-		ret = m_file.get();
-	}
-
-	return ret;
-}*/
-
 //TODO: review this
 void Floppy100::write (const uint8_t data, const size_t dataPos)
 {
@@ -96,20 +102,38 @@ void Floppy100::write (const uint8_t data, const size_t dataPos)
 	}
 }
 
-//TODO: take in account that the floppy is spinning
-ID Floppy100::getID() const { return m_id; }
+bool Floppy100::stepHeadUp()
+{
+	if (m_pcn == m_geometry.cylinders - 1)
+		return false;
+	
+	++m_pcn;
+	return true;
+}
+
+bool Floppy100::stepHeadDown()
+{
+	if (m_pcn == 0)
+		return false;
+	
+	--m_pcn;
+	return true;
+}
 
 //TODO: what happen when the heads are unloaded
-template<>
-std::pair<bool, unsigned int> Floppy100::operation<Floppy100::OPERATION::SEEK>(const unsigned int ncn)
+bool Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep)
 {
-	const unsigned int currentTrackNumber = m_id.track;
-	const unsigned int newTrackNumber = (ncn >= trackCount) ? trackCount : ncn;
-	const unsigned int offset = currentTrackNumber > newTrackNumber ? (currentTrackNumber - newTrackNumber) : (newTrackNumber - currentTrackNumber);
-	const unsigned int millisecondsToWait = offset * track_to_trackTimeInMS;
+	//const unsigned int cylinderCount = m_geometry.cylinders;
+	//(ncn > cylinderCount) instead of (ncn >= cylinderCount) because 
+	//40 cylinder from 0 to 39. ncn = 40 --> out of range
+	//const unsigned int newCylinderNumber = (ncn > cylinderCount) ? cylinderCount : ncn;
+	//const unsigned int offset = m_pcn > newCylinderNumber ?
+	//	(m_pcn - newCylinderNumber) : (newCylinderNumber - m_pcn);
 	
-	waitMilliseconds(millisecondsToWait);
+	//wait(m_timers.trackToTrack * offset);
 
-	std::pair<bool, unsigned int> ret (ncn <= trackCount,millisecondsToWait);
-	return ret; 
+	if (!firstStep && (timeSinceLastStep < m_timers.trackToTrack))
+		return false;
+
+	return direction ? stepHeadUp() : stepHeadDown();
 }

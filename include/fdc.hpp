@@ -57,7 +57,7 @@ namespace E5150
 					//Return true when reading result is done
 					std::pair<uint8_t,bool> readResult (void);
 
-					virtual void exec (void);//TODO: should be pure virtual
+					virtual void exec (const unsigned int fdcClockElapsed = 0);//TODO: should be pure virtual
 					const std::string m_name;
 					
 				protected:
@@ -70,22 +70,22 @@ namespace E5150
 				
 					bool m_checkMFM = true;
 					bool m_saveHDS_DSx = true;
+
 				private:
 					virtual void onConfigureBegin  (void);
 					virtual void onConfigureFinish (void);
 				
 			};
 
-			class COMMAND
+			struct COMMAND
 			{
-				public:
 				class ReadData: public Command
 				{
 					enum class STATUS
 					{ LOADING_HEADS, READ_DATA };
 
 					void loadHeads(void);
-					virtual void exec (void) final;
+					virtual void exec () final;
 					//virtual void onConfigureFinish(void) final;
 
 					STATUS m_status { STATUS::LOADING_HEADS };
@@ -107,14 +107,17 @@ namespace E5150
 				{
 					public: Seek(void);
 					private:
-					virtual void exec (void) final;
+					virtual void exec (const unsigned int fdcClockElapsed) final;
 					virtual void onConfigureBegin(void) final;
 					virtual void onConfigureFinish(void) final;
 					void execOnFloppyDrive (Floppy100& drive) const;
 
 					private:
-						unsigned int m_floppyToApply;
+						bool m_direction;
+						bool m_firstStep;
+						Floppy100* m_floppyToApply = nullptr;
 				};
+
 				class Invalid: public Command { virtual void onConfigureFinish(void) final;; public: Invalid(void); };
 			};
 
@@ -213,6 +216,8 @@ namespace E5150
 			std::array<Floppy100,4> m_floppyDrives;
 			std::array<Command*, 16> m_commands;
 			std::array<uint8_t, 3> m_timers;
+
+			unsigned int cnc = 0;
 
 			PHASE m_phase;
 			unsigned int m_selectedCommand;

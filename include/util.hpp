@@ -12,6 +12,9 @@ namespace E5150
 	};
 }
 
+using Milliseconds = std::chrono::milliseconds;
+using Clock = std::chrono::high_resolution_clock;
+
 #ifdef DEBUG_BUILD
 	#define DEBUG(...)		spdlog::debug(__VA_ARGS__)
 #else

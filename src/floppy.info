@@ -1,7 +1,6 @@
 floppy
 mfm coded 
-	40 tracks
-	45 cylinders
+	40/45 tracks
 	1 head
 	8 sectors/track
 	512 o/sector

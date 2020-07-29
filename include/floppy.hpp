@@ -5,8 +5,36 @@
 
 struct ID
 {
-	unsigned int track;
+	unsigned int cylinder;
 	unsigned int sector;
+};
+
+struct Geometry
+{
+	const unsigned int cylinders;
+	const unsigned int heads;
+	const unsigned int sectors;//Sector/cylinders
+	const bool doubleSided;
+};
+
+struct Status
+{
+	bool headLoaded;
+	bool motorSpinning;
+	bool selected;
+};
+
+struct Timing
+{
+	std::chrono::time_point<Clock> lastTimeHeadLoaded;
+};
+
+struct Timer
+{
+	Milliseconds motorStart;
+	Milliseconds headLoad;
+	Milliseconds headUnload;
+	Milliseconds trackToTrack;
 };
 
 //TODO: implements error state
@@ -19,50 +47,43 @@ class Floppy100
 		Floppy100(const std::string& path = "");
 		void open (const std::string& path);
 
-		bool isReady (void) const;
-		bool select(void);
-		void unselect (void);
-		void setMotorSpinning (const bool spinning);
-
 		void write (const uint8_t data, const size_t dataPos);
 		ID getID (void) const;
 
-		template <class CommandName, class... Args>
-		std::pair<bool, unsigned int> performeCommand (Args... args)
-		{ return isReady() ? command<CommandName>(args...) : std::make_pair(false, 0); }
+		bool isReady (void) const;
+		void setMotorSpinning (const bool spinning);
+		bool step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep);
+		void motorOn  (void);
+		void motorOff (void);
+		bool select   (void);
+		void unselect (void);
 
 	public:
 		const unsigned int driverNumber;
-		
-	public:
-		struct OPERATION
-		{
-			class SEEK;
-		};
+		unsigned int m_pcn = 0;
 
 	private:
-		template <class CommandName, class... Args>
-		std::pair<bool, unsigned int> operation(Args... args);
-
+		void loadHeads (void);
 		bool waitingDone (void) const;
-		void waitMilliseconds (const unsigned int millisecondsToWait);
+		void wait (const Milliseconds& toWait);
+
+		bool stepHeadUp (void);
+		bool stepHeadDown (void);
 
 	private:
 		std::fstream m_file;
-		size_t m_readPos;
 		bool m_isOpen;
-		bool m_headLoaded;
 		bool m_floppyReady;
 
-		bool m_selected = false;
-		bool m_spinning = false;
-
-		std::chrono::time_point<std::chrono::high_resolution_clock> m_lastTimeBeforeWait;
-		std::chrono::milliseconds m_timeToWait;
+		std::chrono::time_point<Clock> m_lastTimeBeforeWait;
+		Milliseconds m_timeToWait;
 
 		static unsigned int floppyNumber;
-		unsigned int m_totalTrackNumber;
-		ID m_id;
+
+		Geometry m_geometry { 40, 1, 8, false };
+		Status m_status { false, false, false };
+		Timer m_timers { Milliseconds(500), Milliseconds(35), Milliseconds(240), Milliseconds(8) };
+		Timing m_timing;
 };
 
 #endif
