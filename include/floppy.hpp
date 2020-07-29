@@ -19,14 +19,15 @@ struct Geometry
 
 struct Status
 {
-	bool headLoaded;
-	bool motorSpinning;
+	bool headUnloaded;
+	bool motorStoped;
 	bool selected;
 };
 
 struct Timing
 {
-	std::chrono::time_point<Clock> lastTimeHeadLoaded;
+	std::chrono::time_point<Clock> lastTimeHeadLoadRequest;
+	std::chrono::time_point<Clock> lastTimeMotorStartRequest;
 };
 
 struct Timer
@@ -67,13 +68,15 @@ class Floppy100
 		bool waitingDone (void) const;
 		void wait (const Milliseconds& toWait);
 
+		bool headLoaded (void) const;
+		bool motorAtFullSpeed (void) const;
+
 		bool stepHeadUp (void);
 		bool stepHeadDown (void);
 
 	private:
 		std::fstream m_file;
 		bool m_isOpen;
-		bool m_floppyReady;
 
 		std::chrono::time_point<Clock> m_lastTimeBeforeWait;
 		Milliseconds m_timeToWait;
@@ -81,7 +84,7 @@ class Floppy100
 		static unsigned int floppyNumber;
 
 		Geometry m_geometry { 40, 1, 8, false };
-		Status m_status { false, false, false };
+		Status m_status { true, true, false };
 		Timer m_timers { Milliseconds(500), Milliseconds(35), Milliseconds(240), Milliseconds(8) };
 		Timing m_timing;
 };

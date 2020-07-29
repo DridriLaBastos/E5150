@@ -2,7 +2,7 @@
 
 unsigned int Floppy100::floppyNumber = 0;
 
-Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_timeToWait(0),m_pcn(0)
+Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_timeToWait(0),m_lastTimeBeforeWait(Clock::now()),m_pcn(0)
 {
 	srand(time(NULL));
 
@@ -14,14 +14,20 @@ Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_tim
 ID Floppy100::getID (void) const
 { return { m_pcn, 0 }; }
 
+bool Floppy100::headLoaded() const
+{ return !m_status.headUnloaded && ((Clock::now() - m_timing.lastTimeHeadLoadRequest >= m_timers.headLoad)); }
+
+void Floppy100::loadHeads(void)
+{ m_timing.lastTimeHeadLoadRequest = Clock::now(); }
+
 bool Floppy100::select (void)
 {
-	if (m_status.motorSpinning)
+	if (!m_status.motorStoped)
 	{
 		m_status.selected = true;
 		DEBUG("Floppy {}: selected", driverNumber);
 
-		if (!m_status.headLoaded)
+		if (m_status.headUnloaded)
 			loadHeads();
 		
 		return true;
@@ -33,34 +39,31 @@ bool Floppy100::select (void)
 }
 
 void Floppy100::unselect (void)
-{ m_status.selected = false; DEBUG("Floppy {}: unselected", driverNumber); }
+{ m_status.selected = false; m_status.headUnloaded = true; DEBUG("Floppy {}: unselected", driverNumber); }
+
+bool Floppy100::motorAtFullSpeed() const
+{ return !m_status.motorStoped && ((Clock::now() - m_timing.lastTimeMotorStartRequest) >= m_timers.motorStart); }
 
 void Floppy100::motorOn(void)
 {
-	if (!m_status.motorSpinning)
+	if (m_status.motorStoped)
 	{
 		DEBUG("Floppy {}: motor start spinning", driverNumber);
-		wait(Milliseconds(500));
+		m_timing.lastTimeMotorStartRequest = Clock::now();
 	}
 
-	m_status.motorSpinning = true;
+	m_status.motorStoped = false;
 }
 
 void Floppy100::motorOff(void)
 {
-	DEBUG("Floppy {}: motor stop spinning", driverNumber);
-	m_status.motorSpinning = false;
+	if (!m_status.motorStoped)
+		DEBUG("Floppy {}: motor stop spinning", driverNumber);
+	m_status.motorStoped = true;
 }
 
 void Floppy100::setMotorSpinning(const bool spinning)
 { if (spinning) { motorOn(); } else { motorOff(); } }
-
-void Floppy100::loadHeads(void)
-{
-	m_status.headLoaded = true;
-	m_timing.lastTimeHeadLoaded = Clock::now() + std::chrono::milliseconds(24);
-	wait(Milliseconds(24));
-}
 
 bool Floppy100::waitingDone() const
 { return std::chrono::high_resolution_clock::now() - m_lastTimeBeforeWait >= m_timeToWait; }
@@ -75,7 +78,7 @@ void Floppy100::wait(const Milliseconds& toWait)
 }
 
 bool Floppy100::isReady() const
-{ return m_status.selected && m_status.motorSpinning && waitingDone(); }
+{ return m_status.selected && headLoaded() && motorAtFullSpeed(); }
 
 void Floppy100::open(const std::string& path)
 {
