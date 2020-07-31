@@ -6,19 +6,18 @@ PCHOBJ = $(PCHSRC).pch
 ASMSRC = $(wildcard test/*.s)
 ASMOBJ = $(ASMSRC:.s=.bin)
 
-CXX := $(CXX) --std=c++17
+CXX := $(CXX) --std=c++17 -Oflto
 
 OBJ = $(CXXOBJ)
 SPDLOG_INCLUDE = third-party/spdlog/include
 CATCH2_INCLUDE = third-party/catch2/include
 
-DEBUG_BUILD = 1
+DEBUG = 1
 
 ifeq ($(DEBUG),1)
-	CXX := $(CXX) -flto
-	CXXFLAGS := $(CXXFLAGS) -O0
-else
+	CXXFLAGS := $(CXXFLAGS) -O1
 	CPPFLAGS := $(CPPFLAGS) -DDEBUG_BUILD
+else
 	CXXFLAGS := $(CXXFLAGS) -Ofast
 endif
 
