@@ -26,7 +26,10 @@ E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pi
 	INFO("This library is accessible at : https://intelxed.github.io");
 	INFO("xed version : {} \n",xed_get_version());
 
-	DEBUG("Duration for {} blocks: {}us", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMicroseconds());
+	//irrelevent message if we stop at the end of each instructions
+	#ifndef STOP_AT_END
+		DEBUG("Duration for {} blocks: {}us", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMicroseconds());
+	#endif
 
 	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);

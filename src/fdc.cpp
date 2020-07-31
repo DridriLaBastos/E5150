@@ -1,5 +1,11 @@
 #include "fdc.hpp"
 
+/*template <unsigned int CURRENT_DEBUG_LEVEL,class... Args>
+static void FDCDebug (Args&&... args)
+{ debug<CURRENT_DEBUG_LEVEL>("FDC: {}", args...); }*/
+
+#define FDCDebug(CURRENT_DEBUG_LEVEL,...) debug<CURRENT_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
+
 //mmmh...
 static E5150::FDC* fdc = nullptr;
 
@@ -77,7 +83,7 @@ void E5150::FDC::clock()
 	}
 	else
 	{
-		debug<DEBUG_LEVEL_MAX>("FDC: passing ({}) clocks", m_passClock);
+		FDCDebug(DEBUG_LEVEL_MAX,"passing ({}) clocks", m_passClock);
 		--m_passClock;
 	}
 }
@@ -105,14 +111,14 @@ void E5150::FDC::switchToCommandMode (void)
 	m_phase = PHASE::COMMAND;
 	makeDataRegisterReady();
 	makeDataRegisterInWriteMode();
-	debug<DEBUG_LEVEL_MAX>("FDC switched to command mode");
+	FDCDebug(7,"switched to command mode");
 }
 
 void E5150::FDC::switchToExecutionMode (void)
 {
 	m_phase = PHASE::EXECUTION;
 	makeDataRegisterNotReady();
-	debug<DEBUG_LEVEL_MAX>("FDC switched to execution mode");
+	FDCDebug(7,"switched to execution mode");
 }
 
 void E5150::FDC::switchToResultMode (void)
@@ -120,7 +126,7 @@ void E5150::FDC::switchToResultMode (void)
 	m_phase = PHASE::RESULT;
 	makeDataRegisterReady();
 	makeDataRegisterInReadMode();
-	debug<DEBUG_LEVEL_MAX>("FDC switched to result mode");
+	FDCDebug(7,"switched to result mode");
 }
 
 void E5150::FDC::switchPhase (void)
@@ -160,7 +166,7 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 		
 		m_selectedCommand = commandIndex;
 		
-		DEBUG("Selecting command '{}'",m_commands[m_selectedCommand]->m_name);
+		FDCDebug(5,"Selecting command '{}'",m_commands[m_selectedCommand]->m_name);
 	}
 	
 	firstCommandWorld = m_commands[m_selectedCommand]->configure(data);
@@ -185,17 +191,17 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 					return;
 				}
 				else
-					DEBUG("Data register {}", dataRegisterReady() ? "not in write mode" : "not ready");
+					FDCDebug(1,"Data register {}", dataRegisterReady() ? "not in write mode" : "not ready");
 			}
 			else
-				DEBUG("Status register not read before writing to data register");
+				FDCDebug(1,"Status register not read before writing to data register");
 		}
 
 		default:
-			DEBUG("Cannot write address {:b}. Address should be 0x3F2 for DOR or 0x3F5 for data register",localAddress);
+			FDCDebug(1,"Cannot write address {:b}. Address should be 0x3F2 for DOR or 0x3F5 for data register",localAddress);
 	}
 
-	DEBUG("Writing not done");
+	FDCDebug(1,"Writing not done");
 }
 
 uint8_t E5150::FDC::readDataRegister()
@@ -233,17 +239,17 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 				if (dataRegisterInReadMode())
 					return readDataRegister();
 				else
-					DEBUG("Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");
+					FDCDebug(1,"Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");
 			}
 			else
-				DEBUG("Status register not read before reading data register");
+				FDCDebug(1,"Status register not read before reading data register");
 		}
 		
 		default:
-			DEBUG("Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register",localAddress);
+			FDCDebug(1,"Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register",localAddress);
 	}
 
-	DEBUG("Value outputed will be undetermined");
+	FDCDebug(1,"Value outputed will be undetermined");
 }
 
 ///////////////////////////////////
@@ -282,7 +288,6 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 			//TODO: what happens if the floppy is not ready
 			m_floppyDrive = m_configurationWords[1] & 0b11;
 		}
-
 		onConfigureFinish();
 	}
 
@@ -390,9 +395,9 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
 	fdc->m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
 
-	DEBUG("SRT Value set to {}",fdc->m_timers[TIMER::STEP_RATE_TIME]);
-	DEBUG("HUT Value set to {}",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
-	DEBUG("HLT Value set to {}",fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
+	FDCDebug(1,"SRT Value set to {}",fdc->m_timers[TIMER::STEP_RATE_TIME]);
+	FDCDebug(1,"HUT Value set to {}",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
+	FDCDebug(1,"HLT Value set to {}",fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
 	
 	fdc->switchToCommandMode();
 	//TODO: investigate timing : I assume one write per clock, it might be more or less
@@ -413,7 +418,7 @@ void E5150::FDC::COMMAND::Seek::onConfigureBegin ()
 
 void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 {
-	const unsigned int floppyIndex = m_configurationWords[2] & 0b11;
+	const unsigned int floppyIndex = m_configurationWords[1] & 0b11;
 	m_floppyToApply = &fdc->m_floppyDrives[floppyIndex];
 
 	const unsigned int pcn = m_floppyToApply->m_pcn;
@@ -437,6 +442,7 @@ void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 {
 	if (!m_floppyToApply->isReady())
 	{
+		FDCDebug(5,"floppy {} not ready", m_floppyToApply->driverNumber);
 		fdc->setST0Flag(ST0_FLAGS::NR);
 		finish();
 		return;

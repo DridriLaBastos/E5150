@@ -135,6 +135,9 @@ bool Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep
 	
 	//wait(m_timers.trackToTrack * offset);
 
+	if (!m_status.selected)
+		debug<5>("Floppy {}: step but floppy not selected", driverNumber);
+
 	if (!firstStep && (timeSinceLastStep < m_timers.trackToTrack))
 		return false;
 

@@ -47,7 +47,6 @@ template <unsigned int DEBUG_LEVEL_REQUIRED,class... Args>
 void debug(Args&&... args)
 {
 	static_assert(CURRENT_DEBUG_LEVEL <= DEBUG_LEVEL_MAX);
-	if (CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_REQUIRED) DEBUG(std::forward<Args&&>(args)...);
+	if (CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_REQUIRED) DEBUG(args...);
 }
-
 #endif
