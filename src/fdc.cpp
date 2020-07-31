@@ -41,15 +41,15 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	switchToCommandMode();
 }
 
-void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; std::cout << "FDC will wait " << m_passClock << " clock(s)\n"; }
+void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; debug<DEBUG_LEVEL_MAX>("FDC will wait {} clock(s)",m_passClock); }
 void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
 void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 
 void E5150::FDC::makeBusy () { m_statusRegister |= (1 << 4); }
 void E5150::FDC::makeAvailable () { m_statusRegister &= ~(1 << 4); }
 
-void E5150::FDC::setSeekStatusOn (const FLOPPY_DRIVE drive) { m_statusRegister |= static_cast<unsigned>(drive); }
-void E5150::FDC::resetSeekStatusOn (const FLOPPY_DRIVE drive) { m_statusRegister &= ~(static_cast<unsigned>(drive)); }
+void E5150::FDC::setSeekStatusOn (const unsigned int driveNumber) { m_statusRegister |= (1 << driveNumber); }
+void E5150::FDC::resetSeekStatusOf (const unsigned int driveNumber) { m_statusRegister &= ~(1 << driveNumber); }
 
 void E5150::FDC::makeDataRegisterReady (void) { m_statusRegister |= (1 << 7); }
 void E5150::FDC::makeDataRegisterNotReady (void) { m_statusRegister &= ~(1 << 7); }
@@ -62,6 +62,11 @@ bool E5150::FDC::dataRegisterInWriteMode (void) const { return !dataRegisterInRe
 bool E5150::FDC::statusRegisterAllowReading (void) const { return dataRegisterReady() && dataRegisterInReadMode() && m_statusRegisterRead; }
 bool E5150::FDC::statusRegisterAllowWriting (void) const { return dataRegisterReady() && dataRegisterInWriteMode() && m_statusRegisterRead; }
 
+void E5150::FDC::setST0Flag (const ST0_FLAGS flag)
+{ m_STRegisters[0] |= flag; }
+void E5150::FDC::resetST0Flag (const ST0_FLAGS flag)
+{ m_STRegisters[0] &= ~flag; }
+
 //ok
 void E5150::FDC::clock()
 {
@@ -71,7 +76,10 @@ void E5150::FDC::clock()
 			m_commands[m_selectedCommand]->exec();
 	}
 	else
+	{
+		debug<DEBUG_LEVEL_MAX>("FDC: passing ({}) clocks", m_passClock);
 		--m_passClock;
+	}
 }
 
 //TODO: if selected while motor not on, does it unselect the previously selected floppy ?
@@ -97,14 +105,14 @@ void E5150::FDC::switchToCommandMode (void)
 	m_phase = PHASE::COMMAND;
 	makeDataRegisterReady();
 	makeDataRegisterInWriteMode();
-	std::cout << "FDC switched to command mode\n";
+	debug<DEBUG_LEVEL_MAX>("FDC switched to command mode");
 }
 
 void E5150::FDC::switchToExecutionMode (void)
 {
 	m_phase = PHASE::EXECUTION;
 	makeDataRegisterNotReady();
-	std::cout << "FDC switched to execution mode\n";
+	debug<DEBUG_LEVEL_MAX>("FDC switched to execution mode");
 }
 
 void E5150::FDC::switchToResultMode (void)
@@ -112,7 +120,7 @@ void E5150::FDC::switchToResultMode (void)
 	m_phase = PHASE::RESULT;
 	makeDataRegisterReady();
 	makeDataRegisterInReadMode();
-	std::cout << "FDC switched to result mode\n";
+	debug<DEBUG_LEVEL_MAX>("FDC switched to result mode");
 }
 
 void E5150::FDC::switchPhase (void)
@@ -412,35 +420,42 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 	const unsigned int ncn = m_configurationWords[2];
 	m_direction = ncn > pcn;
 
-	if (m_floppyToApply->isReady())
-	{
-		FLOPPY_DRIVE floppyDriveSeeking;
+	fdc->setSeekStatusOn(m_floppyToApply->driverNumber);
+}
 
-		switch (m_floppyDrive)
-		{
-			case 0: floppyDriveSeeking = FLOPPY_DRIVE::A; break;
-			case 1: floppyDriveSeeking = FLOPPY_DRIVE::B; break;
-			case 2: floppyDriveSeeking = FLOPPY_DRIVE::C; break;
-			case 3: floppyDriveSeeking = FLOPPY_DRIVE::D; break;
-		}
-
-		fdc->makeAvailable();
-		fdc->setSeekStatusOn(floppyDriveSeeking);
-	}
-	else
-	{
-		//TODO: set NR flag in status register 0 and quit
-	}
+void E5150::FDC::COMMAND::Seek::finish(void)
+{
+	fdc->resetSeekStatusOf(m_floppyToApply->driverNumber);
+	fdc->switchToCommandMode();
+	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time
+	fdc->makeAvailable();
 }
 
 //TODO: what happens when SRT timer isn't well configured
 //TODO: how multiple seek work ?
 void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 {
-	const Milliseconds timeElapsdeSinceLastStep (fdcClockElapsed);
-	//TODO: continue this
-	const bool stepSuccess = m_floppyToApply->step(m_direction,Milliseconds(0),m_firstStep);
-	fdc->waitMilli(0xF-fdc->m_timers[FDC::TIMER::STEP_RATE_TIME] + 1);
+	if (!m_floppyToApply->isReady())
+	{
+		fdc->setST0Flag(ST0_FLAGS::NR);
+		finish();
+		return;
+	}
+
+	if (m_floppyToApply->m_pcn != m_configurationWords[2])
+	{
+		const unsigned int millisecondsValueFromSRTTimer = 0xF-fdc->m_timers[FDC::TIMER::STEP_RATE_TIME] + 1;
+		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer);
+
+		const bool stepSuccess = m_floppyToApply->step(m_direction,millisecondsToWait,m_firstStep);
+		fdc->waitMilli(millisecondsValueFromSRTTimer);
+	}
+	else
+	{
+		fdc->setST0Flag(ST0_FLAGS::SE);
+		finish();
+	}
+	m_firstStep = false;
 }
 
 //////////////////////////////

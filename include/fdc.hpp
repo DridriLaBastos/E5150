@@ -25,24 +25,16 @@ namespace E5150
 			enum class PHASE
 			{ COMMAND, EXECUTION, RESULT };
 
-			enum STATUS_REGISTER_MASK
+			enum ST0_FLAGS
 			{
-				D0 = 1 << 0,
-				D1 = 1 << 1,
-				D2 = 1 << 2,
-				D3 = 1 << 3,
-				D4 = 1 << 4,
-				D5 = 1 << 5,
-				D6 = 1 << 6,
-				D7 = 1 << 7
-			};
-
-			enum class FLOPPY_DRIVE
-			{
-				A = 1 << 0,
-				B = 1 << 1,
-				C = 1 << 2,
-				D = 1 << 3
+				US0 = 1 << 0,
+				US1 = 1 << 1,
+				HD  = 1 << 2,
+				NR  = 1 << 3,
+				EC  = 1 << 4,
+				SE  = 1 << 5,
+				IC1 = 1 << 6,
+				IC2 = 1 << 4
 			};
 
 			class Command
@@ -113,6 +105,9 @@ namespace E5150
 					void execOnFloppyDrive (Floppy100& drive) const;
 
 					private:
+						void finish(void);
+
+					private:
 						bool m_direction;
 						bool m_firstStep;
 						Floppy100* m_floppyToApply = nullptr;
@@ -136,8 +131,8 @@ namespace E5150
 			void makeBusy (void);
 			void makeAvailable (void);
 
-			void setSeekStatusOn(const FLOPPY_DRIVE drive);
-			void resetSeekStatusOn (const FLOPPY_DRIVE drive);
+			void setSeekStatusOn(const unsigned int driveNumber);
+			void resetSeekStatusOf (const unsigned int driveNumber);
 
 			void switchToCommandMode   (void);
 			void switchToExecutionMode (void);
@@ -154,6 +149,9 @@ namespace E5150
 
 			bool statusRegisterAllowReading (void) const;
 			bool statusRegisterAllowWriting (void) const;
+
+			void setST0Flag (const ST0_FLAGS flag);
+			void resetST0Flag (const ST0_FLAGS flag);
 
 			uint8_t readDataRegister(void);
 			uint8_t readStatusRegister (void);

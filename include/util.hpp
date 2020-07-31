@@ -4,6 +4,9 @@
 #include "pch.hpp"
 #include "config.hpp"
 
+constexpr unsigned int DEBUG_LEVEL_MAX = 10;
+constexpr unsigned int CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
+
 namespace E5150
 {
 	struct  Util
@@ -39,5 +42,12 @@ using Clock = std::chrono::high_resolution_clock;
 #else
 	#define ASSERT(x)
 #endif
+
+template <unsigned int DEBUG_LEVEL_REQUIRED,class... Args>
+void debug(Args&&... args)
+{
+	static_assert(CURRENT_DEBUG_LEVEL <= DEBUG_LEVEL_MAX);
+	if (CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_REQUIRED) DEBUG(std::forward<Args&&>(args)...);
+}
 
 #endif
