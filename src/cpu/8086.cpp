@@ -571,21 +571,19 @@ void CPU::execControlTransferInstruction()
 	}
 }
 
-void CPU::simulate()
+bool CPU::isHalted (void) const { return hlt; }
+
+void CPU::decode()
 {
 	if (m_clockCountDown == 0)
 	{
-		E5150::Util::_stop = true;
 		if (!hlt)
 		{
+			E5150::Util::_stop = true;
 			xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
 			xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
 
-			if (!execNonControlTransferInstruction())
-				execControlTransferInstruction();
 		}
-		//else
-		//	std::cout << "CPU HALTED !" << std::endl;
 	}
 	else
 	{
@@ -594,6 +592,18 @@ void CPU::simulate()
 		#else
 			m_clockCountDown--;
 		#endif
+	}
+}
+
+void CPU::exec()
+{
+	if (m_clockCountDown == 0)
+	{
+		if (!hlt)
+		{
+			if (!execNonControlTransferInstruction())
+				execControlTransferInstruction();
+		}
 	}
 
 	if (nmi)
@@ -607,7 +617,7 @@ void CPU::simulate()
 			interrupt();
 		else
 		{
-			DEBUG("CPU: INTERRUPT: interrupt request while IF is disabled");
+			debug<1>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
 		intr = false;
 	}

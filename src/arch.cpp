@@ -43,11 +43,9 @@ RAM& E5150::Arch::getRam() { return m_ram; }
 
 void E5150::Arch::startSimulation()
 {
-#ifndef STOP_AT_END
 	sf::Clock clock;
 	sf::Time elapsedSinceLastSecond = sf::Time::Zero;
 	unsigned int blockCount = 0;
-#endif
 	unsigned int fdcClock = 0;
 	unsigned int currentClock = 0;
 
@@ -55,18 +53,22 @@ void E5150::Arch::startSimulation()
 	{
 		while (Util::_continue)
 		{
-	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
 			//The next block is launch if we have enougth time (we can run at less clock than specified but not more)
 			if ((blockCount++)*CLOCK_PER_BLOCKS <= I8284_CLOCKS_PER_SECOND)
 			{
 				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
 				{
+	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
+					m_cpu.decode();
+					m_cpu.exec();
 	#else
-					displayAndWait();
+					m_cpu.decode();
+					displayCPUStatus();
+					wait();
+					m_cpu.exec();
 	#endif
 					++currentClock;
-					m_cpu.simulate();
 					m_pit.clock();
 					
 					//Explain this code
@@ -75,11 +77,16 @@ void E5150::Arch::startSimulation()
 						++fdcClock;
 						m_fdc.clock();
 					}
-	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 				}
 			}
-			//const sf::Time blockDuration = clock.getElapsedTime();
+			else
+			{
+				blockCount = 0;
+				currentClock = 0;
+				fdcClock = 0;
+			}
 
+	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			if (elapsedSinceLastSecond >= sf::seconds(1.f))
 			{
 				std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
@@ -89,27 +96,36 @@ void E5150::Arch::startSimulation()
 				std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
 				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
 				elapsedSinceLastSecond = sf::Time::Zero;
-				blockCount = 0;
 			}
 
 			while (clock.getElapsedTime() < TIME_PER_BLOCK);
 
 			elapsedSinceLastSecond += clock.restart();
 	#endif
-			fdcClock = 0;
-			currentClock = 0;
 		}
 	}
 	catch (const std::exception& e)
 	{ ERROR(e.what()); }
 	INFO("Simulation quit !");
 }
-
-void E5150::Arch::displayAndWait() const
+void E5150::Arch::wait() const
 {
 	E5150::Util::_stop = false;
+
+	if (m_cpu.isHalted())
+		return;
+
+	std::string tmp;
+	std::getline(std::cin, tmp);
+	if (tmp == "q")
+		E5150::Util::_continue = false;
+}
+
+void E5150::Arch::displayCPUStatus() const
+{
+	if (m_cpu.isHalted())
+		return;
 	m_cpu.printRegisters();
 	m_cpu.printFlags();
 	m_cpu.printCurrentInstruction();
-	PAUSE;
 }

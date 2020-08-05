@@ -32,12 +32,6 @@ using Clock = std::chrono::high_resolution_clock;
 	#define CLOCK_PAUSE
 #endif
 
-#ifdef CLOCK_PAUSE
-	#define PAUSE { std::string tmp; std::getline(std::cin, tmp); if (tmp == "q") E5150::Util::_continue = false; }
-#else
-	#define PAUSE
-#endif
-
 #ifdef DEBUG_BUILD
 	#define ASSERT(x) assert(x)
 #else

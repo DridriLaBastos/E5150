@@ -25,13 +25,17 @@ class CPU
 	public:
 		CPU(RAM& ram, PORTS& ports);
 
-		void simulate (void);
+		void decode (void);
+		void exec (void);
+
 		void request_nmi (void);
 		void request_intr (const uint8_t vector);
 
 		void printRegisters	(void) const;
 		void printFlags		(void) const;
 		void printCurrentInstruction (void) const;
+		
+		bool isHalted (void) const;
 		
 	private:
 		unsigned int gen_address (const reg_t base, const uint16_t offset) const;

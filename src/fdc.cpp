@@ -64,7 +64,7 @@ void E5150::FDC::reinit()
 
 void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; debug<DEBUG_LEVEL_MAX>("FDC will wait {} clock(s)",m_passClock); }
 void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
-void E5150::FDC::waitMilli (const unsigned int milliseconds) { std::cout << "waiting " << milliseconds << "ms\n";waitMicro(milliseconds*1000); }
+void E5150::FDC::waitMilli (const unsigned int milliseconds) { ;waitMicro(milliseconds*1000); }
 
 void E5150::FDC::makeBusy () { m_statusRegister |= (1 << 4); }
 void E5150::FDC::makeAvailable () { m_statusRegister &= ~(1 << 4); }
@@ -98,11 +98,7 @@ void E5150::FDC::clock()
 		E5150::Util::_stop = true;
 	}
 	else
-	{
-		std::cout << "Pass " << m_passClock << "clock\n";
-		//FDCDebug(DEBUG_LEVEL_MAX,"passing ({}) clocks", m_passClock);
 		--m_passClock;
-	}
 }
 
 //TODO: if selected while motor not on, does it unselect the previously selected floppy ?
@@ -471,9 +467,7 @@ void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer);
 
 		const bool stepSuccess = m_floppyToApply->step(m_direction,millisecondsToWait,m_firstStep);
-		#ifndef DEBUG_BUILD
-			fdc->waitMilli(millisecondsValueFromSRTTimer);
-		#endif
+		fdc->waitMilli(millisecondsValueFromSRTTimer);
 	}
 	else
 	{
