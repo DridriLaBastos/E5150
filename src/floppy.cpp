@@ -15,10 +15,19 @@ ID Floppy100::getID (void) const
 { return { m_pcn, 0 }; }
 
 bool Floppy100::headLoaded() const
-{ return !m_status.headUnloaded && ((Clock::now() - m_timing.lastTimeHeadLoadRequest >= m_timers.headLoad)); }
+{
+	const bool headLoadFinish = (Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad;
+
+	if (m_status.headUnloaded)
+		debug<4>("Floppy {}: head are unloaded", driverNumber);
+	
+	if (!headLoadFinish)
+		debug<4>("Floppy {}: head loading isn't finish yet\n"
+				"\tYou should wait {}ms after selecting the drive for the head to be loaded", driverNumber,m_timers.headLoad.count());
+	return !m_status.headUnloaded && ((Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad); }
 
 void Floppy100::loadHeads(void)
-{ m_timing.lastTimeHeadLoadRequest = Clock::now(); }
+{ m_timing.lastTimeHeadLoadRequest = Clock::now(); m_status.headUnloaded = false; }
 
 bool Floppy100::select (void)
 {
@@ -139,7 +148,10 @@ bool Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep
 		debug<5>("Floppy {}: step but floppy not selected", driverNumber);
 
 	if (!firstStep && (timeSinceLastStep < m_timers.trackToTrack))
+	{
+		debug<2>("Floppy {}: timestep of {} ms, should be {} ms", driverNumber, timeSinceLastStep.count(), m_timers.trackToTrack.count());
 		return false;
+	}
 
 	return direction ? stepHeadUp() : stepHeadDown();
 }

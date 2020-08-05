@@ -16,7 +16,7 @@ static E5150::FDC* fdc = nullptr;
 //0b010 --> DOR
 //0b10x --> FDC
 E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
-	Component("Floppy Controller",0b111), m_pic(pic), m_dorRegister(0), m_dataRegister(0), m_phase(PHASE::COMMAND), m_passClock(0), m_statusRegisterRead(false)
+	Component("Floppy Controller",0b111), m_pic(pic)
 {
 	fdc = this;
 	PortInfos dorStruct;
@@ -42,14 +42,29 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	m_commands[12] = &readDeletedData;  m_commands[13] = &formatTrack;    m_commands[14] = &scanHEQ;
 	m_commands[15] = &seek;
 
-	//TODO: search more info of the init state of the status register. For now is is set to the status:
-	// + all drives in seek mode
+	reinit();
+}
+
+//TODO: search more info of the init state of the status register. For now is is set to the status:
+// + all drives in seek mode
+void E5150::FDC::reinit()
+{
+	m_dorRegister = 0;
+	m_dorRegister |= DOR_REGISTER::FDC_RESET | DOR_REGISTER::IO;
+	m_dataRegister = 0;
+	m_passClock = 0;
+	m_statusRegisterRead = false;
+
+	m_timers[0] = 0;
+	m_timers[1] = 0;
+	m_timers[2] = 0;
+
 	switchToCommandMode();
 }
 
 void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; debug<DEBUG_LEVEL_MAX>("FDC will wait {} clock(s)",m_passClock); }
 void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
-void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
+void E5150::FDC::waitMilli (const unsigned int milliseconds) { std::cout << "waiting " << milliseconds << "ms\n";waitMicro(milliseconds*1000); }
 
 void E5150::FDC::makeBusy () { m_statusRegister |= (1 << 4); }
 void E5150::FDC::makeAvailable () { m_statusRegister &= ~(1 << 4); }
@@ -80,10 +95,12 @@ void E5150::FDC::clock()
 	{
 		if (m_phase == PHASE::EXECUTION)
 			m_commands[m_selectedCommand]->exec();
+		E5150::Util::_stop = true;
 	}
 	else
 	{
-		FDCDebug(DEBUG_LEVEL_MAX,"passing ({}) clocks", m_passClock);
+		std::cout << "Pass " << m_passClock << "clock\n";
+		//FDCDebug(DEBUG_LEVEL_MAX,"passing ({}) clocks", m_passClock);
 		--m_passClock;
 	}
 }
@@ -278,7 +295,6 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 
 	if (configurationFinished)
 	{
-		fdc->switchToExecutionMode();
 		m_configurationStep = 0;
 
 		if (m_saveHDS_DSx)
@@ -289,6 +305,7 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 			m_floppyDrive = m_configurationWords[1] & 0b11;
 		}
 		onConfigureFinish();
+		fdc->switchToExecutionMode();
 	}
 
 	return configurationFinished;
@@ -454,7 +471,9 @@ void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer);
 
 		const bool stepSuccess = m_floppyToApply->step(m_direction,millisecondsToWait,m_firstStep);
-		fdc->waitMilli(millisecondsValueFromSRTTimer);
+		#ifndef DEBUG_BUILD
+			fdc->waitMilli(millisecondsValueFromSRTTimer);
+		#endif
 	}
 	else
 	{

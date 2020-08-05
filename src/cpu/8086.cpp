@@ -242,20 +242,27 @@ void CPU::updateStatusFlags (const unsigned int value, const bool byte)
 
 void CPU::printRegisters() const
 {
+#if defined(SEE_REGS) ||  defined(SEE_ALL)
 	std::cout << std::hex << "CS: " << m_regs[CS] << "  DS: " << m_regs[DS] << "   ES: " << m_regs[ES] << "   SS: " << m_regs[SS] << std::endl;
 	std::cout << "AX: " << m_gregs[AX].x << "  BX: " << m_gregs[BX].x << "   CX: " << m_gregs[CX].x << "   DX: " << m_gregs[DX].x << std::endl;
 	std::cout << "SI: " << m_regs[SI] << "  DI: " << m_regs[DI] << "   BP: " << m_regs[BP] << "   SP: " << m_regs[SP] << '\n'
 			  << std::dec << std::endl;
+#endif
 }
 
 void CPU::printFlags() const
 {
+#if defined(SEE_FLAGS) || defined(SEE_ALL)
 	std::cout << ((m_flags & CARRY) ? "CF" : "cf") << "  " << ((m_flags & PARRITY) ? "PF" : "pf") << "  " << ((m_flags & A_CARRY) ? "AF" : "af") << "  " << ((m_flags & ZERRO) ? "ZF" : "zf") << "  " << ((m_flags & SIGN) ? "SF" : "sf") << "  " << ((m_flags & TRAP) ? "TF" : "tf") << "  " << ((m_flags & INTF) ? "IF" : "if") << "  " << ((m_flags & DIR) ? "DF" : "df") << "  " << ((m_flags & OVER) ? "OF" : "of") << std::endl;
+#endif
 }
 
 void CPU::printCurrentInstruction() const
 {
+#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	if (!inst)
+		return;
 	std::cout << std::hex << m_regs[CS] << ":" << m_ip << " (" << gen_address(m_regs[CS], m_ip) << ")" << std::dec << ": ";
 	//std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&m_decoded_inst)) << " : length = " << xed_decoded_inst_get_length(&m_decoded_inst) << std::endl;
 	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&m_decoded_inst)) << " ";
@@ -344,6 +351,7 @@ void CPU::printCurrentInstruction() const
 		}
 	}
 		std::cout << std::endl;
+#endif
 }
 
 bool CPU::execNonControlTransferInstruction()
@@ -567,47 +575,25 @@ void CPU::simulate()
 {
 	if (m_clockCountDown == 0)
 	{
+		E5150::Util::_stop = true;
 		if (!hlt)
 		{
 			xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
 			xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
 
-#if defined(SEE_REGS) ||  defined(SEE_ALL)
-			printRegisters();
-#endif
-
-#if defined(SEE_FLAGS) || defined(SEE_ALL)
-			printFlags();
-#endif
-
-#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-			printCurrentInstruction();
-#endif
-#ifdef STOP_AT_END
-			PAUSE
-#endif
-
 			if (!execNonControlTransferInstruction())
 				execControlTransferInstruction();
 		}
-#ifdef STOP_AT_END
-		else
-		{
-			std::cout << "CPU HALTED !" << std::endl;
-			PAUSE
-		}
-#endif
+		//else
+		//	std::cout << "CPU HALTED !" << std::endl;
 	}
 	else
 	{
 		#ifdef CLOCK_DEBUG
-			std::cout << "clock: " <<
+			std::cout << "clock: " << m_clockCountDown-- << std::endl;
+		#else
+			m_clockCountDown--;
 		#endif
-		m_clockCountDown--
-		#ifdef CLOCK_DEBUG
-			<< std::endl
-		#endif
-		;
 	}
 
 	if (nmi)

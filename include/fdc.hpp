@@ -25,6 +25,18 @@ namespace E5150
 			enum class PHASE
 			{ COMMAND, EXECUTION, RESULT };
 
+			enum DOR_REGISTER
+			{
+				DS0 = 1 << 0,
+				DS1 = 1 << 1,
+				FDC_RESET = 1 << 2,
+				IO = 1 << 3,
+				MA = 1 << 4,
+				MB = 1 << 5,
+				MC = 1 << 6,
+				MD = 1 << 7
+			};
+
 			enum ST0_FLAGS
 			{
 				US0 = 1 << 0,
@@ -124,6 +136,8 @@ namespace E5150
 			};
 	
 		private:
+			void reinit (void);
+
 			void waitClock (const unsigned int clock);
 			void waitMicro (const unsigned int microseconds);
 			void waitMilli (const unsigned int milliseconds);

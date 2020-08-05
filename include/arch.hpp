@@ -18,6 +18,9 @@ namespace E5150
 
 			void startSimulation(void);
 			RAM& getRam(void);
+		
+		private:
+			void displayAndWait (void) const;
 
 		private:
 			RAM m_ram;

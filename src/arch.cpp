@@ -12,6 +12,7 @@ static constexpr unsigned int I8284_CLOCKS_PER_SECOND = 4770000;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
 
 bool E5150::Util::_continue = true;
+bool E5150::Util::_stop = true;
 
 static void stop(const int signum)
 {
@@ -61,6 +62,8 @@ void E5150::Arch::startSimulation()
 			{
 				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
 				{
+	#else
+					displayAndWait();
 	#endif
 					++currentClock;
 					m_cpu.simulate();
@@ -87,23 +90,26 @@ void E5150::Arch::startSimulation()
 				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
 				elapsedSinceLastSecond = sf::Time::Zero;
 				blockCount = 0;
-				fdcClock = 0;
-				currentClock = 0;
 			}
 
 			while (clock.getElapsedTime() < TIME_PER_BLOCK);
 
 			elapsedSinceLastSecond += clock.restart();
-	#else
-			if (currentClock >= I8284_CLOCKS_PER_SECOND)
-			{
-				currentClock = 0;
-				fdcClock = 0;
-			}
 	#endif
+			fdcClock = 0;
+			currentClock = 0;
 		}
 	}
 	catch (const std::exception& e)
 	{ ERROR(e.what()); }
 	INFO("Simulation quit !");
+}
+
+void E5150::Arch::displayAndWait() const
+{
+	E5150::Util::_stop = false;
+	m_cpu.printRegisters();
+	m_cpu.printFlags();
+	m_cpu.printCurrentInstruction();
+	PAUSE;
 }

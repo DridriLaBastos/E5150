@@ -15,6 +15,10 @@
 
 [CPU 8086]
 
+mov dx, 0x3F2
+mov ax, 0b10000
+out dx, ax
+
 SEEK 0, 5
 
 hlt

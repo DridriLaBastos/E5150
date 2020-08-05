@@ -12,6 +12,7 @@ namespace E5150
 	struct  Util
 	{
 		static bool _continue;
+		static bool _stop;
 	};
 }
 

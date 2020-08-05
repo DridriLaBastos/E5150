@@ -28,6 +28,10 @@ class CPU
 		void simulate (void);
 		void request_nmi (void);
 		void request_intr (const uint8_t vector);
+
+		void printRegisters	(void) const;
+		void printFlags		(void) const;
+		void printCurrentInstruction (void) const;
 		
 	private:
 		unsigned int gen_address (const reg_t base, const uint16_t offset) const;
@@ -62,10 +66,6 @@ class CPU
 		void far_call (const reg_t seg, const uint16_t offset);
 		void far_ret (void);
 		void interrupt (const bool isNMI = false);
-	
-		void printRegisters	(void) const;
-		void printFlags		(void) const;
-		void printCurrentInstruction (void) const;
 
 		bool execNonControlTransferInstruction (void);
 		void execControlTransferInstruction (void);
