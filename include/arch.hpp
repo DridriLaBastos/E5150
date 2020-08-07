@@ -20,7 +20,7 @@ namespace E5150
 			RAM& getRam(void);
 		
 		private:
-			void displayCPUStatus (void) const;
+			void displayCPUStatusAndWait (void) const;
 			void wait (void) const;
 
 		private:

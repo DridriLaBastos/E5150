@@ -577,22 +577,16 @@ void CPU::decode()
 {
 	if (m_clockCountDown == 0)
 	{
+		E5150::Util::_stop = false;
 		if (!hlt)
 		{
-			E5150::Util::_stop = true;
 			xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
 			xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
-
+			E5150::Util::_stop = true;
 		}
 	}
 	else
-	{
-		#ifdef CLOCK_DEBUG
-			std::cout << "clock: " << m_clockCountDown-- << std::endl;
-		#else
-			m_clockCountDown--;
-		#endif
-	}
+		m_clockCountDown--;
 }
 
 void CPU::exec()
@@ -617,7 +611,7 @@ void CPU::exec()
 			interrupt();
 		else
 		{
-			debug<1>("CPU: INTERRUPT: interrupt request while IF is disabled");
+			debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
 		intr = false;
 	}

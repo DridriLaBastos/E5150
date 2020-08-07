@@ -95,7 +95,6 @@ void E5150::FDC::clock()
 	{
 		if (m_phase == PHASE::EXECUTION)
 			m_commands[m_selectedCommand]->exec();
-		E5150::Util::_stop = true;
 	}
 	else
 		--m_passClock;
@@ -398,9 +397,6 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	if (HUTValue == 0)
 		throw std::logic_error("HUT cannot be 0");
 	
-	if (SRTValue == 0)
-		throw std::logic_error("STR value cannot be 0");
-	
 	if ((HLTValue == 0) || (HLTValue == 0xFF))
 		throw std::logic_error("HLT value should be in [0x1, 0xFE]");
 
@@ -408,9 +404,9 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
 	fdc->m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
 
-	FDCDebug(1,"SRT Value set to {}",fdc->m_timers[TIMER::STEP_RATE_TIME]);
-	FDCDebug(1,"HUT Value set to {}",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
-	FDCDebug(1,"HLT Value set to {}",fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
+	FDCDebug(1,"SRT Value set to {}ms",0xF-fdc->m_timers[TIMER::STEP_RATE_TIME]+1);
+	FDCDebug(1,"HUT Value set to {}ms",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]*16);
+	FDCDebug(1,"HLT Value set to {}ms",fdc->m_timers[TIMER::HEAD_LOAD_TIME]*2);
 	
 	fdc->switchToCommandMode();
 	//TODO: investigate timing : I assume one write per clock, it might be more or less

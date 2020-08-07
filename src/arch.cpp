@@ -51,6 +51,7 @@ void E5150::Arch::startSimulation()
 
 	try
 	{
+		clock.restart();
 		while (Util::_continue)
 		{
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
@@ -59,15 +60,14 @@ void E5150::Arch::startSimulation()
 			{
 				for (unsigned int i = 0; i < CLOCK_PER_BLOCKS; ++i)
 				{
-	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 					m_cpu.decode();
+				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+					displayCPUStatusAndWait();
+					if (!Util::_continue)
+						break;
+				#endif
 					m_cpu.exec();
-	#else
-					m_cpu.decode();
-					displayCPUStatus();
-					wait();
-					m_cpu.exec();
-	#endif
+
 					++currentClock;
 					m_pit.clock();
 					
@@ -79,14 +79,15 @@ void E5150::Arch::startSimulation()
 					}
 				}
 			}
-			else
+
+		#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+			if (elapsedSinceLastSecond >= sf::seconds(1.f))
 			{
 				blockCount = 0;
 				currentClock = 0;
 				fdcClock = 0;
 			}
-
-	#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
+		#else
 			if (elapsedSinceLastSecond >= sf::seconds(1.f))
 			{
 				std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
@@ -96,12 +97,14 @@ void E5150::Arch::startSimulation()
 				std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
 				std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
 				elapsedSinceLastSecond = sf::Time::Zero;
+				blockCount = 0;
+				currentClock = 0;
+				fdcClock = 0;
 			}
+		#endif
 
 			while (clock.getElapsedTime() < TIME_PER_BLOCK);
-
 			elapsedSinceLastSecond += clock.restart();
-	#endif
 		}
 	}
 	catch (const std::exception& e)
@@ -110,22 +113,19 @@ void E5150::Arch::startSimulation()
 }
 void E5150::Arch::wait() const
 {
-	E5150::Util::_stop = false;
-
-	if (m_cpu.isHalted())
-		return;
-
 	std::string tmp;
 	std::getline(std::cin, tmp);
 	if (tmp == "q")
 		E5150::Util::_continue = false;
 }
 
-void E5150::Arch::displayCPUStatus() const
+void E5150::Arch::displayCPUStatusAndWait() const
 {
-	if (m_cpu.isHalted())
-		return;
-	m_cpu.printRegisters();
-	m_cpu.printFlags();
-	m_cpu.printCurrentInstruction();
+	if (E5150::Util::_stop)
+	{
+		m_cpu.printRegisters();
+		m_cpu.printFlags();
+		m_cpu.printCurrentInstruction();
+		wait();
+	}
 }
