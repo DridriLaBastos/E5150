@@ -25,7 +25,6 @@ CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
 CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
 CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -Wno-switch
 
-
 PRODUCT = epc.out
 TESTING_PRODUCT = test.out
 

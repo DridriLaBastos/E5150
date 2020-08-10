@@ -299,8 +299,9 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 			//TODO: what happens if the floppy is not ready
 			m_floppyDrive = m_configurationWords[1] & 0b11;
 		}
-		onConfigureFinish();
+
 		fdc->switchToExecutionMode();
+		onConfigureFinish();
 	}
 
 	return configurationFinished;
@@ -410,7 +411,7 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	
 	fdc->switchToCommandMode();
 	//TODO: investigate timing : I assume one write per clock, it might be more or less
-	fdc->waitClock(3);
+	//fdc->waitClock(3);
 }
 
 //////////////////////////////

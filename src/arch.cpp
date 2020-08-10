@@ -8,7 +8,8 @@
 using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 10000;
-static constexpr unsigned int I8284_CLOCKS_PER_SECOND = 4770000;
+static constexpr unsigned int BASE_CLOCK = 14318181;
+static constexpr unsigned int I8284_CLOCKS_PER_SECOND = BASE_CLOCK/3;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
 
 bool E5150::Util::_continue = true;
@@ -52,6 +53,7 @@ void E5150::Arch::startSimulation()
 	try
 	{
 		clock.restart();
+		//TODO: rework of the clock IBM PC datasheet 2-3
 		while (Util::_continue)
 		{
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
