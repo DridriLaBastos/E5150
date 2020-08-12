@@ -7,12 +7,15 @@
 
 using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 
-static constexpr unsigned int CLOCK_PER_BLOCKS = 10000;
+static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
 static constexpr unsigned int CPU_CLOCK_DIV = 3;
 static constexpr unsigned int FDC_CLOCK_DIV = 12;
-static constexpr unsigned int I8284_CLOCKS_PER_SECOND = BASE_CLOCK/3;
-static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS/I8284_CLOCKS_PER_SECOND);
+
+static constexpr unsigned int TOTAL_CPU_CLOCK = BASE_CLOCK/CPU_CLOCK_DIV;
+static constexpr unsigned int TOTAL_FDC_CLOCK = BASE_CLOCK/FDC_CLOCK_DIV;
+//static constexpr unsigned int I8284_CLOCKS_PER_SECOND = BASE_CLOCK/3;
+static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS * 1.f/(float)BASE_CLOCK);
 
 bool E5150::Util::_continue = true;
 bool E5150::Util::_stop = true;
@@ -48,21 +51,31 @@ void E5150::Arch::startSimulation()
 {
 	sf::Clock clock;
 	sf::Time elapsedSinceLastSecond = sf::Time::Zero;
+	sf::Time timeForAllBlocks = sf::Time::Zero;
 	unsigned int blockCount = 0;
 	unsigned int fdcClock = 0;
 	unsigned int cpuClock = 0;
+	unsigned int currentClock = 0;
 	unsigned int cpuClockDiv = CPU_CLOCK_DIV;
 	unsigned int fdcClockDiv = FDC_CLOCK_DIV;
 
 	try
 	{
-		//TODO: should I go to block of clocks again ?
+		clock.restart();
 		while (Util::_continue)
 		{
-			clock.restart();
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
 			//The next block is launch if we have enougth time (we can run at less clock than specified but not more)
-			for (size_t currentClock = 0; currentClock < BASE_CLOCK; ++currentClock)
+			unsigned int clockToExecute = CLOCK_PER_BLOCKS;
+			const unsigned int clocksLeftAfterThisBlock = BASE_CLOCK - (currentClock + CLOCK_PER_BLOCKS);
+			
+			if (clocksLeftAfterThisBlock < CLOCK_PER_BLOCKS)
+				clockToExecute += clocksLeftAfterThisBlock;
+			
+			currentClock += clockToExecute;
+
+			const sf::Time blockBegin = clock.getElapsedTime();
+			for (size_t clock = 0; clock < clockToExecute; ++clock)
 			{
 				--cpuClockDiv;
 				--fdcClockDiv;
@@ -71,6 +84,8 @@ void E5150::Arch::startSimulation()
 					m_cpu.decode();
 					#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
 						displayCPUStatusAndWait();
+						if (!Util::_continue)
+							break;
 					#endif
 					m_cpu.exec();
 					m_pit.clock();
@@ -85,29 +100,40 @@ void E5150::Arch::startSimulation()
 					fdcClockDiv = FDC_CLOCK_DIV;
 				}
 			}
+			const sf::Time blockEnd = clock.getElapsedTime();
+			++blockCount;
+			//~= 70 ns per block
+			const sf::Time timeForBlock = blockEnd - blockBegin;
+			const unsigned int microsecondsPerBlock = clockToExecute*70/1000;
+			const unsigned int microsecondsToWait = microsecondsPerBlock - timeForBlock.asMicroseconds();
+			timeForAllBlocks += timeForBlock;
 
 		#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
-			/*std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
-			std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
-			const float value = 1.f - (float)fdcClock/4000000.f;
-			const float acuraccy = (value < 0 ? (-value) : value) * 100.f;
-			std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
-			std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
-			elapsedSinceLastSecond = sf::Time::Zero;
-			blockCount = 0;
-			//currentClock = 0;
-			fdcClock = 0;*/
-			std::cout << "cpu clock: " << cpuClock << std::endl;
-			std::cout << "fdc clock: " << fdcClock << std::endl << std::endl;
+			std::this_thread::sleep_for(std::chrono::microseconds(microsecondsPerBlock));
 		#endif
 
-			blockCount = 0;
-			//currentClock = 0;
-			cpuClock = 0;
-			fdcClock = 0;
-
-			while (clock.getElapsedTime() <= sf::seconds(1.f));
-				std::this_thread::sleep_for(std::chrono::milliseconds(5));
+			if (clock.getElapsedTime() >= sf::seconds(1.f))
+			{
+			#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
+				const float clockAccurency = (float)currentClock/(float)BASE_CLOCK*100.f;
+				std::cout << "clock accurency: " << clockAccurency << "%\n";
+				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
+					<< timeForAllBlocks.asMicroseconds()/blockCount  << "(" << timeForAllBlocks.asMilliseconds()/blockCount
+					<< ") us(ms)/block\n\n";
+				//std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
+				//std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
+				//const float value = 1.f - (float)fdcClock/4000000.f;
+				//const float acuraccy = (value < 0 ? (-value) : value) * 100.f;
+				//std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
+				//std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
+				timeForAllBlocks = sf::Time::Zero;
+				clock.restart();
+			#endif
+				blockCount = 0;
+				currentClock = 0;
+				cpuClock = 0;
+				fdcClock = 0;
+			}
 		}
 	}
 	catch (const std::exception& e)
