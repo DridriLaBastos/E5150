@@ -88,7 +88,6 @@ void E5150::FDC::setST0Flag (const ST0_FLAGS flag)
 void E5150::FDC::resetST0Flag (const ST0_FLAGS flag)
 { m_STRegisters[0] &= ~flag; }
 
-//ok
 void E5150::FDC::clock()
 {
 	if (m_passClock == 0)

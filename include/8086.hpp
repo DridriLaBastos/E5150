@@ -157,6 +157,7 @@ class CPU
 		void CLI (void);
 		void STI (void);
 		void HLT (void);
+		void NOP (void);
 
 	private:
 		std::array<greg_u, 4> m_gregs;

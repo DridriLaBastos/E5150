@@ -354,6 +354,9 @@ void CPU::printCurrentInstruction() const
 #endif
 }
 
+void CPU::NOP()
+{ m_clockCountDown = 3; }
+
 bool CPU::execNonControlTransferInstruction()
 {
 	bool hasExecutedInstruction = true;
@@ -488,6 +491,10 @@ bool CPU::execNonControlTransferInstruction()
 
 	case XED_ICLASS_HLT:
 		HLT();
+		break;
+	
+	case XED_ICLASS_NOP:
+		NOP();
 		break;
 	
 	default:

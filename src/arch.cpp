@@ -50,7 +50,6 @@ RAM& E5150::Arch::getRam() { return m_ram; }
 void E5150::Arch::startSimulation()
 {
 	sf::Clock clock;
-	sf::Time elapsedSinceLastSecond = sf::Time::Zero;
 	sf::Time timeForAllBlocks = sf::Time::Zero;
 	unsigned int blockCount = 0;
 	unsigned int fdcClock = 0;
@@ -114,18 +113,12 @@ void E5150::Arch::startSimulation()
 
 			if (clock.getElapsedTime() >= sf::seconds(1.f))
 			{
-			#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
+			#if not defined(DEBUG_BUILD)
 				const float clockAccurency = (float)currentClock/(float)BASE_CLOCK*100.f;
 				std::cout << "clock accurency: " << clockAccurency << "%\n";
 				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
 					<< timeForAllBlocks.asMicroseconds()/blockCount  << "(" << timeForAllBlocks.asMilliseconds()/blockCount
 					<< ") us(ms)/block\n\n";
-				//std::cout << "bps: " << blockCount << "   cps: " << blockCount*CLOCK_PER_BLOCKS << std::endl;
-				//std::cout << "tpb: " << elapsedSinceLastSecond.asMicroseconds()/blockCount << "us\n";
-				//const float value = 1.f - (float)fdcClock/4000000.f;
-				//const float acuraccy = (value < 0 ? (-value) : value) * 100.f;
-				//std::cout << "fdc clock: " << fdcClock << "(" << acuraccy << "%)" << std::endl;
-				//std::cout << "delay: " << blockCount*CLOCK_PER_BLOCKS / I8284_CLOCKS_PER_SECOND * 100 << "%\n";
 				timeForAllBlocks = sf::Time::Zero;
 				clock.restart();
 			#endif
