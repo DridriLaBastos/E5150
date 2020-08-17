@@ -580,28 +580,33 @@ void CPU::execControlTransferInstruction()
 
 bool CPU::isHalted (void) const { return hlt; }
 
-void CPU::decode()
+static void clockWait()
+{
+	std::string tmp;
+	std::getline(std::cin, tmp);
+	if (tmp == "q")
+		E5150::Util::_continue = false;
+}
+
+void CPU::clock()
 {
 	if (m_clockCountDown == 0)
 	{
-		E5150::Util::_stop = false;
 		if (!hlt)
 		{
 			xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
 			xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
-			E5150::Util::_stop = true;
-		}
-	}
-	else
-		m_clockCountDown--;
-}
 
-void CPU::exec()
-{
-	if (m_clockCountDown == 0)
-	{
-		if (!hlt)
-		{
+		#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+			if (E5150::Util::_stop)
+			{
+				printRegisters();
+				printFlags();
+				printCurrentInstruction();
+				clockWait();
+			}
+		#endif
+
 			if (!execNonControlTransferInstruction())
 				execControlTransferInstruction();
 		}

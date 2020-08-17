@@ -13,6 +13,7 @@
 	FDC_COMMAND(%2)
 %endmacro
 
+;1 HUT, 2 SRT, 3 HLT
 %macro SPECIFY 3
 	FDC_COMMAND(0b11)
 	FDC_COMMAND((%2 << 4) | (%1 & 0xF))
@@ -25,7 +26,7 @@ mov dx, 0x3F2
 mov ax, 0b10000
 out dx, ax
 
-SPECIFY 5,4,102
+SPECIFY 0xF,0xC,1
 SEEK 0,5
 
 hlt

@@ -64,7 +64,7 @@ void E5150::FDC::reinit()
 
 void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; debug<DEBUG_LEVEL_MAX>("FDC will wait {} clock(s)",m_passClock); }
 void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
-void E5150::FDC::waitMilli (const unsigned int milliseconds) { ;waitMicro(milliseconds*1000); }
+void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 
 void E5150::FDC::makeBusy () { m_statusRegister |= (1 << 4); }
 void E5150::FDC::makeAvailable () { m_statusRegister &= ~(1 << 4); }
@@ -388,6 +388,12 @@ E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive 
 E5150::FDC::COMMAND::Specify::Specify(): Command("Specify",3,0)
 { m_checkMFM = false;   m_saveHDS_DSx = false; }
 
+//*2 on all result because the clock is at 4MHz
+//TODO: fact checking this
+static unsigned int millisecondsFromSRTTimer (const unsigned int SRTValue) { return (0xF - SRTValue + 1)*2; }
+static unsigned int millisecondsFromHUTTimer (const unsigned int HUTValue) { return HUTValue * 16*2; }
+static unsigned int millisecondsFromHLTTimer (const unsigned int HLTValue) { return HLTValue * 2*2; }
+
 void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 {
 	const uint8_t SRTValue = m_configurationWords[1] >> 4;
@@ -404,9 +410,13 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
 	fdc->m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
 
-	FDCDebug(1,"SRT Value set to {}ms",0xF-fdc->m_timers[TIMER::STEP_RATE_TIME]+1);
-	FDCDebug(1,"HUT Value set to {}ms",fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]*16);
-	FDCDebug(1,"HLT Value set to {}ms",fdc->m_timers[TIMER::HEAD_LOAD_TIME]*2);
+	const unsigned int SRTTimerMSValue = millisecondsFromSRTTimer(fdc->m_timers[TIMER::STEP_RATE_TIME]);
+	const unsigned int HUTTimerMSValue = millisecondsFromHUTTimer(fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
+	const unsigned int HLTTimerMSValue = millisecondsFromHLTTimer(fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
+
+	FDCDebug(1,"SRT Value set to {}ms",SRTTimerMSValue);
+	FDCDebug(1,"HUT Value set to {}ms",HUTTimerMSValue);
+	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue);
 	
 	fdc->switchToCommandMode();
 	//TODO: investigate timing : I assume one write per clock, it might be more or less
@@ -459,7 +469,7 @@ void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 
 	if (m_floppyToApply->m_pcn != m_configurationWords[2])
 	{
-		const unsigned int millisecondsValueFromSRTTimer = 0xF-fdc->m_timers[FDC::TIMER::STEP_RATE_TIME] + 1;
+		const unsigned int millisecondsValueFromSRTTimer = millisecondsFromSRTTimer(fdc->m_timers[TIMER::STEP_RATE_TIME]);
 		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer);
 
 		const bool stepSuccess = m_floppyToApply->step(m_direction,millisecondsToWait,m_firstStep);

@@ -74,19 +74,13 @@ void E5150::Arch::startSimulation()
 			currentClock += clockToExecute;
 
 			const sf::Time blockBegin = clock.getElapsedTime();
-			for (size_t clock = 0; clock < clockToExecute; ++clock)
+			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
 				--cpuClockDiv;
 				--fdcClockDiv;
 				if (cpuClockDiv == 0)
 				{
-					m_cpu.decode();
-					#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-						displayCPUStatusAndWait();
-						if (!Util::_continue)
-							break;
-					#endif
-					m_cpu.exec();
+					m_cpu.clock();
 					m_pit.clock();
 					++cpuClock;
 					cpuClockDiv = CPU_CLOCK_DIV;
@@ -132,22 +126,4 @@ void E5150::Arch::startSimulation()
 	catch (const std::exception& e)
 	{ ERROR(e.what()); }
 	INFO("Simulation quit !");
-}
-void E5150::Arch::wait() const
-{
-	std::string tmp;
-	std::getline(std::cin, tmp);
-	if (tmp == "q")
-		E5150::Util::_continue = false;
-}
-
-void E5150::Arch::displayCPUStatusAndWait() const
-{
-	if (E5150::Util::_stop)
-	{
-		m_cpu.printRegisters();
-		m_cpu.printFlags();
-		m_cpu.printCurrentInstruction();
-		wait();
-	}
 }

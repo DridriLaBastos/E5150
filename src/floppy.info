@@ -19,9 +19,9 @@ from IBM doc:
 	N  = 2
 	SC = 8
 	HUT = 0xF (heads unload time ~= 240ms)
-	SRT = 0xC
+	SRT = 0xC (step rate time)
 	GPL FORMAT = 0x05
 	GPL R/W = 0x2A
-	HLT = 01
+	HLT = 01 (head load time)
 	8ms track to track
 clock 8MHz ~125 ns/clk (4MHz 250ns/clk) --> 8clocks per micro seconds
