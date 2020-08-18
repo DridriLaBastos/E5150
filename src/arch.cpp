@@ -81,7 +81,7 @@ void E5150::Arch::startSimulation()
 					m_pit.clock();
 
 					//std::cout << "master:" << masterClock << "\n";
-					while ((fdcClock+1)*1000 <= masterClock*FDC_CLOCK_MUL)
+					while (((fdcClock+1)*1000 <= masterClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
 					{
 						++fdcClock;
 						//std::cout << "fdc: " << fdcClock << "\n";
