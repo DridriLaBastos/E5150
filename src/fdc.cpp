@@ -1,9 +1,5 @@
 #include "fdc.hpp"
 
-/*template <unsigned int CURRENT_DEBUG_LEVEL,class... Args>
-static void FDCDebug (Args&&... args)
-{ debug<CURRENT_DEBUG_LEVEL>("FDC: {}", args...); }*/
-
 #define FDCDebug(CURRENT_DEBUG_LEVEL,...) debug<CURRENT_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
 
 //mmmh...
@@ -390,9 +386,9 @@ E5150::FDC::COMMAND::Specify::Specify(): Command("Specify",3,0)
 
 //*2 on all result because the clock is at 4MHz
 //TODO: fact checking this
-static unsigned int millisecondsFromSRTTimer (const unsigned int SRTValue) { return (0xF - SRTValue + 1)*2; }
-static unsigned int millisecondsFromHUTTimer (const unsigned int HUTValue) { return HUTValue * 16*2; }
-static unsigned int millisecondsFromHLTTimer (const unsigned int HLTValue) { return HLTValue * 2*2; }
+static unsigned int millisecondsFromSRTTimer (const unsigned int SRTValue) { return (0xF - SRTValue + 1); }
+static unsigned int millisecondsFromHUTTimer (const unsigned int HUTValue) { return HUTValue * 16; }
+static unsigned int millisecondsFromHLTTimer (const unsigned int HLTValue) { return HLTValue * 2; }
 
 void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 {
@@ -414,9 +410,9 @@ void E5150::FDC::COMMAND::Specify::onConfigureFinish()
 	const unsigned int HUTTimerMSValue = millisecondsFromHUTTimer(fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
 	const unsigned int HLTTimerMSValue = millisecondsFromHLTTimer(fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
 
-	FDCDebug(1,"SRT Value set to {}ms",SRTTimerMSValue);
-	FDCDebug(1,"HUT Value set to {}ms",HUTTimerMSValue);
-	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue);
+	FDCDebug(1,"SRT Value set to {}ms",SRTTimerMSValue*2);
+	FDCDebug(1,"HUT Value set to {}ms",HUTTimerMSValue*2);
+	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue*2);
 	
 	fdc->switchToCommandMode();
 	//TODO: investigate timing : I assume one write per clock, it might be more or less
@@ -469,8 +465,10 @@ void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 
 	if (m_floppyToApply->m_pcn != m_configurationWords[2])
 	{
+		//The time waited will be multiplied by 2 because the function returns the milliseconds value for a 8MHz clock
+		//but the actual clock is an 4MHz one (actually 4.77MHz)
 		const unsigned int millisecondsValueFromSRTTimer = millisecondsFromSRTTimer(fdc->m_timers[TIMER::STEP_RATE_TIME]);
-		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer);
+		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer*2);
 
 		const bool stepSuccess = m_floppyToApply->step(m_direction,millisecondsToWait,m_firstStep);
 		fdc->waitMilli(millisecondsValueFromSRTTimer);

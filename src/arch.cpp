@@ -9,12 +9,10 @@ using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
-static constexpr unsigned int CPU_CLOCK_DIV = 3;
-static constexpr unsigned int FDC_CLOCK_DIV = 12;
+//TODO: more depth in clock, but I really think the fdc is operated is a 4MHz clock
+static constexpr unsigned int CLOCK_DIVIDE_4_77MHZ = 3;
+static constexpr unsigned int FDC_CLOCK_MUL = 839;
 
-static constexpr unsigned int TOTAL_CPU_CLOCK = BASE_CLOCK/CPU_CLOCK_DIV;
-static constexpr unsigned int TOTAL_FDC_CLOCK = BASE_CLOCK/FDC_CLOCK_DIV;
-//static constexpr unsigned int I8284_CLOCKS_PER_SECOND = BASE_CLOCK/3;
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS * 1.f/(float)BASE_CLOCK);
 
 bool E5150::Util::_continue = true;
@@ -52,11 +50,10 @@ void E5150::Arch::startSimulation()
 	sf::Clock clock;
 	sf::Time timeForAllBlocks = sf::Time::Zero;
 	unsigned int blockCount = 0;
-	unsigned int fdcClock = 0;
-	unsigned int cpuClock = 0;
 	unsigned int currentClock = 0;
-	unsigned int cpuClockDiv = CPU_CLOCK_DIV;
-	unsigned int fdcClockDiv = FDC_CLOCK_DIV;
+	unsigned int clockDivide4_77MHz = CLOCK_DIVIDE_4_77MHZ;
+	unsigned int masterClock = 0;
+	unsigned int fdcClock = 0;
 
 	try
 	{
@@ -76,21 +73,21 @@ void E5150::Arch::startSimulation()
 			const sf::Time blockBegin = clock.getElapsedTime();
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
-				--cpuClockDiv;
-				--fdcClockDiv;
-				if (cpuClockDiv == 0)
+				--clockDivide4_77MHz;
+				if (clockDivide4_77MHz == 0)
 				{
+					++masterClock;
 					m_cpu.clock();
 					m_pit.clock();
-					++cpuClock;
-					cpuClockDiv = CPU_CLOCK_DIV;
-				}
-				
-				if (fdcClockDiv == 0)
-				{
-					m_fdc.clock();
-					++fdcClock;
-					fdcClockDiv = FDC_CLOCK_DIV;
+
+					//std::cout << "master:" << masterClock << "\n";
+					while ((fdcClock+1)*1000 <= masterClock*FDC_CLOCK_MUL)
+					{
+						++fdcClock;
+						//std::cout << "fdc: " << fdcClock << "\n";
+						m_fdc.clock();
+					}
+					clockDivide4_77MHz = CLOCK_DIVIDE_4_77MHZ;
 				}
 			}
 			const sf::Time blockEnd = clock.getElapsedTime();
@@ -109,7 +106,9 @@ void E5150::Arch::startSimulation()
 			{
 			#if not defined(DEBUG_BUILD)
 				const float clockAccurency = (float)currentClock/(float)BASE_CLOCK*100.f;
+				const float fdcClockAccurency = (float)fdcClock/4e6*100.f;
 				std::cout << "clock accurency: " << clockAccurency << "%\n";
+				std::cout << "fdc clock accurency: " << fdcClockAccurency << "%\n";
 				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
 					<< timeForAllBlocks.asMicroseconds()/blockCount  << "(" << timeForAllBlocks.asMilliseconds()/blockCount
 					<< ") us(ms)/block\n\n";
@@ -118,7 +117,7 @@ void E5150::Arch::startSimulation()
 			#endif
 				blockCount = 0;
 				currentClock = 0;
-				cpuClock = 0;
+				masterClock = 0;
 				fdcClock = 0;
 			}
 		}
