@@ -46,7 +46,7 @@ namespace E5150
 				EC  = 1 << 4,
 				SE  = 1 << 5,
 				IC1 = 1 << 6,
-				IC2 = 1 << 4
+				IC2 = 1 << 7
 			};
 
 			class Command
@@ -61,7 +61,7 @@ namespace E5150
 					//Return true when reading result is done
 					std::pair<uint8_t,bool> readResult (void);
 
-					virtual void exec (const unsigned int fdcClockElapsed = 0);//TODO: should be pure virtual
+					virtual void exec (void);
 					const std::string m_name;
 					
 				protected:
@@ -73,7 +73,6 @@ namespace E5150
 					unsigned int m_configurationStep;
 				
 					bool m_checkMFM = true;
-					bool m_saveHDS_DSx = true;
 
 				private:
 					virtual void onConfigureBegin  (void);
@@ -104,20 +103,20 @@ namespace E5150
 				class ScanLEQ: public Command {};
 				class ScanHEQ: public Command {};
 				class Recalibrate: public Command {};
-				class SenseInterruptStatus: public Command {};
+				class SenseInterruptStatus: public Command { virtual void onConfigureFinish(void) final;public: SenseInterruptStatus(void); };
 				class Specify: public Command{ virtual void onConfigureFinish(void) final;public: Specify(void); };
 				class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
 				class Seek: public Command
 				{
 					public: Seek(void);
 					private:
-					virtual void exec (const unsigned int fdcClockElapsed) final;
+					virtual void exec (void) final;
 					virtual void onConfigureBegin(void) final;
 					virtual void onConfigureFinish(void) final;
 					void execOnFloppyDrive (Floppy100& drive) const;
 
 					private:
-						void finish(void);
+						void finish(const unsigned int st0Flags);
 
 					private:
 						bool m_direction;
@@ -163,6 +162,8 @@ namespace E5150
 
 			bool statusRegisterAllowReading (void) const;
 			bool statusRegisterAllowWriting (void) const;
+
+			bool isBusy (void) const;
 
 			void setST0Flag (const ST0_FLAGS flag);
 			void resetST0Flag (const ST0_FLAGS flag);

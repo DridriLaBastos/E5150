@@ -99,9 +99,7 @@ void E5150::PIC::interruptInFullyNestedMode (const unsigned int IRLineNumber)
 
 	//First we verify that no interrupt with higher priority is set
 	for (size_t i = m_IRLineWithPriority0; m_priorities[i] < assertedIRLinePriority; ++i)
-	{
 		if (m_regs[ISR] & (1 << i)) canInterrupt = false;
-	}
 
 	if (canInterrupt)
 	{
@@ -120,11 +118,9 @@ void E5150::PIC::assertInteruptLine(const E5150::PIC::INTERRUPT_LINE irLine)
 		if (m_regs[IMR] & irLine)
 		{
 			if (!m_picInfo.specialFullyNestedMode)
-			{
 				throw std::runtime_error("E5150::PIC::assertInteruptLine(): other mode than fully nested not implemented");
-			}
-			else
-				interruptInFullyNestedMode(log2_2(irLine));
+
+			interruptInFullyNestedMode(log2_2(irLine));
 		}
 	}
 }

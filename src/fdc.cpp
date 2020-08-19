@@ -78,6 +78,7 @@ bool E5150::FDC::dataRegisterInReadMode (void) const { return m_statusRegister &
 bool E5150::FDC::dataRegisterInWriteMode (void) const { return !dataRegisterInReadMode(); }
 bool E5150::FDC::statusRegisterAllowReading (void) const { return dataRegisterReady() && dataRegisterInReadMode() && m_statusRegisterRead; }
 bool E5150::FDC::statusRegisterAllowWriting (void) const { return dataRegisterReady() && dataRegisterInWriteMode() && m_statusRegisterRead; }
+bool E5150::FDC::isBusy (void) const { return m_statusRegister & 0b10000; }
 
 void E5150::FDC::setST0Flag (const ST0_FLAGS flag)
 { m_STRegisters[0] |= flag; }
@@ -262,12 +263,22 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 ///////////////////////////////////
 /*** IMPLEMENTING THE COMMANDS ***/
 ///////////////////////////////////
+
+static unsigned int getHDS (const std::vector<uint8_t>& configurationWords) { return (configurationWords[1] & 0b100) >> 2; }
+static unsigned int getDSx (const std::vector<uint8_t>& configurationWords) { return configurationWords[1] & 0b11; }
+static unsigned int getHDS (const unsigned int configurationWord) { return (configurationWord & 0b100) >> 2; }
+static unsigned int getDSx (const unsigned int configurationWord) { return configurationWord & 0b11; }
+
 E5150::FDC::Command::Command(const std::string& name, const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
 	m_name(name), m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0)
 {}
 
 bool E5150::FDC::Command::configure (const uint8_t data)
 {
+	//TODO: what to do here ? Probably not exiting the simulation
+	if (fdc->isBusy())
+		throw std::logic_error("FDC: command issued while another command is running");
+
 	if (m_configurationStep == 0)
 	{
 		onConfigureBegin();
@@ -287,14 +298,6 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 	{
 		m_configurationStep = 0;
 
-		if (m_saveHDS_DSx)
-		{
-			//TODO: do I really want it that way ?
-			//TODO: save HDS
-			//TODO: what happens if the floppy is not ready
-			m_floppyDrive = m_configurationWords[1] & 0b11;
-		}
-
 		fdc->switchToExecutionMode();
 		onConfigureFinish();
 	}
@@ -309,27 +312,16 @@ std::pair<uint8_t,bool> E5150::FDC::Command::readResult (void)
 	return {ret, (readingStep % m_resultWords.size()) == 0};
 }
 
-void E5150::FDC::Command::onConfigureFinish()
-{  }
-
-void E5150::FDC::Command::onConfigureBegin() {}
-void E5150::FDC::Command::exec(const unsigned int) {}
+void E5150::FDC::Command::onConfigureBegin()  {}
+void E5150::FDC::Command::onConfigureFinish() {}
+void E5150::FDC::Command::exec() {}
 
 ///////////////////////////////////
 /*** IMPLEMENTING READ DATA ***/
 ///////////////////////////////////
 
 void E5150::FDC::COMMAND::ReadData::loadHeads()
-{
-	/*if (!fdc->m_floppyDrives[m_floppyDrive].areHeadsLoaded())
-	{
-		fdc->m_floppyDrives[m_floppyDrive].pepare();
-		fdc->waitMilli(fdc->m_timers[TIMER::HEAD_LOAD_TIME]*16);
-	}*/
-	
-	m_status = STATUS::READ_DATA;
-
-}
+{ m_status = STATUS::READ_DATA; }
 
 void E5150::FDC::COMMAND::ReadData::exec()
 {
@@ -370,19 +362,27 @@ void E5150::FDC::COMMAND::ReadID::exec()
 	fdc->switchToResultMode();
 }
 
-
 E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1)
-{
-	m_checkMFM = false;
-	m_saveHDS_DSx = false;
-}
+{ m_checkMFM = false; }
 
+//////////////////////////////
+/*** IMPLEMENTING SENSE INTERRUPT STATUS ***/
+//////////////////////////////
+E5150::FDC::COMMAND::SenseInterruptStatus::SenseInterruptStatus(): Command("Sense Interrupt Status",1,2)
+{ m_checkMFM = false; }
+
+void E5150::FDC::COMMAND::SenseInterruptStatus::onConfigureFinish()
+{
+	m_resultWords[0] = fdc->m_STRegisters[0];
+	m_resultWords[1] = fdc->m_floppyDrives[getDSx(m_resultWords[0])].m_pcn;
+	fdc->switchToResultMode();
+}
 //////////////////////////////
 /*** IMPLEMENTING SPECIFY ***/
 //////////////////////////////
 
 E5150::FDC::COMMAND::Specify::Specify(): Command("Specify",3,0)
-{ m_checkMFM = false;   m_saveHDS_DSx = false; }
+{ m_checkMFM = false; }
 
 //*2 on all result because the clock is at 4MHz
 //TODO: fact checking this
@@ -443,41 +443,51 @@ void E5150::FDC::COMMAND::Seek::onConfigureFinish()
 	fdc->setSeekStatusOn(m_floppyToApply->driverNumber);
 }
 
-void E5150::FDC::COMMAND::Seek::finish(void)
+void E5150::FDC::COMMAND::Seek::finish(const unsigned int endFlags)
 {
+	const unsigned int st0Flags = endFlags | getDSx(m_configurationWords);
+	fdc->m_STRegisters[0] = st0Flags;
 	fdc->resetSeekStatusOf(m_floppyToApply->driverNumber);
 	fdc->switchToCommandMode();
 	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time
 	fdc->makeAvailable();
+	fdc->m_pic.assertInteruptLine(PIC::IR6);
 }
 
 //TODO: what happens when SRT timer isn't well configured
-//TODO: how multiple seek work ?
-void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
+//TODO: how multiple seeks work ?
+void E5150::FDC::COMMAND::Seek::exec()
 {
 	if (!m_floppyToApply->isReady())
 	{
-		FDCDebug(5,"floppy {} not ready", m_floppyToApply->driverNumber);
+		FDCDebug(5,"Floppy {} not ready", m_floppyToApply->driverNumber);
+		FDCDebug(6,"SEEK COMMAND: Termination with ready line state change");
 		fdc->setST0Flag(ST0_FLAGS::NR);
-		finish();
+		finish(ST0_FLAGS::IC1 | ST0_FLAGS::IC2);
 		return;
 	}
 
 	if (m_floppyToApply->m_pcn != m_configurationWords[2])
 	{
 		//The time waited will be multiplied by 2 because the function returns the milliseconds value for a 8MHz clock
-		//but the actual clock is an 4MHz one (actually 4.77MHz)
+		//but the clock of the fdc is a 4MHz one
 		const unsigned int millisecondsValueFromSRTTimer = millisecondsFromSRTTimer(fdc->m_timers[TIMER::STEP_RATE_TIME]);
 		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer*2);
 
 		const bool stepSuccess = m_floppyToApply->step(m_direction,millisecondsToWait,m_firstStep);
-		fdc->waitMilli(millisecondsValueFromSRTTimer);
+
+		if (!stepSuccess)
+		{
+			FDCDebug(6,"SEEK COMMAND: Abnormal termination");
+			finish(ST0_FLAGS::SE | ST0_FLAGS::IC1);
+		}
+		else
+			fdc->waitMilli(millisecondsValueFromSRTTimer);
+
 	}
 	else
-	{
-		fdc->setST0Flag(ST0_FLAGS::SE);
-		finish();
-	}
+		finish(ST0_FLAGS::SE);
+
 	m_firstStep = false;
 }
 
@@ -486,6 +496,6 @@ void E5150::FDC::COMMAND::Seek::exec(const unsigned int fdcClockElapsed)
 //////////////////////////////
 
 E5150::FDC::COMMAND::Invalid::Invalid(): Command("Invalid",1,1)
-{ m_resultWords[0] = 0x80;   m_checkMFM = false;   m_saveHDS_DSx = false;}
+{ m_resultWords[0] = 0x80;   m_checkMFM = false; }
 
 void E5150::FDC::COMMAND::Invalid::onConfigureFinish() { fdc->switchToResultMode(); }
