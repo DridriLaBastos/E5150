@@ -12,7 +12,7 @@ static E5150::FDC* fdc = nullptr;
 //0b010 --> DOR
 //0b10x --> FDC
 E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
-	Component("Floppy Controller",0b111), m_pic(pic)
+	Component("Floppy Controller",0b111), m_pic(pic),m_statusRegister(0),m_dorRegister(0)
 {
 	fdc = this;
 	PortInfos dorStruct;
@@ -251,13 +251,15 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 			}
 			else
 				FDCDebug(1,"Status register not read before reading data register");
-		}
+		} break;
 		
 		default:
 			FDCDebug(1,"Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register",localAddress);
 	}
 
 	FDCDebug(1,"Value outputed will be undetermined");
+	uint8_t undetermined;
+	return 	undetermined;
 }
 
 ///////////////////////////////////
@@ -277,7 +279,10 @@ bool E5150::FDC::Command::configure (const uint8_t data)
 {
 	//TODO: what to do here ? Probably not exiting the simulation
 	if (fdc->isBusy())
-		throw std::logic_error("FDC: command issued while another command is running");
+	{
+		FDCDebug(1,"New command issued while another command is being processed. Nothing done");
+		return false;
+	}
 
 	if (m_configurationStep == 0)
 	{

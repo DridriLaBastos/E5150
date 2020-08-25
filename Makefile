@@ -15,15 +15,12 @@ CATCH2_INCLUDE = third-party/catch2/include
 DEBUG = 1
 
 ifeq ($(DEBUG),1)
-	CXXFLAGS := $(CXXFLAGS) -O1
 	CPPFLAGS := $(CPPFLAGS) -DDEBUG_BUILD
-else
-	CXXFLAGS := $(CXXFLAGS) -Ofast
 endif
 
 CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
 CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
-CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -Wno-switch
+CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -Wno-switch -Ofast
 
 PRODUCT = epc.out
 TESTING_PRODUCT = test.out
