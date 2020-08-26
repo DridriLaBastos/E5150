@@ -12,24 +12,9 @@ static E5150::FDC* fdc = nullptr;
 //0b010 --> DOR
 //0b10x --> FDC
 E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
-	Component("Floppy Controller",0b111), m_pic(pic),m_statusRegister(0),m_dorRegister(0)
+	Component("Floppy Controller",ports,0x3F0,0b111), m_pic(pic),m_statusRegister(0),m_dorRegister(0)
 {
 	fdc = this;
-	PortInfos dorStruct;
-	dorStruct.portNum = 0x3F2;
-	dorStruct.component = this;
-
-	PortInfos mainStatusStruct;
-	mainStatusStruct.portNum = 0x3F4;
-	mainStatusStruct.component = this;
-
-	PortInfos dataRegStruct;
-	dataRegStruct.portNum = 0x3F5;
-	dataRegStruct.component = this;
-
-	ports.connect(dorStruct);
-	ports.connect(mainStatusStruct);
-	ports.connect(dataRegStruct);
 
 	m_commands[0]  = &invalid;          m_commands[1]  = &scanEqual;      m_commands[2]  = &readATrack;
 	m_commands[3]  = &specify;          m_commands[4]  = &senseDriveStat; m_commands[5]  = &writeData;
@@ -206,7 +191,7 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 		}
 
 		default:
-			FDCDebug(1,"Cannot write address {:b}. Address should be 0x3F2 for DOR or 0x3F5 for data register",localAddress);
+			FDCDebug(1,"Cannot write at address {:b}. Address should be 10b(0x3F2) for DOR or 100b (0x3F5) for data register",localAddress);
 	}
 
 	FDCDebug(1,"Writing not done");
@@ -254,7 +239,7 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 		} break;
 		
 		default:
-			FDCDebug(1,"Cannot read address {:b}. Address should be 0x3F2 for DOR, 0x3F4 or 0x3F5 for status/data register",localAddress);
+			FDCDebug(1,"Cannot read address {:b}. Address should be 10b (0x3F2) for DOR, 100b (0x3F4) or 101b (0x3F5) for status/data register",localAddress);
 	}
 
 	FDCDebug(1,"Value outputed will be undetermined");

@@ -1,27 +1,55 @@
 #include "ports.hpp"
 #include "component.hpp"
 
-static bool operator< (const PortInfos& left, const PortInfos& right) { return left.portNum < right.portNum; }
-
-uint8_t PORTS::read (const uint16_t port_number) const 
+uint8_t PORTS::read (const uint16_t portAddress) const 
 {
-	PortInfos toFind; toFind.portNum = port_number;
-	auto found = m_portDevices.find(toFind);
-
-	if (found != m_portDevices.end())
-		return found->component->readFromComponent(port_number);
+	uint8_t data;
+	bool readDone = false;
+	for (const auto& portInfo: m_portDevices)
+	{
+		if ((portAddress >= portInfo.startAddress) && (portAddress <= portInfo.endAddress))
+		{
+			const unsigned int componentLocalAddress = portAddress & portInfo.addressMask;
+			data = portInfo.component->read(componentLocalAddress);
+			DEBUG("R ({}): {:#x} <-- {:#x} (local: {:#b})",portInfo.component->m_name,(unsigned)data,portAddress,componentLocalAddress);
+			readDone = true;
+			break;
+		}
+	}
 	
-	return 0;
+	if (!readDone)
+		debug<4>("No device found at port address {:#x}. Result undetermined",portAddress);
+
+	return data;
 }
 
-void PORTS::write(const uint16_t port_number, const uint8_t data) 
+void PORTS::write(const uint16_t portAddress, const uint8_t data) 
 {
-	PortInfos toFind; toFind.portNum = port_number;
-	auto found = m_portDevices.find(toFind);
+	for (const auto& portInfo: m_portDevices)
+	{
+		if ((portAddress >= portInfo.startAddress) && (portAddress <= portInfo.endAddress))
+		{
+			const unsigned int componentLocalAddress = portAddress & portInfo.addressMask;
+			DEBUG("W ({}): {:#x} --> {:#x} (local: {:#b})",portInfo.component->m_name,(unsigned)data,portAddress,componentLocalAddress);
+			portInfo.component->write(componentLocalAddress,data);
+			return;
+		}
+	}
 
-	if (found != m_portDevices.end())
-		found->component->writeToComponent(port_number,data);
+	debug<4>("No device found at port address {:#x}",portAddress);
+}
+
+static bool inBox (const unsigned int begin1, const unsigned int end1, const unsigned int begin2, const unsigned int end2)
+{
+	const unsigned int firstIntervalSize = end1 - begin1;
+
+	return (begin2 - begin1 > firstIntervalSize) || begin1 > end2;
 }
 
 void PORTS::connect (const PortInfos& portInfos)
-{ m_portDevices.emplace(portInfos); }
+{
+	for (const auto& portDevice: m_portDevices)
+		assert(inBox(portInfos.startAddress,portInfos.endAddress,portDevice.startAddress,portDevice.endAddress));
+
+	m_portDevices.emplace_back(portInfos);
+}

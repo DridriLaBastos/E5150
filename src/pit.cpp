@@ -22,29 +22,8 @@ E5150::PIT::Counter::Counter()
 	mode0.enable(*this);
 }
 
-E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",0b11), m_connectedPIC(connectedPIC)
+E5150::PIT::PIT(PORTS& ports, PIC& connectedPIC): Component("PIT",ports,0x40,0b11), m_connectedPIC(connectedPIC)
 {
-	PortInfos info0x40;
-	info0x40.component = this;
-	info0x40.portNum = 0x40;
-
-	PortInfos info0x41;
-	info0x41.component = this;
-	info0x41.portNum  = 0x41;
-
-	PortInfos info0x42;
-	info0x42.component = this;
-	info0x42.portNum = 0x42;
-
-	PortInfos info0x43;
-	info0x43.component = this;
-	info0x43.portNum = 0x43;
-
-	ports.connect(info0x40);
-	ports.connect(info0x41);
-	ports.connect(info0x42);
-	ports.connect(info0x43);
-
 	//TODO: gate value for counter 2
 }
 

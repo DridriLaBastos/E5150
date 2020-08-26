@@ -7,7 +7,9 @@ namespace E5150 { class Component; }
 
 struct PortInfos
 {
-	uint16_t portNum;
+	unsigned int addressMask;
+	uint16_t startAddress;
+	uint16_t endAddress;
 	E5150::Component* component;
 };
 
@@ -19,7 +21,7 @@ class PORTS
 		void connect (const PortInfos& portInfos);
 
 	private:
-		std::set<PortInfos> m_portDevices;
+		std::vector<PortInfos> m_portDevices;
 };
 
 #endif

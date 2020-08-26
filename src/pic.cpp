@@ -28,18 +28,8 @@ static void reInit(void)
 	pic->nextRegisterToRead = PIC::REGISTER::IRR;
 }
 
-E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): Component("PIC",0b1), m_connectedCPU(connectedCPU), initStatus(INIT_STATUS::UNINITIALIZED)
+E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): Component("PIC",ports,0x20,0b1), m_connectedCPU(connectedCPU), initStatus(INIT_STATUS::UNINITIALIZED)
 {
-	PortInfos commandInfo;
-	commandInfo.portNum = 0x20;
-	commandInfo.component = this;
-
-	PortInfos dataInfo;
-	dataInfo.portNum = 0x21;
-	dataInfo.component = this;
-
-	ports.connect(commandInfo);   ports.connect(dataInfo);
-
 	pic = this;
 	reInit();
 }

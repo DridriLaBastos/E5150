@@ -16,7 +16,6 @@ union greg_u
 	uint16_t l:8, h:8;
 };
 
-//TODO: IMPORTANT: Implement Max Mode
 //TODO: go throught all the instructions and implements 
 // - exceptions
 // - prefixes
