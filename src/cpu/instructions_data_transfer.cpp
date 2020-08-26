@@ -145,11 +145,7 @@ void CPU::OUT()
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
 
 	uint16_t oaddr = 0;
-	//TODO: bug here
-	m_gregs[AX].x = 0xAABB;
-	const unsigned int a = m_gregs[AX].h;
-	const unsigned int b = m_gregs[AX].l;
-	DEBUG("{:#x} {:#x} {:#x}",m_gregs[AX].x,a,b);
+
 	if (op_name == XED_OPERAND_IMM0)
 		oaddr = (uint16_t)xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
 	else

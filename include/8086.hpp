@@ -13,7 +13,11 @@ using reg_t = uint16_t;
 union greg_u
 {
 	uint16_t x;
-	uint16_t l:8, h:8;
+	struct
+	{
+		uint8_t l;
+		uint8_t h;
+	};
 };
 
 //TODO: go throught all the instructions and implements 
