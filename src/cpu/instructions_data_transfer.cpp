@@ -153,7 +153,7 @@ void CPU::OUT()
 		
 	m_ports.write(oaddr, m_gregs[AX].l);
 
-	if (xed_decoded_inst_get_reg(&m_decoded_inst, xed_operand_name(xed_inst_operand(inst, 1))) != XED_REG_AL)
+	if (xed_decoded_inst_get_reg(&m_decoded_inst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
 		m_ports.write(oaddr + 1, m_gregs[AX].h);
 }
 

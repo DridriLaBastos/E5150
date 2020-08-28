@@ -24,7 +24,7 @@ void CPU::request_nmi (void)
 }
 
 void CPU::request_intr (const uint8_t vector)
-{ intr_v = vector; }
+{ intr_v = vector; intr = true; }
 
 unsigned int CPU::gen_address (const reg_t base, const uint16_t offset) const
 { return (base << 4) + offset; }
@@ -134,6 +134,7 @@ void CPU::far_ret (void)
 
 void CPU::interrupt (const bool isNMI)
 {
+	E5150::Util::_stop = true;
 	const unsigned int interruptVector = isNMI ? 2 : intr_v;
 	push(m_flags);
 	clearFlags(INTF);
@@ -611,21 +612,25 @@ void CPU::clock()
 				execControlTransferInstruction();
 		}
 	}
+	else
+		--m_clockCountDown;
 
-	if (nmi)
+	if (intr)
 	{
-		interrupt(true);
-		nmi = false;
-	}
-	else if (intr)
-	{
-		if (getFlagStatus(INTF))
-			interrupt();
+		intr = false;
+
+		if (nmi)
+		{
+			interrupt(true);
+			nmi = false;
+		}
 		else
 		{
-			debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
+			if (getFlagStatus(INTF))
+				interrupt();
+			else
+				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
-		intr = false;
 	}
 }
 

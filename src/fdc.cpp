@@ -262,15 +262,14 @@ E5150::FDC::Command::Command(const std::string& name, const unsigned int configu
 
 bool E5150::FDC::Command::configure (const uint8_t data)
 {
-	//TODO: what to do here ? Probably not exiting the simulation
-	if (fdc->isBusy())
-	{
-		FDCDebug(1,"New command issued while another command is being processed. Nothing done");
-		return false;
-	}
-
 	if (m_configurationStep == 0)
 	{
+		if (fdc->isBusy())
+		{
+			FDCDebug(1,"New command issued while another command is being processed. Nothing done");
+			return false;
+		}
+
 		onConfigureBegin();
 
 		if (m_checkMFM)
@@ -441,7 +440,7 @@ void E5150::FDC::COMMAND::Seek::finish(const unsigned int endFlags)
 	fdc->switchToCommandMode();
 	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time
 	fdc->makeAvailable();
-	fdc->m_pic.assertInteruptLine(PIC::IR6);
+	fdc->m_pic.assertInterruptLine(PIC::IR6);
 }
 
 //TODO: what happens when SRT timer isn't well configured

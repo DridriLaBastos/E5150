@@ -25,7 +25,7 @@ using Clock = std::chrono::high_resolution_clock;
 	#define DEBUG(...)
 #endif
 #define INFO(...)		spdlog::info(__VA_ARGS__)
-#define WARNING(...)	spdlog::warning(__VA_ARGS__)
+#define WARNING(...)	spdlog::warn(__VA_ARGS__)
 #define ERROR(...)		spdlog::error(__VA_ARGS__)
 
 #if defined(DEBUG_BUILD) || defined(STOP_AT_END) || defined(CLOCK_DEBUG)
@@ -38,6 +38,7 @@ using Clock = std::chrono::high_resolution_clock;
 	#define ASSERT(x)
 #endif
 
+//Print nothing if not in debug build
 template <unsigned int DEBUG_LEVEL_REQUIRED,class... Args>
 void debug(Args&&... args)
 {

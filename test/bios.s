@@ -50,11 +50,24 @@ sis:
 
 [CPU 8086]
 
+mov dx, 0x20
+mov ax, 0b10011
+out dx, al
+
+mov dx, 0x21
+mov ax, 0xB0
+out dx, al
+
+mov ax, 1
+out dx, al
+
+sti
+
 mov dx, 0x3F2
 mov ax, 0b10000
-out dx, ax
+out dx, al
 
 SPECIFY 0xF,0xA,1
 SEEK 0,5
-SENSE_IT_STATUS 0
+
 hlt

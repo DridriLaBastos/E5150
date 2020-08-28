@@ -44,7 +44,7 @@ void E5150::PIT::clock()
 		if (i == 0)
 		{
 			if ((m_counters[i].outputValue == OUTPUT_VALUE::HIGH) && (oldOutputValue == OUTPUT_VALUE::LOW))
-				m_connectedPIC.assertInteruptLine(PIC::IR0);
+				m_connectedPIC.assertInterruptLine(PIC::IR0);
 		}
 	}
 }

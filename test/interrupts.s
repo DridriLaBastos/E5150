@@ -1,25 +1,16 @@
 section interruptVectors
-;int0
-dw int0
-dw 0
+times 0xB0*4 db 0
 
-;int1
-dw int1
-dw 0
-
-;int2
-dw int2
-dw 0
-
-times 0x500 - ($ - $$) db 0
+times 6 dd intDef
+dd int6
 
 section interruptImpl follows=interruptVectors
-int0:
-	int 0
+intDef:
 	iret
 
-int1:
-	iret
-
-int2:
+int6:
+	mov ax, 0x20
+	mov dx, 0x20
+	out dx, al
+	
 	iret
