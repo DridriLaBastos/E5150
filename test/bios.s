@@ -60,14 +60,14 @@ out dx, al
 
 mov ax, 1
 out dx, al
-
-sti
+;
+;sti
 
 mov dx, 0x3F2
 mov ax, 0b10000
 out dx, al
 
-SPECIFY 0xF,0xA,1
+SPECIFY 0xF,0xB,1
 SEEK 0,5
 
 hlt

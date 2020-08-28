@@ -320,4 +320,6 @@ void E5150::PIC::assertInterruptLine(const E5150::PIC::IR_LINE IRLine)
 		else
 			PICDebug(DEBUG_LEVEL_MAX,"interrupt line {} masked",IRLine);
 	}
+	else
+		PICDebug(8, "Interrupt request (on line {}) while FDC is not initialized does nothing", IRLine);
 }

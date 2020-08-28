@@ -34,8 +34,6 @@ namespace E5150
 			virtual void write		(const unsigned int localAddress, const uint8_t data) final;
 			virtual uint8_t read	(const unsigned int localAddress) final;
 
-			void rotatePriorities(const unsigned int pivot);
-
 			struct PicInfo
 			{
 				bool icw4Needed;
