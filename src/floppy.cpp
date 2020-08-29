@@ -1,5 +1,6 @@
 #include "floppy.hpp"
 
+//TODO: text after driverNumber not displayed
 #define FLPDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: ",driverNumber, __VA_ARGS__)
 
 unsigned int Floppy100::floppyNumber = 0;
@@ -59,7 +60,7 @@ void Floppy100::motorOn(void)
 {
 	if (m_status.motorStoped)
 	{
-		DEBUG("Floppy {}: motor start spinning", driverNumber);
+		FLPDebug(10,"Motor start spinning");
 		m_timing.lastTimeMotorStartRequest = Clock::now();
 	}
 
