@@ -102,9 +102,22 @@ void CPU::XCHG()
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			write_reg(register_xchg, read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name)));
+		{
+			const xed_reg_enum_t reg1 = xed_decoded_inst_get_reg(&m_decoded_inst, op_name);
+			write_reg(register_xchg, read_reg(reg1));
 			write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name), value1);
-			break;
+
+		#ifdef DEBUG_BUILD
+			if (!E5150::Util::_stop)
+			{
+				if ((register_xchg == XED_REG_BX) && (reg1 == XED_REG_BX))
+				{
+					debug<1>("CPU: Breakpoint");
+					E5150::Util::_stop = true;
+				}
+			}
+		#endif
+		} break;
 		
 		case XED_OPERAND_MEM0:
 		{
@@ -118,7 +131,6 @@ void CPU::XCHG()
 				writeWord(addr, value1);
 		}
 	}
-
 }
 
 void CPU::IN()

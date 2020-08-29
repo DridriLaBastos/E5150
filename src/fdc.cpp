@@ -1,6 +1,6 @@
 #include "fdc.hpp"
 
-#define FDCDebug(CURRENT_DEBUG_LEVEL,...) debug<CURRENT_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
+#define FDCDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
 
 //mmmh...
 static E5150::FDC* fdc = nullptr;
@@ -450,8 +450,7 @@ void E5150::FDC::COMMAND::Seek::exec()
 	{
 		FDCDebug(5,"Floppy {} not ready", m_floppyToApply->driverNumber);
 		FDCDebug(6,"SEEK COMMAND: Termination with ready line state change");
-		fdc->setST0Flag(ST0_FLAGS::NR);
-		finish(ST0_FLAGS::IC1 | ST0_FLAGS::IC2);
+		finish(ST0_FLAGS::NR | ST0_FLAGS::IC1 | ST0_FLAGS::IC2);
 		return;
 	}
 

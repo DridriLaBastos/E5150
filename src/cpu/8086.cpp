@@ -583,10 +583,22 @@ bool CPU::isHalted (void) const { return hlt; }
 
 static void clockWait()
 {
-	std::string tmp;
-	std::getline(std::cin, tmp);
-	if (tmp == "q")
-		E5150::Util::_continue = false;
+	if (E5150::Util::_stop)
+	{
+		if (E5150::Util::CURRENT_DEBUG_LEVEL == 0)
+			E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
+
+		std::string tmp;
+		std::getline(std::cin, tmp);
+		if (tmp == "q")
+			E5150::Util::_continue = false;
+		
+		if (tmp == "c")
+		{
+			E5150::Util::CURRENT_DEBUG_LEVEL = 0;
+			E5150::Util::_stop=false;
+		}
+	}
 }
 
 void CPU::clock()

@@ -5,12 +5,12 @@
 #include "config.hpp"
 
 constexpr unsigned int DEBUG_LEVEL_MAX = 10;
-constexpr unsigned int CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
 
 namespace E5150
 {
 	struct  Util
 	{
+		static unsigned int CURRENT_DEBUG_LEVEL;
 		static bool _continue;
 		static bool _stop;
 	};
@@ -42,7 +42,7 @@ using Clock = std::chrono::high_resolution_clock;
 template <unsigned int DEBUG_LEVEL_REQUIRED,class... Args>
 void debug(Args&&... args)
 {
-	static_assert(CURRENT_DEBUG_LEVEL <= DEBUG_LEVEL_MAX);
-	if (CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_REQUIRED) DEBUG(args...);
+	ASSERT(E5150::Util::CURRENT_DEBUG_LEVEL <= DEBUG_LEVEL_MAX);
+	if (E5150::Util::CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_REQUIRED) DEBUG(args...);
 }
 #endif

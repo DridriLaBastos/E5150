@@ -62,7 +62,10 @@ static void nonSpecificEOI(void)
 	}
 
 	if (inServiceInterruptFound)
+	{
 		pic->regs[PIC::ISR] &= ~(1 << highestPriorityIRLineFound);
+		PICDebug(DEBUG_LEVEL_MAX,"Clearing interrupt line {} (ISR: {:#b})",highestPriorityIRLineFound,pic->regs[PIC::ISR]);
+	}
 }
 
 static void specificEOI(const unsigned int priorityLevel)
@@ -76,7 +79,6 @@ static void specificEOI(const unsigned int priorityLevel)
 			if (pic->priorities[i] == priorityLevel)
 			{
 				pic->regs[PIC::ISR] &= ~(1 << i);
-				std::cout << "reseting ir line " << i << "\n";
 				break;
 			}
 		}
@@ -296,7 +298,7 @@ static void interruptInFullyNestedMode (const unsigned int IRNumber)
 	{
 		if (pic->regs[PIC::ISR] & (1 << i))
 		{
-			PICDebug(DEBUG_LEVEL_MAX,"IR {} with priority {} masks IR {} with priority {}",i,pic->priorities[i],IRNumber,pic->priorities[IRNumber]);
+			PICDebug(DEBUG_LEVEL_MAX,"IR {} with priority {} masks IR {} with priority {} (ISR: {:#b})",i,pic->priorities[i],IRNumber,pic->priorities[IRNumber],pic->regs[PIC::ISR]);
 			return;
 		}
 	}

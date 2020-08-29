@@ -1,5 +1,7 @@
 #include "floppy.hpp"
 
+#define FLPDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: ",driverNumber, __VA_ARGS__)
+
 unsigned int Floppy100::floppyNumber = 0;
 
 Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_timeToWait(0),m_lastTimeBeforeWait(Clock::now()),m_pcn(0)
@@ -19,10 +21,10 @@ bool Floppy100::headLoaded() const
 	const bool headLoadFinish = (Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad;
 
 	if (m_status.headUnloaded)
-		debug<4>("Floppy {}: head are unloaded", driverNumber);
+		FLPDebug(4,"Head is not loaded");
 	
 	if (!headLoadFinish)
-		debug<4>("Floppy {}: head loading isn't finish yet\n"
+		FLPDebug(4,"Floppy {}: head loading isn't finish yet\n"
 				"\tYou should wait {}ms after selecting the drive for the head to be loaded", driverNumber,m_timers.headLoad.count());
 	return !m_status.headUnloaded && ((Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad); }
 
@@ -34,7 +36,7 @@ bool Floppy100::select (void)
 	if (!m_status.motorStoped)
 	{
 		m_status.selected = true;
-		DEBUG("Floppy {}: selected", driverNumber);
+		FLPDebug(DEBUG_LEVEL_MAX,"Selected");
 
 		if (m_status.headUnloaded)
 			loadHeads();
@@ -42,13 +44,13 @@ bool Floppy100::select (void)
 		return true;
 	}
 	else
-		DEBUG("Floppy {}: can't be selected because motor is not spinning",driverNumber);
+		FLPDebug(8,"Not selected because motor is not spinning");
 	
 	return false;
 }
 
 void Floppy100::unselect (void)
-{ m_status.selected = false; m_status.headUnloaded = true; DEBUG("Floppy {}: unselected", driverNumber); }
+{ m_status.selected = false; m_status.headUnloaded = true; FLPDebug(DEBUG_LEVEL_MAX,"Unselected"); }
 
 bool Floppy100::motorAtFullSpeed() const
 { return !m_status.motorStoped && ((Clock::now() - m_timing.lastTimeMotorStartRequest) >= m_timers.motorStart); }
@@ -67,7 +69,7 @@ void Floppy100::motorOn(void)
 void Floppy100::motorOff(void)
 {
 	if (!m_status.motorStoped)
-		DEBUG("Floppy {}: motor stop spinning", driverNumber);
+		FLPDebug(DEBUG_LEVEL_MAX,"Motor stop spinning");
 	m_status.motorStoped = true;
 }
 
@@ -94,13 +96,13 @@ void Floppy100::open(const std::string& path)
 	m_file.close();
 
 	if (path.empty())
-		spdlog::warn("FLOPPY[{}]: empty path will leave the drive empty",driverNumber);
+		WARNING("FLOPPY[{}]: empty path will leave the drive empty",driverNumber);
 	else
 	{
 		m_file.open(path);
 
 		if (!m_file.is_open())
-			spdlog::error("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
+			WARNING("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
 	}
 }
 
@@ -135,21 +137,12 @@ bool Floppy100::stepHeadDown()
 //TODO: what happen when the heads are unloaded
 bool Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep)
 {
-	//const unsigned int cylinderCount = m_geometry.cylinders;
-	//(ncn > cylinderCount) instead of (ncn >= cylinderCount) because 
-	//40 cylinder from 0 to 39. ncn = 40 --> out of range
-	//const unsigned int newCylinderNumber = (ncn > cylinderCount) ? cylinderCount : ncn;
-	//const unsigned int offset = m_pcn > newCylinderNumber ?
-	//	(m_pcn - newCylinderNumber) : (newCylinderNumber - m_pcn);
-	
-	//wait(m_timers.trackToTrack * offset);
-
 	if (!m_status.selected)
-		debug<5>("Floppy {}: step but floppy not selected", driverNumber);
+		FLPDebug(5,"Step while not selected");
 
 	if (!firstStep && (timeSinceLastStep < m_timers.trackToTrack))
 	{
-		debug<2>("Floppy {}: timestep of {} ms, should be {} ms", driverNumber, timeSinceLastStep.count(), m_timers.trackToTrack.count());
+		FLPDebug(4,"timestep of {} ms, should be {} ms", timeSinceLastStep.count(), m_timers.trackToTrack.count());
 		return false;
 	}
 
