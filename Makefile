@@ -6,7 +6,7 @@ PCHOBJ = $(PCHSRC).pch
 ASMSRC = $(wildcard test/*.s)
 ASMOBJ = $(ASMSRC:.s=.bin)
 
-CXX := $(CXX) --std=c++17 -flto
+CXX := $(CXX) --std=c++17 -Ofast
 
 OBJ = $(CXXOBJ)
 SPDLOG_INCLUDE = third-party/spdlog/include
@@ -20,7 +20,7 @@ endif
 
 CPPPCH_FLAGS := $(CPPFLAGS) -I. -Iinclude -I$(SPDLOG_INCLUDE)
 CPPFLAGS := $(CPPFLAGS) -Iinclude -I$(SPDLOG_INCLUDE) -include $(PCHSRC)
-CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -Wno-switch -Ofast
+CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -Wno-switch
 
 PRODUCT = epc.out
 TESTING_PRODUCT = test.out

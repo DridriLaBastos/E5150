@@ -36,17 +36,17 @@ void E5150::PIT::toggleGateFor(const COUNTER counterNumber)
 //TODO: implement the one clock wait to confirm writing to the counter
 void E5150::PIT::clock()
 {
-	for (size_t i = 0; i < m_counters.size(); ++i)
-	{
-		OUTPUT_VALUE oldOutputValue = m_counters[i].outputValue;
-		m_counters[i].mode->clock(m_counters[i]);
-
-		if (i == 0)
-		{
-			if ((m_counters[i].outputValue == OUTPUT_VALUE::HIGH) && (oldOutputValue == OUTPUT_VALUE::LOW))
-				m_connectedPIC.assertInterruptLine(PIC::IR0);
-		}
-	}
+	//for (size_t i = 0; i < m_counters.size(); ++i)
+	//{
+	//	OUTPUT_VALUE oldOutputValue = m_counters[i].outputValue;
+	//	m_counters[i].mode->clock(m_counters[i]);
+//
+	//	if (i == 0)
+	//	{
+	//		if ((m_counters[i].outputValue == OUTPUT_VALUE::HIGH) && (oldOutputValue == OUTPUT_VALUE::LOW))
+	//			m_connectedPIC.assertInterruptLine(PIC::IR0);
+	//	}
+	//}
 }
 
 void E5150::PIT::writeCounter (const unsigned int counterIndex, const uint8_t data)

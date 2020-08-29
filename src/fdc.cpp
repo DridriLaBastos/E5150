@@ -440,10 +440,9 @@ void E5150::FDC::COMMAND::Seek::finish(const unsigned int endFlags)
 	fdc->switchToCommandMode();
 	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time
 	fdc->makeAvailable();
-	fdc->m_pic.assertInterruptLine(PIC::IR6);
+	fdc->m_pic.assertInterruptLine(PIC::IR6,fdc);
 }
 
-//TODO: what happens when SRT timer isn't well configured
 //TODO: how multiple seeks work ?
 void E5150::FDC::COMMAND::Seek::exec()
 {
@@ -459,7 +458,7 @@ void E5150::FDC::COMMAND::Seek::exec()
 	if (m_floppyToApply->m_pcn != m_configurationWords[2])
 	{
 		//The time waited will be multiplied by 2 because the function returns the milliseconds value for a 8MHz clock
-		//but the clock of the fdc is a 4MHz one
+		//but the clock of the fdc is a 4MHz one in the 5150
 		const unsigned int millisecondsValueFromSRTTimer = millisecondsFromSRTTimer(fdc->m_timers[TIMER::STEP_RATE_TIME]);
 		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer*2);
 

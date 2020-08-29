@@ -28,7 +28,7 @@ namespace E5150
 			{ NON, SLAVE, MASTER };
 		
 		public:
-			void assertInterruptLine (const IR_LINE IRLine);
+			void assertInterruptLine (const IR_LINE IRLine,const Component* caller);
 		
 		protected:
 			virtual void write		(const unsigned int localAddress, const uint8_t data) final;

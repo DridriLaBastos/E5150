@@ -33,6 +33,7 @@ static void reInit(void)
 E5150::PIC::PIC(PORTS& ports, CPU& connectedCPU): Component("PIC",ports,0x20,0b1), connectedCPU(connectedCPU), initStatus(INIT_STATUS::UNINITIALIZED)
 {
 	pic = this;
+	regs[ISR]=0;
 	reInit();
 }
 
@@ -286,25 +287,32 @@ static unsigned int genInterruptVectorForIRLine (const unsigned int IRNumber)
 //TODO: test this
 static void interruptInFullyNestedMode (const unsigned int IRNumber)
 {
+
 	const unsigned int assertedIRLinePriority = pic->priorities[IRNumber];
 	bool canInterrupt = true;
 
-	//First we verify that no interrupt with higher priority is set
+	//First we check that no interrupt with higher priority is set
 	for (size_t i = pic->IRLineWithPriority0; pic->priorities[i] < assertedIRLinePriority; ++i)
-		if (pic->regs[PIC::ISR] & (1 << i)) canInterrupt = false;
-
-	if (canInterrupt)
 	{
-		const unsigned int interruptVectorGenerated = genInterruptVectorForIRLine(IRNumber);
-		PICDebug(10,"Generating interrupt vector {:#x} for line {}",interruptVectorGenerated,IRNumber);
-		pic->connectedCPU.request_intr(interruptVectorGenerated);
-		if (!pic->info.autoEOI)
-			pic->regs[PIC::ISR] |= (1 << IRNumber);
+		if (pic->regs[PIC::ISR] & (1 << i))
+		{
+			PICDebug(DEBUG_LEVEL_MAX,"IR {} with priority {} masks IR {} with priority {}",i,pic->priorities[i],IRNumber,pic->priorities[IRNumber]);
+			return;
+		}
 	}
+
+	const unsigned int interruptVectorGenerated = genInterruptVectorForIRLine(IRNumber);
+	PICDebug(10,"Generating interrupt vector {:#x} for line {}",interruptVectorGenerated,IRNumber);
+	pic->connectedCPU.request_intr(interruptVectorGenerated);
+	if (!pic->info.autoEOI)
+		pic->regs[PIC::ISR] |= (1 << IRNumber);
 }
 
-void E5150::PIC::assertInterruptLine(const E5150::PIC::IR_LINE IRLine)
+//TODO: clock accurate interrupt generation
+void E5150::PIC::assertInterruptLine(const E5150::PIC::IR_LINE IRLine,const Component* caller)
 {
+	if (caller != nullptr)
+		PICDebug(DEBUG_LEVEL_MAX,"Interrupt request on line {} for {}",IRLine,caller->m_name);
 	pic = this;
 	//If the pic is fully initialized
 	if (initStatus == INIT_STATUS::INITIALIZED)
@@ -318,7 +326,7 @@ void E5150::PIC::assertInterruptLine(const E5150::PIC::IR_LINE IRLine)
 			interruptInFullyNestedMode(IRLine);
 		}
 		else
-			PICDebug(DEBUG_LEVEL_MAX,"interrupt line {} masked",IRLine);
+			PICDebug(DEBUG_LEVEL_MAX,"Interrupt request on line {} masked (IMR: {:b})",IRLine,regs[IMR]);
 	}
 	else
 		PICDebug(8, "Interrupt request (on line {}) while FDC is not initialized does nothing", IRLine);
