@@ -7,6 +7,8 @@
 #include "floppy.hpp"
 #include "component.hpp"
 
+#define FDCDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
+
 namespace E5150
 {
 	/**
@@ -16,6 +18,21 @@ namespace E5150
 	{
 		public:
 			FDC(PIC& pic,PORTS& ports);
+
+			void waitClock (const unsigned int clock)
+			{ passClock += clock; debug<DEBUG_LEVEL_MAX>("FDC will wait {} clock(s)",passClock); }
+			void waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
+			void waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
+
+			void switchToCommandMode (void);
+			void switchToExecutionMode (void);
+			void switchToResultMode (void);
+			void makeBusy (void) { statusRegister |= (1 << 4); }
+			void makeAvailable (void) { statusRegister &= ~(1 << 4); }
+			void setSeekStatusOn (const unsigned int driveNumber) { statusRegister |= (1 << driveNumber); }
+			void resetSeekStatusOf (const unsigned int driveNumber) { statusRegister &= ~(1 << driveNumber); }
+			
+			bool isBusy (void) const { return statusRegister & 0b10000; }
 		
 		public:
 			void clock (void);
@@ -47,164 +64,15 @@ namespace E5150
 				IC2 = 1 << 7
 			};
 
-			template <unsigned int CONFIGURATION_WORLD=9, unsigned int RESULT_WORD=7,bool EXEC_AFTER_CONFIGURE=true>
-			class Command
-			{
-				public:
-					Command (const std::string& name);
-
-				public:
-					//Return true when configuring is done
-					bool configure (const uint8_t data);
-
-					//Return true when reading result is done
-					std::pair<uint8_t,bool> readResult (void);
-
-					virtual void exec (void);
-					const std::string m_name;
-					
-				protected:
-					//TODO: I don't like having vectors here
-					std::vector<uint8_t> m_configurationWords;
-					std::vector<uint8_t> m_resultWords;
-					unsigned int m_clockWait;
-					unsigned int m_floppyDrive;
-					unsigned int m_configurationStep;
-				
-					bool m_checkMFM = true;
-
-				private:
-					virtual void onConfigureBegin  (void);
-					virtual void onConfigureFinish (void);
-				
-			};
-
-			struct COMMAND
-			{
-				class ReadData: public Command
-				{
-					enum class STATUS
-					{ LOADING_HEADS, READ_DATA };
-
-					void loadHeads(void);
-					virtual void exec () final;
-					//virtual void onConfigureFinish(void) final;
-
-					STATUS m_status { STATUS::LOADING_HEADS };
-				};
-				class ReadDeletedData: public Command {};
-				class ReadATrack: public Command {};
-				class ReadID: public Command { virtual void exec (void) final; public: ReadID(void); };
-				class FormatTrack: public Command {};
-				class ScanEqual: public Command {};
-				class WriteData: public Command {};
-				class WriteDeletedData: public Command {};
-				class ScanLEQ: public Command {};
-				class ScanHEQ: public Command {};
-				class Recalibrate: public Command {};
-				class SenseInterruptStatus: public Command { virtual void onConfigureFinish(void) final;public: SenseInterruptStatus(void); };
-				class Specify: public Command{ virtual void onConfigureFinish(void) final;public: Specify(void); };
-				class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
-				class Seek: public Command
-				{
-					public: Seek(void);
-					private:
-					virtual void exec (void) final;
-					virtual void onConfigureBegin(void) final;
-					virtual void onConfigureFinish(void) final;
-					void execOnFloppyDrive (Floppy100& drive) const;
-
-					private:
-						void finish(const unsigned int st0Flags);
-
-					private:
-						bool m_direction;
-						bool m_firstStep;
-						Floppy100* m_floppyToApply = nullptr;
-				};
-
-				class Invalid: public Command { virtual void onConfigureFinish(void) final;; public: Invalid(void); };
-			};
-
 			enum TIMER
 			{
 				STEP_RATE_TIME   /*time interval between adjacent step pulse*/,
 				HEAD_UNLOAD_TIME /*Time of the end of the execution phase of one of the read/write command to the head unload state*/,
 				HEAD_LOAD_TIME   /*Time that the heads take to be loaded after a head load signal*/
 			};
-	
-		private:
-			void reinit (void);
 
-			void waitClock (const unsigned int clock);
-			void waitMicro (const unsigned int microseconds);
-			void waitMilli (const unsigned int milliseconds);
-			
-			void makeBusy (void);
-			void makeAvailable (void);
-
-			void setSeekStatusOn(const unsigned int driveNumber);
-			void resetSeekStatusOf (const unsigned int driveNumber);
-
-			void switchToCommandMode   (void);
-			void switchToExecutionMode (void);
-			void switchToResultMode    (void);
-
-			void makeDataRegisterReady (void);
-			void makeDataRegisterNotReady (void);
-			void makeDataRegisterInReadMode (void);
-			void makeDataRegisterInWriteMode (void);
-
-			bool dataRegisterReady (void) const;
-			bool dataRegisterInReadMode (void) const;
-			bool dataRegisterInWriteMode (void) const;
-
-			bool statusRegisterAllowReading (void) const;
-			bool statusRegisterAllowWriting (void) const;
-
-			bool isBusy (void) const;
-
-			void setST0Flag (const ST0_FLAGS flag);
-			void resetST0Flag (const ST0_FLAGS flag);
-
-			uint8_t readDataRegister(void);
-			uint8_t readStatusRegister (void);
-			virtual uint8_t read (const unsigned int localAddress) final;
-
-			void writeDOR(const uint8_t data);
-			void writeDataRegister(const uint8_t data);
-			virtual void write		(const unsigned int localAddress, const uint8_t data) final;
-
-			void switchPhase (void);
-
-		//Connection private space
-		private:
-			PIC& m_pic;
-		
-		//Commands
-		//TODO: maybe they should become static members because all the commands are the same for FDCs so we don't
-		//have to create instances for each classes (but do we even need multiple classes ? I don't know yet so
-		//we go non static)
-		private:
-			COMMAND::ReadData readData;
-			COMMAND::ReadDeletedData readDeletedData;
-			COMMAND::ReadATrack readATrack;
-			COMMAND::ReadID readID;
-			COMMAND::FormatTrack formatTrack;
-			COMMAND::ScanEqual scanEqual;
-			COMMAND::WriteData writeData;
-			COMMAND::WriteDeletedData writeDeletedData;
-			COMMAND::ScanLEQ scanLEQ;
-			COMMAND::ScanHEQ scanHEQ;
-			COMMAND::Recalibrate recalibrate;
-			COMMAND::SenseInterruptStatus senseInterruptStatus;
-			COMMAND::Specify specify;
-			COMMAND::SenseDriveStatus senseDriveStat;
-			COMMAND::Seek seek;
-			COMMAND::Invalid invalid;
-
-		//Behaviour private space
-		private:
+		public:
+			PIC& picConnected;
 			//7654 motors of the drives - 3 enable DMA and IO on the FDC - 10 select one drive if the motors is on
 			/**
 			 * {0,1} select one drive if its motor is on
@@ -228,12 +96,15 @@ namespace E5150
 			std::array<Floppy100,4> floppyDrives;
 			std::array<uint8_t, 3> timers;
 
-			std::array<Command*, 16> commands;
-			Command* selectedCommand = nullptr;
-
 			PHASE phase;
 			unsigned int passClock;
 			bool statusRegisterRead;
+
+			static FDC* instance;
+		
+		private:
+			virtual void write (const unsigned int localAddress, const uint8_t data) final;
+			virtual uint8_t read (const unsigned int localAddress) final;
 	};
 }
 

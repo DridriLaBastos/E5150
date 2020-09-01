@@ -1,9 +1,56 @@
 #include "fdc.hpp"
+#include "command.hpp"
 
-#define FDCDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
+using namespace E5150;
 
-//mmmh...
-E5150::FDC* fdc = nullptr;
+FDC* FDC::instance = nullptr;
+FDC* fdc = nullptr;
+
+static FDC_COMMAND::ReadData readData;
+static FDC_COMMAND::ReadDeletedData readDeletedData;
+static FDC_COMMAND::ReadATrack readATrack;
+static FDC_COMMAND::ReadID readID;
+static FDC_COMMAND::FormatTrack formatTrack;
+static FDC_COMMAND::ScanEqual scanEqual;
+static FDC_COMMAND::WriteData writeData;
+static FDC_COMMAND::WriteDeletedData writeDeletedData;
+static FDC_COMMAND::ScanLEQ scanLEQ;
+static FDC_COMMAND::ScanHEQ scanHEQ;
+static FDC_COMMAND::Recalibrate recalibrate;
+static FDC_COMMAND::SenseInterruptStatus senseInterruptStatus;
+static FDC_COMMAND::Specify specify;
+static FDC_COMMAND::SenseDriveStatus senseDriveStat;
+static FDC_COMMAND::Seek seek;
+static FDC_COMMAND::Invalid invalid;
+
+static std::array<FDC_COMMAND::Command*, 16> commands 
+{
+	&invalid,          &scanEqual,      &readATrack,
+	&specify,          &senseDriveStat, &writeData,
+	&readData,         &recalibrate,    &senseInterruptStatus,
+	&writeDeletedData, &readID,         &scanLEQ,
+	&readDeletedData,  &formatTrack,    &scanHEQ,
+	&seek
+};
+
+static FDC_COMMAND::Command* selectedCommand = nullptr;
+
+//TODO: search more info of the init state of the status register. For now is is set to the status:
+// + all drives in seek mode
+static void reinit()
+{
+	fdc->dorRegister = 0;
+	fdc->dorRegister |= FDC::DOR_REGISTER::FDC_RESET | FDC::DOR_REGISTER::IO;
+	fdc->dataRegister = 0;
+	fdc->passClock = 0;
+	fdc->statusRegisterRead = false;
+
+	fdc->timers[0] = 0;
+	fdc->timers[1] = 0;
+	fdc->timers[2] = 0;
+
+	fdc->switchToCommandMode();
+}
 
 //The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
 //address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
@@ -12,95 +59,22 @@ E5150::FDC* fdc = nullptr;
 //0b010 --> DOR
 //0b10x --> FDC
 E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
-	Component("Floppy Controller",ports,0x3F0,0b111), m_pic(pic),m_statusRegister(0),m_dorRegister(0)
+	Component("Floppy Controller",ports,0x3F0,0b111), picConnected(pic),statusRegister(0),dorRegister(0)
 {
-	fdc=this;
-	m_commands[0]  = &invalid;          m_commands[1]  = &scanEqual;      m_commands[2]  = &readATrack;
-	m_commands[3]  = &specify;          m_commands[4]  = &senseDriveStat; m_commands[5]  = &writeData;
-	m_commands[6]  = &readData;         m_commands[7]  = &recalibrate;    m_commands[8]  = &senseInterruptStatus;
-	m_commands[9]  = &writeDeletedData; m_commands[10] = &readID;         m_commands[11] = &scanLEQ;
-	m_commands[12] = &readDeletedData;  m_commands[13] = &formatTrack;    m_commands[14] = &scanHEQ;
-	m_commands[15] = &seek;
+	instance = this;
+	fdc = this;
 
 	reinit();
 }
 
-//TODO: search more info of the init state of the status register. For now is is set to the status:
-// + all drives in seek mode
-static void reinit()
-{
-	fdc->dorRegister = 0;
-	fdc->dorRegister |= DOR_REGISTER::FDC_RESET | DOR_REGISTER::IO;
-	m_dataRegister = 0;
-	m_passClock = 0;
-	m_statusRegisterRead = false;
-
-	m_timers[0] = 0;
-	m_timers[1] = 0;
-	m_timers[2] = 0;
-
-	switchToCommandMode();
-}
-
-void E5150::FDC::waitClock (const unsigned int clock) { m_passClock += clock; debug<DEBUG_LEVEL_MAX>("FDC will wait {} clock(s)",m_passClock); }
-void E5150::FDC::waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
-void E5150::FDC::waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
-
-void E5150::FDC::makeBusy () { m_statusRegister |= (1 << 4); }
-void E5150::FDC::makeAvailable () { m_statusRegister &= ~(1 << 4); }
-
-void E5150::FDC::setSeekStatusOn (const unsigned int driveNumber) { m_statusRegister |= (1 << driveNumber); }
-void E5150::FDC::resetSeekStatusOf (const unsigned int driveNumber) { m_statusRegister &= ~(1 << driveNumber); }
-
-void E5150::FDC::makeDataRegisterReady (void) { m_statusRegister |= (1 << 7); }
-void E5150::FDC::makeDataRegisterNotReady (void) { m_statusRegister &= ~(1 << 7); }
-void E5150::FDC::makeDataRegisterInReadMode (void) { m_statusRegister |= 1 << 6; }
-void E5150::FDC::makeDataRegisterInWriteMode (void) { m_statusRegister &= ~(1 << 6); }
-
-bool E5150::FDC::dataRegisterReady (void) const { return m_statusRegister & (1 << 7); }
-bool E5150::FDC::dataRegisterInReadMode (void) const { return m_statusRegister & (1 << 6); }
-bool E5150::FDC::dataRegisterInWriteMode (void) const { return !dataRegisterInReadMode(); }
-bool E5150::FDC::statusRegisterAllowReading (void) const { return dataRegisterReady() && dataRegisterInReadMode() && m_statusRegisterRead; }
-bool E5150::FDC::statusRegisterAllowWriting (void) const { return dataRegisterReady() && dataRegisterInWriteMode() && m_statusRegisterRead; }
-bool E5150::FDC::isBusy (void) const { return m_statusRegister & 0b10000; }
-
-void E5150::FDC::setST0Flag (const ST0_FLAGS flag)
-{ m_STRegisters[0] |= flag; }
-void E5150::FDC::resetST0Flag (const ST0_FLAGS flag)
-{ m_STRegisters[0] &= ~flag; }
-
-void E5150::FDC::clock()
-{
-	if (m_passClock == 0)
-	{
-		if (m_phase == PHASE::EXECUTION)
-			selectedCommand->exec();
-	}
-	else
-		--m_passClock;
-}
-
-//TODO: if selected while motor not on, does it unselect the previously selected floppy ?
-void E5150::FDC::writeDOR(const uint8_t data)
-{
-	static Floppy100* previouslySelected = nullptr;
-
-	m_floppyDrives[0].setMotorSpinning(data & (1 << 4));
-	m_floppyDrives[1].setMotorSpinning(data & (1 << 5));
-	m_floppyDrives[2].setMotorSpinning(data & (1 << 6));
-	m_floppyDrives[3].setMotorSpinning(data & (1 << 7));
-
-	if (m_floppyDrives[data & 0b11].select())
-	{
-		if (previouslySelected != nullptr)
-			previouslySelected->unselect();
-		previouslySelected = &m_floppyDrives[data & 0b11];
-	}
-}
+static void makeDataRegisterReady (void) { fdc->statusRegister |= (1 << 7); }
+static void makeDataRegisterNotReady (void) { fdc->statusRegister &= ~(1 << 7); }
+static void makeDataRegisterInReadMode (void) { fdc->statusRegister |= 1 << 6; }
+static void makeDataRegisterInWriteMode (void) { fdc->statusRegister &= ~(1 << 6); }
 
 void E5150::FDC::switchToCommandMode (void)
 {
-	m_phase = PHASE::COMMAND;
+	phase = FDC::PHASE::COMMAND;
 	selectedCommand = nullptr;
 	makeDataRegisterReady();
 	makeDataRegisterInWriteMode();
@@ -109,38 +83,60 @@ void E5150::FDC::switchToCommandMode (void)
 
 void E5150::FDC::switchToExecutionMode (void)
 {
-	m_phase = PHASE::EXECUTION;
+	phase = FDC::PHASE::EXECUTION;
 	makeDataRegisterNotReady();
 	FDCDebug(7,"switched to execution mode");
 }
 
 void E5150::FDC::switchToResultMode (void)
 {
-	m_phase = PHASE::RESULT;
+	phase = FDC::PHASE::RESULT;
 	makeDataRegisterReady();
 	makeDataRegisterInReadMode();
 	FDCDebug(7,"switched to result mode");
 }
 
-void E5150::FDC::switchPhase (void)
+/*** Some utility functions ***/
+static bool dataRegisterReady (void) { return fdc->statusRegister & (1 << 7); }
+static bool dataRegisterInReadMode (void) { return fdc->statusRegister & (1 << 6); }
+static bool dataRegisterInWriteMode (void) { return !dataRegisterInReadMode(); }
+static bool statusRegisterAllowReading (void) { return dataRegisterReady() && dataRegisterInReadMode() && fdc->statusRegisterRead; }
+static bool statusRegisterAllowWriting (void) { return dataRegisterReady() && dataRegisterInWriteMode() && fdc->statusRegisterRead; }
+
+static void setST0Flag (const FDC::ST0_FLAGS flag) { fdc->STRegisters[0] |= flag; }
+static void resetST0Flag (const FDC::ST0_FLAGS flag) { fdc->STRegisters[0] &= ~flag; }
+
+void E5150::FDC::clock()
 {
-	switch (m_phase)
+	if (passClock == 0)
 	{
-		case PHASE::COMMAND:
-			switchToExecutionMode();
-			break;
+		if (phase == PHASE::EXECUTION)
+			selectedCommand->exec();
+	}
+	else
+		--passClock;
+}
 
-		case PHASE::EXECUTION:
-			switchToResultMode();
-			break;
+//TODO: if selected while motor not on, does it unselect the previously selected floppy ?
+//TODO: some motors should not run simultaneously
+static void writeDOR(const uint8_t data)
+{
+	static Floppy100* previouslySelected = nullptr;
 
-		case PHASE::RESULT:
-			switchToCommandMode();
-			break;
+	fdc->floppyDrives[0].setMotorSpinning(data & (1 << 4));
+	fdc->floppyDrives[1].setMotorSpinning(data & (1 << 5));
+	fdc->floppyDrives[2].setMotorSpinning(data & (1 << 6));
+	fdc->floppyDrives[3].setMotorSpinning(data & (1 << 7));
+
+	if (fdc->floppyDrives[data & 0b11].select())
+	{
+		if (previouslySelected != nullptr)
+			previouslySelected->unselect();
+		previouslySelected = &fdc->floppyDrives[data & 0b11];
 	}
 }
 
-void E5150::FDC::writeDataRegister(const uint8_t data)
+static void writeDataRegister(const uint8_t data)
 {
 	if (!selectedCommand)
 	{
@@ -156,13 +152,13 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 				commandIndex += (commandIndex == 9) ? 2 : 1;
 		}
 		
-		selectedCommand = m_commands[commandIndex];
+		selectedCommand = commands[commandIndex];
 		
 		FDCDebug(5,"Selecting command '{}'",selectedCommand->m_name);
 	}
 	
 	selectedCommand->configure(data);
-	m_statusRegisterRead = false;
+	fdc->statusRegisterRead = false;
 }
 
 void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
@@ -175,7 +171,7 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 		
 		case 5:
 		{
-			if (m_statusRegisterRead)
+			if (statusRegisterRead)
 			{
 				if (dataRegisterInWriteMode())
 				{
@@ -196,22 +192,40 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 	FDCDebug(1,"Writing not done");
 }
 
-uint8_t E5150::FDC::readDataRegister()
+static void switchPhase (void)
+{
+	switch (fdc->phase)
+	{
+		case FDC::PHASE::COMMAND:
+			fdc->switchToExecutionMode();
+			break;
+
+		case FDC::PHASE::EXECUTION:
+			fdc->switchToResultMode();
+			break;
+
+		case FDC::PHASE::RESULT:
+			fdc->switchToCommandMode();
+			break;
+	}
+}
+
+static uint8_t readDataRegister()
 {
 	const auto [result,readDone] = selectedCommand->readResult();
 
 	if (readDone)
 		switchPhase();
 	
-	m_dataRegister = result;
-	m_statusRegisterRead = false;
-	return m_dataRegister;
+	fdc->dataRegister = result;
+	fdc->statusRegisterRead = false;
+	return fdc->dataRegister;
 }
 
-uint8_t E5150::FDC::readStatusRegister()
+static uint8_t readStatusRegister()
 {
-	m_statusRegisterRead = true;
-	return m_statusRegister;
+	fdc->statusRegisterRead = true;
+	return fdc->statusRegister;
 }
 
 uint8_t E5150::FDC::read	(const unsigned int localAddress)
@@ -219,14 +233,14 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 	switch (localAddress)
 	{
 		case 2:
-			return m_dorRegister;
+			return dorRegister;
 		
 		case 4:
 			return readStatusRegister();
 		
 		case 5:
 		{
-			if (m_statusRegisterRead)
+			if (statusRegisterRead)
 			{
 				if (dataRegisterInReadMode())
 					return readDataRegister();
@@ -245,243 +259,3 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 	uint8_t undetermined;
 	return 	undetermined;
 }
-
-///////////////////////////////////
-/*** IMPLEMENTING THE COMMANDS ***/
-///////////////////////////////////
-
-static unsigned int getHDS (const std::vector<uint8_t>& configurationWords) { return (configurationWords[1] & 0b100) >> 2; }
-static unsigned int getDSx (const std::vector<uint8_t>& configurationWords) { return configurationWords[1] & 0b11; }
-static unsigned int getHDS (const unsigned int configurationWord) { return (configurationWord & 0b100) >> 2; }
-static unsigned int getDSx (const unsigned int configurationWord) { return configurationWord & 0b11; }
-
-E5150::FDC::Command::Command(const std::string& name, const unsigned int configurationWorldNumber, const unsigned int resultWorldNumber):
-	m_name(name), m_configurationWords(configurationWorldNumber), m_resultWords(resultWorldNumber),m_configurationStep(0)
-{}
-
-bool E5150::FDC::Command::configure (const uint8_t data)
-{
-	if (m_configurationStep == 0)
-	{
-		if (fdc->isBusy())
-		{
-			FDCDebug(1,"New command issued while another command is being processed. Nothing done");
-			return false;
-		}
-
-		onConfigureBegin();
-
-		if (m_checkMFM)
-		{
-			if (!(data & (1 << 6)))
-				throw std::logic_error("FM mode is not supported with the floppy drive");
-		}
-	}
-
-	m_configurationWords[m_configurationStep++] = data;
-
-	const bool configurationFinished = m_configurationStep == m_configurationWords.size();
-
-	if (configurationFinished)
-	{
-		m_configurationStep = 0;
-
-		fdc->switchToExecutionMode();
-		onConfigureFinish();
-	}
-
-	return configurationFinished;
-}
-
-std::pair<uint8_t,bool> E5150::FDC::Command::readResult (void)
-{
-	static unsigned int readingStep = 0;
-	const uint8_t ret = m_resultWords[readingStep++];
-	return {ret, (readingStep % m_resultWords.size()) == 0};
-}
-
-void E5150::FDC::Command::onConfigureBegin()  {}
-void E5150::FDC::Command::onConfigureFinish() {}
-void E5150::FDC::Command::exec() {}
-
-///////////////////////////////////
-/*** IMPLEMENTING READ DATA ***/
-///////////////////////////////////
-
-void E5150::FDC::COMMAND::ReadData::loadHeads()
-{ m_status = STATUS::READ_DATA; }
-
-void E5150::FDC::COMMAND::ReadData::exec()
-{
-	switch (m_status)
-	{
-		case STATUS::LOADING_HEADS:
-			loadHeads();
-			break;
-		
-		case STATUS::READ_DATA:
-			break;
-	}
-}
-
-//////////////////////////////
-/*** IMPLEMENTING READ ID ***/
-//////////////////////////////
-
-E5150::FDC::COMMAND::ReadID::ReadID(): Command("Read ID",2) {}
-
-//TODO: timing !
-void E5150::FDC::COMMAND::ReadID::exec()
-{
-	const unsigned int selectedHead = (m_configurationWords[1] & 0b100) >> 2;
-	const auto& [track, sector] = fdc->m_floppyDrives[selectedHead].getID();
-
-	m_resultWords[0] = fdc->m_STRegisters[0];
-	m_resultWords[1] = fdc->m_STRegisters[1];
-	m_resultWords[2] = fdc->m_STRegisters[2];
-	m_resultWords[3] = track;
-	m_resultWords[4] = selectedHead;
-	m_resultWords[5] = sector;
-	m_resultWords[6] = 0; //TODO: why is this set to 1 un bochs ?
-
-	//TODO: investigate timing : I assume one write per clock, it might be more or less
-	//In bochs this took 11 111 clocks
-	fdc->waitClock(7);
-	fdc->switchToResultMode();
-}
-
-E5150::FDC::COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1)
-{ m_checkMFM = false; }
-
-//////////////////////////////
-/*** IMPLEMENTING SENSE INTERRUPT STATUS ***/
-//////////////////////////////
-E5150::FDC::COMMAND::SenseInterruptStatus::SenseInterruptStatus(): Command("Sense Interrupt Status",1,2)
-{ m_checkMFM = false; }
-
-void E5150::FDC::COMMAND::SenseInterruptStatus::onConfigureFinish()
-{
-	m_resultWords[0] = fdc->m_STRegisters[0];
-	m_resultWords[1] = fdc->m_floppyDrives[getDSx(m_resultWords[0])].m_pcn;
-	fdc->switchToResultMode();
-}
-//////////////////////////////
-/*** IMPLEMENTING SPECIFY ***/
-//////////////////////////////
-
-E5150::FDC::COMMAND::Specify::Specify(): Command("Specify",3,0)
-{ m_checkMFM = false; }
-
-//*2 on all result because the clock is at 4MHz
-//TODO: fact checking this
-static unsigned int millisecondsFromSRTTimer (const unsigned int SRTValue) { return (0xF - SRTValue + 1); }
-static unsigned int millisecondsFromHUTTimer (const unsigned int HUTValue) { return HUTValue * 16; }
-static unsigned int millisecondsFromHLTTimer (const unsigned int HLTValue) { return HLTValue * 2; }
-
-void E5150::FDC::COMMAND::Specify::onConfigureFinish()
-{
-	const uint8_t SRTValue = m_configurationWords[1] >> 4;
-	const uint8_t HUTValue = m_configurationWords[1] & 0xF;
-	const uint8_t HLTValue = m_configurationWords[2] >> 1;
-
-	if (HUTValue == 0)
-		throw std::logic_error("HUT cannot be 0");
-	
-	if ((HLTValue == 0) || (HLTValue == 0xFF))
-		throw std::logic_error("HLT value should be in [0x1, 0xFE]");
-
-	fdc->m_timers[TIMER::STEP_RATE_TIME] = SRTValue;
-	fdc->m_timers[TIMER::HEAD_UNLOAD_TIME] = HUTValue;
-	fdc->m_timers[TIMER::HEAD_LOAD_TIME] = HLTValue;
-
-	const unsigned int SRTTimerMSValue = millisecondsFromSRTTimer(fdc->m_timers[TIMER::STEP_RATE_TIME]);
-	const unsigned int HUTTimerMSValue = millisecondsFromHUTTimer(fdc->m_timers[TIMER::HEAD_UNLOAD_TIME]);
-	const unsigned int HLTTimerMSValue = millisecondsFromHLTTimer(fdc->m_timers[TIMER::HEAD_LOAD_TIME]);
-
-	FDCDebug(1,"SRT Value set to {}ms",SRTTimerMSValue*2);
-	FDCDebug(1,"HUT Value set to {}ms",HUTTimerMSValue*2);
-	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue*2);
-	
-	fdc->switchToCommandMode();
-	//TODO: investigate timing : I assume one write per clock, it might be more or less
-	//fdc->waitClock(3);
-}
-
-//////////////////////////////
-/*** IMPLEMENTING    SEEK ***/
-//////////////////////////////
-
-E5150::FDC::COMMAND::Seek::Seek(): Command("Seek",3,0) { m_checkMFM = false; }
-
-void E5150::FDC::COMMAND::Seek::onConfigureBegin ()
-{
-	fdc->makeBusy();
-	m_firstStep = true; //The next step issued will be the first of the command
-}
-
-void E5150::FDC::COMMAND::Seek::onConfigureFinish()
-{
-	const unsigned int floppyIndex = m_configurationWords[1] & 0b11;
-	m_floppyToApply = &fdc->m_floppyDrives[floppyIndex];
-
-	const unsigned int pcn = m_floppyToApply->m_pcn;
-	const unsigned int ncn = m_configurationWords[2];
-	m_direction = ncn > pcn;
-
-	fdc->setSeekStatusOn(m_floppyToApply->driverNumber);
-}
-
-void E5150::FDC::COMMAND::Seek::finish(const unsigned int endFlags)
-{
-	const unsigned int st0Flags = endFlags | getDSx(m_configurationWords);
-	fdc->m_STRegisters[0] = st0Flags;
-	fdc->resetSeekStatusOf(m_floppyToApply->driverNumber);
-	fdc->switchToCommandMode();
-	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time
-	fdc->makeAvailable();
-	fdc->m_pic.assertInterruptLine(PIC::IR6,fdc);
-}
-
-//TODO: how multiple seeks work ?
-void E5150::FDC::COMMAND::Seek::exec()
-{
-	if (!m_floppyToApply->isReady())
-	{
-		FDCDebug(5,"Floppy {} not ready", m_floppyToApply->driverNumber);
-		FDCDebug(6,"SEEK COMMAND: Termination with ready line state change");
-		finish(ST0_FLAGS::NR | ST0_FLAGS::IC1 | ST0_FLAGS::IC2);
-		return;
-	}
-
-	if (m_floppyToApply->m_pcn != m_configurationWords[2])
-	{
-		//The time waited will be multiplied by 2 because the function returns the milliseconds value for a 8MHz clock
-		//but the clock of the fdc is a 4MHz one in the 5150
-		const unsigned int millisecondsValueFromSRTTimer = millisecondsFromSRTTimer(fdc->m_timers[TIMER::STEP_RATE_TIME]);
-		const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer*2);
-
-		const bool stepSuccess = m_floppyToApply->step(m_direction,millisecondsToWait,m_firstStep);
-
-		if (!stepSuccess)
-		{
-			FDCDebug(6,"SEEK COMMAND: Abnormal termination");
-			finish(ST0_FLAGS::SE | ST0_FLAGS::IC1);
-		}
-		else
-			fdc->waitMilli(millisecondsValueFromSRTTimer);
-
-	}
-	else
-		finish(ST0_FLAGS::SE);
-
-	m_firstStep = false;
-}
-
-//////////////////////////////
-/*** IMPLEMENTING INVALID ***/
-//////////////////////////////
-
-E5150::FDC::COMMAND::Invalid::Invalid(): Command("Invalid",1,1)
-{ m_resultWords[0] = 0x80;   m_checkMFM = false; }
-
-void E5150::FDC::COMMAND::Invalid::onConfigureFinish() { fdc->switchToResultMode(); }

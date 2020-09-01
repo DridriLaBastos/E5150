@@ -3,9 +3,9 @@
 //TODO: text after driverNumber not displayed
 #define FLPDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: ",driverNumber, __VA_ARGS__)
 
-unsigned int Floppy100::floppyNumber = 0;
+unsigned int E5150::Floppy100::floppyNumber = 0;
 
-Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_timeToWait(0),m_lastTimeBeforeWait(Clock::now()),m_pcn(0)
+E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_timeToWait(0),m_lastTimeBeforeWait(Clock::now()),m_pcn(0)
 {
 	srand(time(NULL));
 
@@ -14,10 +14,10 @@ Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_tim
 }
 
 //TODO: will be removed
-ID Floppy100::getID (void) const
-{ return { m_pcn, 0 }; }
+ID E5150::Floppy100::getID (void) const
+{ return { m_pcn, 0,0,0 }; }
 
-bool Floppy100::headLoaded() const
+bool E5150::Floppy100::headLoaded() const
 {
 	const bool headLoadFinish = (Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad;
 
@@ -29,10 +29,10 @@ bool Floppy100::headLoaded() const
 				"\tYou should wait {}ms after selecting the drive for the head to be loaded", driverNumber,m_timers.headLoad.count());
 	return !m_status.headUnloaded && ((Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad); }
 
-void Floppy100::loadHeads(void)
+void E5150::Floppy100::loadHeads(void)
 { m_timing.lastTimeHeadLoadRequest = Clock::now(); m_status.headUnloaded = false; }
 
-bool Floppy100::select (void)
+bool E5150::Floppy100::select (void)
 {
 	if (!m_status.motorStoped)
 	{
@@ -50,13 +50,13 @@ bool Floppy100::select (void)
 	return false;
 }
 
-void Floppy100::unselect (void)
+void E5150::Floppy100::unselect (void)
 { m_status.selected = false; m_status.headUnloaded = true; FLPDebug(DEBUG_LEVEL_MAX,"Unselected"); }
 
-bool Floppy100::motorAtFullSpeed() const
+bool E5150::Floppy100::motorAtFullSpeed() const
 { return !m_status.motorStoped && ((Clock::now() - m_timing.lastTimeMotorStartRequest) >= m_timers.motorStart); }
 
-void Floppy100::motorOn(void)
+void E5150::Floppy100::motorOn(void)
 {
 	if (m_status.motorStoped)
 	{
@@ -67,20 +67,20 @@ void Floppy100::motorOn(void)
 	m_status.motorStoped = false;
 }
 
-void Floppy100::motorOff(void)
+void E5150::Floppy100::motorOff(void)
 {
 	if (!m_status.motorStoped)
 		FLPDebug(DEBUG_LEVEL_MAX,"Motor stop spinning");
 	m_status.motorStoped = true;
 }
 
-void Floppy100::setMotorSpinning(const bool spinning)
+void E5150::Floppy100::setMotorSpinning(const bool spinning)
 { if (spinning) { motorOn(); } else { motorOff(); } }
 
-bool Floppy100::waitingDone() const
+bool E5150::Floppy100::waitingDone() const
 { return std::chrono::high_resolution_clock::now() - m_lastTimeBeforeWait >= m_timeToWait; }
 
-void Floppy100::wait(const Milliseconds& toWait)
+void E5150::Floppy100::wait(const Milliseconds& toWait)
 {
 	if (!waitingDone())
 		throw std::logic_error("Cannot wait will previous wait is not finished");
@@ -89,10 +89,10 @@ void Floppy100::wait(const Milliseconds& toWait)
 	m_timeToWait = toWait;
 }
 
-bool Floppy100::isReady() const
+bool E5150::Floppy100::isReady() const
 { return m_status.selected && headLoaded() && motorAtFullSpeed(); }
 
-void Floppy100::open(const std::string& path)
+void E5150::Floppy100::open(const std::string& path)
 {
 	m_file.close();
 
@@ -108,7 +108,7 @@ void Floppy100::open(const std::string& path)
 }
 
 //TODO: review this
-void Floppy100::write (const uint8_t data, const size_t dataPos)
+void E5150::Floppy100::write (const uint8_t data, const size_t dataPos)
 {
 	if (m_file.is_open())
 	{
@@ -117,7 +117,7 @@ void Floppy100::write (const uint8_t data, const size_t dataPos)
 	}
 }
 
-bool Floppy100::stepHeadUp()
+bool E5150::Floppy100::stepHeadUp()
 {
 	if (m_pcn == m_geometry.cylinders - 1)
 		return false;
@@ -126,7 +126,7 @@ bool Floppy100::stepHeadUp()
 	return true;
 }
 
-bool Floppy100::stepHeadDown()
+bool E5150::Floppy100::stepHeadDown()
 {
 	if (m_pcn == 0)
 		return false;
@@ -136,7 +136,7 @@ bool Floppy100::stepHeadDown()
 }
 
 //TODO: what happen when the heads are unloaded
-bool Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep)
+bool E5150::Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep)
 {
 	if (!m_status.selected)
 		FLPDebug(5,"Step while not selected");

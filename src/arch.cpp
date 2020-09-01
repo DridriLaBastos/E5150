@@ -9,8 +9,6 @@ using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
-//TODO: more depth in clock, but I really think the fdc is operated is a 4MHz clock
-static constexpr unsigned int CLOCK_DIVIDE_4_77MHZ = 3;
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
 
 static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS * 1.f/(float)BASE_CLOCK);
@@ -52,7 +50,6 @@ void E5150::Arch::startSimulation()
 	sf::Time timeForAllBlocks = sf::Time::Zero;
 	unsigned int blockCount = 0;
 	unsigned int currentClock = 0;
-	unsigned int clockDivide4_77MHz = CLOCK_DIVIDE_4_77MHZ;
 	unsigned int masterClock = 0;
 	unsigned int fdcClock = 0;
 
@@ -74,31 +71,26 @@ void E5150::Arch::startSimulation()
 			const sf::Time blockBegin = clock.getElapsedTime();
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
-				--clockDivide4_77MHz;
-				if (clockDivide4_77MHz == 0)
-				{
-					++masterClock;
-					m_cpu.clock();
-					m_pit.clock();
+				++masterClock;
+				m_cpu.clock();
+				m_pit.clock();
 
-					while (((fdcClock+1)*1000 <= masterClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
-					{
-						++fdcClock;
-						m_fdc.clock();
-					}
-					clockDivide4_77MHz = CLOCK_DIVIDE_4_77MHZ;
+				while (((fdcClock+1)*1000 <= masterClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
+				{
+					++fdcClock;
+					m_fdc.clock();
 				}
 			}
+		#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			const sf::Time blockEnd = clock.getElapsedTime();
 			++blockCount;
 			//~= 70 ns per block
 			const sf::Time timeForBlock = blockEnd - blockBegin;
+			timeForAllBlocks += timeForBlock;
 			const unsigned int microsecondsPerBlock = clockToExecute*70/1000;
 			const unsigned int microsecondsToWait = microsecondsPerBlock - timeForBlock.asMicroseconds();
-			timeForAllBlocks += timeForBlock;
 
-		#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
-			std::this_thread::sleep_for(std::chrono::microseconds(microsecondsPerBlock));
+			std::this_thread::sleep_for(std::chrono::microseconds(microsecondsToWait));
 		#endif
 
 			if (clock.getElapsedTime() >= sf::seconds(1.f))
