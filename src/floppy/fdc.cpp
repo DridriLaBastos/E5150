@@ -3,7 +3,7 @@
 #define FDCDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
 
 //mmmh...
-static E5150::FDC* fdc = nullptr;
+E5150::FDC* fdc = nullptr;
 
 //The IBM PC doc says that the floppy driver adapter have I/O port from 0x3F0 to 0x3F7 which means a 3 lines
 //address bus is used. But there is only 3 registers for this adaptater: the DOR at 0x3F2 and the register
@@ -14,8 +14,7 @@ static E5150::FDC* fdc = nullptr;
 E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	Component("Floppy Controller",ports,0x3F0,0b111), m_pic(pic),m_statusRegister(0),m_dorRegister(0)
 {
-	fdc = this;
-
+	fdc=this;
 	m_commands[0]  = &invalid;          m_commands[1]  = &scanEqual;      m_commands[2]  = &readATrack;
 	m_commands[3]  = &specify;          m_commands[4]  = &senseDriveStat; m_commands[5]  = &writeData;
 	m_commands[6]  = &readData;         m_commands[7]  = &recalibrate;    m_commands[8]  = &senseInterruptStatus;
@@ -28,10 +27,10 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 
 //TODO: search more info of the init state of the status register. For now is is set to the status:
 // + all drives in seek mode
-void E5150::FDC::reinit()
+static void reinit()
 {
-	m_dorRegister = 0;
-	m_dorRegister |= DOR_REGISTER::FDC_RESET | DOR_REGISTER::IO;
+	fdc->dorRegister = 0;
+	fdc->dorRegister |= DOR_REGISTER::FDC_RESET | DOR_REGISTER::IO;
 	m_dataRegister = 0;
 	m_passClock = 0;
 	m_statusRegisterRead = false;
@@ -75,7 +74,7 @@ void E5150::FDC::clock()
 	if (m_passClock == 0)
 	{
 		if (m_phase == PHASE::EXECUTION)
-			m_commands[m_selectedCommand]->exec();
+			selectedCommand->exec();
 	}
 	else
 		--m_passClock;
@@ -102,6 +101,7 @@ void E5150::FDC::writeDOR(const uint8_t data)
 void E5150::FDC::switchToCommandMode (void)
 {
 	m_phase = PHASE::COMMAND;
+	selectedCommand = nullptr;
 	makeDataRegisterReady();
 	makeDataRegisterInWriteMode();
 	FDCDebug(7,"switched to command mode");
@@ -142,8 +142,7 @@ void E5150::FDC::switchPhase (void)
 
 void E5150::FDC::writeDataRegister(const uint8_t data)
 {
-	static bool firstCommandWorld = true;
-	if (firstCommandWorld)
+	if (!selectedCommand)
 	{
 		uint8_t commandIndex = data & 0b1111;
 
@@ -157,12 +156,12 @@ void E5150::FDC::writeDataRegister(const uint8_t data)
 				commandIndex += (commandIndex == 9) ? 2 : 1;
 		}
 		
-		m_selectedCommand = commandIndex;
+		selectedCommand = m_commands[commandIndex];
 		
-		FDCDebug(5,"Selecting command '{}'",m_commands[m_selectedCommand]->m_name);
+		FDCDebug(5,"Selecting command '{}'",selectedCommand->m_name);
 	}
 	
-	firstCommandWorld = m_commands[m_selectedCommand]->configure(data);
+	selectedCommand->configure(data);
 	m_statusRegisterRead = false;
 }
 
@@ -199,7 +198,7 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 
 uint8_t E5150::FDC::readDataRegister()
 {
-	const auto [result,readDone] = m_commands[m_selectedCommand]->readResult();
+	const auto [result,readDone] = selectedCommand->readResult();
 
 	if (readDone)
 		switchPhase();

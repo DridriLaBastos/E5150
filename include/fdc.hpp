@@ -12,8 +12,7 @@ namespace E5150
 	/**
 	 * This class will emulate the floppy disc controller in the IBM and the behaviour of the DOR register
 	 */
-	//TODO: at what frequency does the fdc really runs ? I assume 8MHz but it could be 4MHz.
-	class FDC: public Component
+	struct FDC: public Component
 	{
 		public:
 			FDC(PIC& pic,PORTS& ports);
@@ -21,7 +20,6 @@ namespace E5150
 		public:
 			void clock (void);
 		
-		private:
 			enum class PHASE
 			{ COMMAND, EXECUTION, RESULT };
 
@@ -49,10 +47,11 @@ namespace E5150
 				IC2 = 1 << 7
 			};
 
+			template <unsigned int CONFIGURATION_WORLD=9, unsigned int RESULT_WORD=7,bool EXEC_AFTER_CONFIGURE=true>
 			class Command
 			{
 				public:
-					Command (const std::string& name = "", const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7);
+					Command (const std::string& name);
 
 				public:
 					//Return true when configuring is done
@@ -213,7 +212,7 @@ namespace E5150
 			 * 3 - enable/disable IO and DMA request
 			 * {4,5,6,7} - enable/disbale motor of drive #
 			 */
-			uint8_t m_dorRegister;
+			uint8_t dorRegister;
 			
 			/**
 			 * {0,1,2,3} - FDD number # is in seek mode
@@ -222,20 +221,19 @@ namespace E5150
 			 * 6 - data transfer direction : {0: CPU --> Resgister, 1: Register --> CPU}
 			 * 7 - data register ready to send or receive datas
 			 */
-			uint8_t m_statusRegister;
-			uint8_t m_dataRegister;
+			uint8_t statusRegister;
+			uint8_t dataRegister;
 
-			std::array<uint8_t, 4> m_STRegisters;
-			std::array<Floppy100,4> m_floppyDrives;
-			std::array<Command*, 16> m_commands;
-			std::array<uint8_t, 3> m_timers;
+			std::array<uint8_t, 4> STRegisters;
+			std::array<Floppy100,4> floppyDrives;
+			std::array<uint8_t, 3> timers;
 
-			unsigned int cnc = 0;
+			std::array<Command*, 16> commands;
+			Command* selectedCommand = nullptr;
 
-			PHASE m_phase;
-			unsigned int m_selectedCommand;
-			unsigned int m_passClock;
-			bool m_statusRegisterRead;
+			PHASE phase;
+			unsigned int passClock;
+			bool statusRegisterRead;
 	};
 }
 

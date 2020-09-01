@@ -5,8 +5,10 @@
 
 struct ID
 {
-	unsigned int cylinder;
-	unsigned int sector;
+	unsigned int cylinder; //C: the current selected cylinder
+	unsigned int headAddress;//H: head number 
+	unsigned int record;//R: sector number which will be read/write
+	unsigned int number;//N: number of data byte written in a sector
 };
 
 struct Geometry

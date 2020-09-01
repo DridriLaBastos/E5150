@@ -1,6 +1,9 @@
 CXXSRC = $(wildcard src/*.cpp) main.cpp
 CXXOBJ = $(CXXSRC:.cpp=.o)
+
 CPUSRC = $(wildcard src/cpu/*.cpp)
+FLOPPYSRC = $(wildcard src/floppy/*.cpp)
+
 PCHSRC = include/pch.hpp
 PCHOBJ = $(PCHSRC).pch
 ASMSRC = $(wildcard test/*.s)
@@ -49,7 +52,7 @@ $(PCHOBJ): $(PCHSRC) include/util.hpp include/config.hpp
 src/cpu.o: src/cpu.cpp $(CPUSRC) $(PCHOBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-src/main.o: src/main.cpp $(ASMOBJ) $(PCHOBJ)
+src/floppy.o: src/floppy.cpp $(FLOPPYSRC) $(PCHOBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 run:
