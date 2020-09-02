@@ -126,7 +126,7 @@ bool E5150::FDC_COMMAND::SenseInterruptStatus::configure(const uint8_t data)
 void E5150::FDC_COMMAND::SenseInterruptStatus::onConfigureFinish()
 {
 	m_resultWords[0] = FDC::instance->STRegisters[0];
-	m_resultWords[1] = FDC::instance->floppyDrives[getDSx(m_resultWords[0])].m_pcn;
+	m_resultWords[1] = FDC::instance->floppyDrives[getDSx(m_resultWords[0])].pcn;
 }
 
 /*******************************************************************************************/
@@ -186,7 +186,7 @@ void E5150::FDC_COMMAND::Seek::onConfigureFinish()
 	const unsigned int floppyIndex = m_configurationWords[1] & 0b11;
 	m_floppyToApply = &FDC::instance->floppyDrives[floppyIndex];
 
-	const unsigned int pcn = m_floppyToApply->m_pcn;
+	const unsigned int pcn = m_floppyToApply->pcn;
 	const unsigned int ncn = m_configurationWords[2];
 	m_direction = ncn > pcn;
 }
@@ -213,7 +213,7 @@ void E5150::FDC_COMMAND::Seek::exec()
 		return;
 	}
 
-	if (m_floppyToApply->m_pcn != m_configurationWords[2])
+	if (m_floppyToApply->pcn != m_configurationWords[2])
 	{
 		//The time waited will be multiplied by 2 because the function returns the milliseconds value for a 8MHz clock
 		//but the clock of the fdc is a 4MHz one in the 5150

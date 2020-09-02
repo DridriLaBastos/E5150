@@ -1,11 +1,10 @@
 #include "floppy.hpp"
 
-//TODO: text after driverNumber not displayed
-#define FLPDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: ",driverNumber, __VA_ARGS__)
+#define FLPDebug(REQUIRED_DEBUG_LEVEL,DEBUG_MSG,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: " DEBUG_MSG,driverNumber,##__VA_ARGS__)
 
 unsigned int E5150::Floppy100::floppyNumber = 0;
 
-E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),m_timeToWait(0),m_lastTimeBeforeWait(Clock::now()),m_pcn(0)
+E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),timeToWait(0),lastTimeBeforeWait(Clock::now()),pcn(0)
 {
 	srand(time(NULL));
 
@@ -15,31 +14,31 @@ E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++
 
 //TODO: will be removed
 ID E5150::Floppy100::getID (void) const
-{ return { m_pcn, 0,0,0 }; }
+{ return { pcn, 0,0,0 }; }
 
 bool E5150::Floppy100::headLoaded() const
 {
-	const bool headLoadFinish = (Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad;
+	const bool headLoadFinish = (Clock::now() - timing.lastTimeHeadLoadRequest) >= timers.headLoad;
 
-	if (m_status.headUnloaded)
+	if (status.headUnloaded)
 		FLPDebug(4,"Head is not loaded");
 	
 	if (!headLoadFinish)
 		FLPDebug(4,"Floppy {}: head loading isn't finish yet\n"
-				"\tYou should wait {}ms after selecting the drive for the head to be loaded", driverNumber,m_timers.headLoad.count());
-	return !m_status.headUnloaded && ((Clock::now() - m_timing.lastTimeHeadLoadRequest) >= m_timers.headLoad); }
+				"\tYou should wait {}ms after selecting the drive for the head to be loaded", driverNumber,timers.headLoad.count());
+	return !status.headUnloaded && ((Clock::now() - timing.lastTimeHeadLoadRequest) >= timers.headLoad); }
 
 void E5150::Floppy100::loadHeads(void)
-{ m_timing.lastTimeHeadLoadRequest = Clock::now(); m_status.headUnloaded = false; }
+{ timing.lastTimeHeadLoadRequest = Clock::now(); status.headUnloaded = false; }
 
 bool E5150::Floppy100::select (void)
 {
-	if (!m_status.motorStoped)
+	if (!status.motorStoped)
 	{
-		m_status.selected = true;
+		status.selected = true;
 		FLPDebug(DEBUG_LEVEL_MAX,"Selected");
 
-		if (m_status.headUnloaded)
+		if (status.headUnloaded)
 			loadHeads();
 		
 		return true;
@@ -51,58 +50,58 @@ bool E5150::Floppy100::select (void)
 }
 
 void E5150::Floppy100::unselect (void)
-{ m_status.selected = false; m_status.headUnloaded = true; FLPDebug(DEBUG_LEVEL_MAX,"Unselected"); }
+{ status.selected = false; status.headUnloaded = true; FLPDebug(DEBUG_LEVEL_MAX,"Unselected"); }
 
-bool E5150::Floppy100::motorAtFullSpeed() const
-{ return !m_status.motorStoped && ((Clock::now() - m_timing.lastTimeMotorStartRequest) >= m_timers.motorStart); }
+static bool motorAtFullSpeed(const E5150::Floppy100* const flp)
+{ return !flp->status.motorStoped && ((Clock::now() - flp->timing.lastTimeMotorStartRequest) >= flp->timers.motorStart); }
 
 void E5150::Floppy100::motorOn(void)
 {
-	if (m_status.motorStoped)
+	if (status.motorStoped)
 	{
 		FLPDebug(10,"Motor start spinning");
-		m_timing.lastTimeMotorStartRequest = Clock::now();
+		timing.lastTimeMotorStartRequest = Clock::now();
 	}
 
-	m_status.motorStoped = false;
+	status.motorStoped = false;
 }
 
 void E5150::Floppy100::motorOff(void)
 {
-	if (!m_status.motorStoped)
+	if (!status.motorStoped)
 		FLPDebug(DEBUG_LEVEL_MAX,"Motor stop spinning");
-	m_status.motorStoped = true;
+	status.motorStoped = true;
 }
 
 void E5150::Floppy100::setMotorSpinning(const bool spinning)
 { if (spinning) { motorOn(); } else { motorOff(); } }
 
 bool E5150::Floppy100::waitingDone() const
-{ return std::chrono::high_resolution_clock::now() - m_lastTimeBeforeWait >= m_timeToWait; }
+{ return std::chrono::high_resolution_clock::now() - lastTimeBeforeWait >= timeToWait; }
 
 void E5150::Floppy100::wait(const Milliseconds& toWait)
 {
 	if (!waitingDone())
 		throw std::logic_error("Cannot wait will previous wait is not finished");
 
-	m_lastTimeBeforeWait = Clock::now();
-	m_timeToWait = toWait;
+	lastTimeBeforeWait = Clock::now();
+	timeToWait = toWait;
 }
 
 bool E5150::Floppy100::isReady() const
-{ return m_status.selected && headLoaded() && motorAtFullSpeed(); }
+{ return status.selected && headLoaded() && motorAtFullSpeed(this); }
 
 void E5150::Floppy100::open(const std::string& path)
 {
-	m_file.close();
+	file.close();
 
 	if (path.empty())
 		WARNING("FLOPPY[{}]: empty path will leave the drive empty",driverNumber);
 	else
 	{
-		m_file.open(path);
+		file.open(path);
 
-		if (!m_file.is_open())
+		if (!file.is_open())
 			WARNING("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
 	}
 }
@@ -110,42 +109,42 @@ void E5150::Floppy100::open(const std::string& path)
 //TODO: review this
 void E5150::Floppy100::write (const uint8_t data, const size_t dataPos)
 {
-	if (m_file.is_open())
+	if (file.is_open())
 	{
-		m_file.seekg(dataPos);
-		m_file.put(data);
+		file.seekg(dataPos);
+		file.put(data);
 	}
 }
 
-bool E5150::Floppy100::stepHeadUp()
+static bool stepHeadUp(E5150::Floppy100* const flp)
 {
-	if (m_pcn == m_geometry.cylinders - 1)
+	if (flp->pcn == flp->geometry.cylinders - 1)
 		return false;
 	
-	++m_pcn;
+	++flp->pcn;
 	return true;
 }
 
-bool E5150::Floppy100::stepHeadDown()
+static bool stepHeadDown(E5150::Floppy100* const flp)
 {
-	if (m_pcn == 0)
+	if (flp->pcn == 0)
 		return false;
 	
-	--m_pcn;
+	--flp->pcn;
 	return true;
 }
 
 //TODO: what happen when the heads are unloaded
 bool E5150::Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep)
 {
-	if (!m_status.selected)
+	if (!status.selected)
 		FLPDebug(5,"Step while not selected");
 
-	if (!firstStep && (timeSinceLastStep < m_timers.trackToTrack))
+	if (!firstStep && (timeSinceLastStep < timers.trackToTrack))
 	{
-		FLPDebug(4,"timestep of {} ms, should be {} ms", timeSinceLastStep.count(), m_timers.trackToTrack.count());
+		FLPDebug(4,"timestep of {} ms, should be {} ms", timeSinceLastStep.count(), timers.trackToTrack.count());
 		return false;
 	}
 
-	return direction ? stepHeadUp() : stepHeadDown();
+	return direction ? stepHeadUp(this) : stepHeadDown(this);
 }
