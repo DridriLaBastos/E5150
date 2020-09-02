@@ -67,7 +67,19 @@ namespace E5150
 
 		class ScanEqual: public Command {};
 
-		class Recalibrate: public Command {};
+		class Recalibrate: public Command
+		{
+			virtual bool configure (const uint8_t data) final;
+			virtual void exec (void) final;
+			virtual void onConfigureBegin(void) final;
+			virtual void onConfigureFinish(void) final;
+			void finish (const unsigned int ST0Flags);
+
+			E5150::Floppy100* m_floppyToApply = nullptr;
+			bool m_firstStep;
+			public: Recalibrate(void);
+		};
+
 		class SenseInterruptStatus: public Command
 		{
 			virtual void onConfigureFinish(void) final;

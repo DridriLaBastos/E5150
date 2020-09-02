@@ -603,29 +603,30 @@ static void clockWait()
 
 void CPU::clock()
 {
-	if (m_clockCountDown == 0)
+	if (m_clockCountDown != 0)
 	{
-		if (!hlt)
-		{
-			xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
-			xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
-
-		#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-			if (E5150::Util::_stop)
-			{
-				printRegisters();
-				printFlags();
-				printCurrentInstruction();
-				clockWait();
-			}
-		#endif
-
-			if (!execNonControlTransferInstruction())
-				execControlTransferInstruction();
-		}
-	}
-	else
 		--m_clockCountDown;
+		return;
+	}
+
+	if (!hlt)
+	{
+		xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
+		xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
+
+	#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+		if (E5150::Util::_stop)
+		{
+			printRegisters();
+			printFlags();
+			printCurrentInstruction();
+			clockWait();
+		}
+	#endif
+
+		if (!execNonControlTransferInstruction())
+			execControlTransferInstruction();
+	}
 
 	if (intr)
 	{

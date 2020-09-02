@@ -37,3 +37,8 @@ sis:
 	FDC_RESULT
 	FDC_RESULT
 %endmacro
+
+%macro RECALIBRATE 1
+	FDC_COMMAND(0b111)
+	FDC_COMMAND(%1)
+%endmacro

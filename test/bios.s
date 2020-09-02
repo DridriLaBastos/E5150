@@ -1,7 +1,6 @@
 %include "test/util.inc"
 
 [CPU 8086]
-xchg bx,bx
 mov dx, 0x20
 mov ax, 0b10011
 out dx, al
@@ -20,6 +19,11 @@ mov ax, 0b10000
 out dx, al
 
 SPECIFY 0xF,0xB,1
-SEEK 0b100,5
+SEEK 0,5
+
+hlt
+
+SPECIFY 0xF,0xE,1
+RECALIBRATE 0
 
 hlt
