@@ -10,7 +10,7 @@ static constexpr unsigned int EXEC_MODE_AFTER_CONFIGURE = 1;
 static constexpr unsigned int RESULT_MODE_AFTER_CONFIGURE = 2;
 static constexpr unsigned int test = 1;
 
-template <bool CHECK_MFM,unsigned int MODE_AFTER_CONFIGURE=EXEC_MODE_AFTER_CONFIGURE>
+template <bool CHECK_MFM,bool SELECT_FDD=true,unsigned int MODE_AFTER_CONFIGURE=EXEC_MODE_AFTER_CONFIGURE>
 static bool generalConfigure (E5150::FDC_COMMAND::Command* cmd, const uint8_t configureData)
 {
 	if (E5150::FDC::instance->isBusy())
@@ -42,7 +42,13 @@ static bool generalConfigure (E5150::FDC_COMMAND::Command* cmd, const uint8_t co
 		
 		if constexpr (MODE_AFTER_CONFIGURE == RESULT_MODE_AFTER_CONFIGURE)
 			E5150::FDC::instance->switchToResultMode();
-
+		
+		if constexpr (SELECT_FDD)
+		{
+			const unsigned int FDDNumber = cmd->m_configurationWords[1] & 0b11;
+			const unsigned int headdAddress = (cmd->m_configurationWords[1] & 0b100) >> 2;
+			FDC::instance->floppyDrives[FDDNumber].setHeadAddress(headdAddress);
+		}
 	}
 
 	return configurationFinished;
@@ -116,12 +122,14 @@ void E5150::FDC_COMMAND::ReadID::exec()
 
 E5150::FDC_COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1){}
 
-/*** SENSE INTERRUPT STATUS ***/
+/*******************************************************************************************/
+/*                               *  SENSE INTERRUPT STATUS  *                               */
+/*******************************************************************************************/
 
 E5150::FDC_COMMAND::SenseInterruptStatus::SenseInterruptStatus(): Command("Sense Interrupt Status",1,2){}
 
 bool E5150::FDC_COMMAND::SenseInterruptStatus::configure(const uint8_t data)
-{ return generalConfigure<false,RESULT_MODE_AFTER_CONFIGURE>(this,data); }
+{ return generalConfigure<false,false,RESULT_MODE_AFTER_CONFIGURE>(this,data); }
 
 void E5150::FDC_COMMAND::SenseInterruptStatus::onConfigureFinish()
 {
@@ -136,7 +144,7 @@ void E5150::FDC_COMMAND::SenseInterruptStatus::onConfigureFinish()
 E5150::FDC_COMMAND::Specify::Specify(): Command("Specify",3,0) {}
 
 bool E5150::FDC_COMMAND::Specify::configure(const uint8_t data)
-{ return generalConfigure<false,COMMAND_MODE_AFTER_CONFIGURE>(this,data); }
+{ return generalConfigure<false,false,COMMAND_MODE_AFTER_CONFIGURE>(this,data); }
 
 //*2 on all result because the clock is at 4MHz
 //TODO: fact checking this
@@ -169,7 +177,9 @@ void E5150::FDC_COMMAND::Specify::onConfigureFinish()
 	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue*2);
 }
 
-/***  SEEK ***/
+/*******************************************************************************************/
+/*                                        *  SEEK *                                        */
+/*******************************************************************************************/
 
 E5150::FDC_COMMAND::Seek::Seek(): Command("Seek",3,0) {}
 
@@ -179,7 +189,8 @@ void E5150::FDC_COMMAND::Seek::onConfigureBegin ()
 	m_firstStep = true; //The next step issued will be the first of the command
 }
 
-bool E5150::FDC_COMMAND::Seek::configure(const uint8_t data) { return generalConfigure<false>(this,data); }
+bool E5150::FDC_COMMAND::Seek::configure(const uint8_t data)
+{ return generalConfigure<false>(this,data); }
 
 void E5150::FDC_COMMAND::Seek::onConfigureFinish()
 {
@@ -194,7 +205,7 @@ void E5150::FDC_COMMAND::Seek::onConfigureFinish()
 void E5150::FDC_COMMAND::Seek::finish(const unsigned int endFlags)
 {
 	const unsigned int st0Flags = endFlags | getDSx(m_configurationWords);
-	FDC::instance->STRegisters[0] = st0Flags;
+	FDC::instance->STRegisters[0] = st0Flags | m_configurationWords[1] & 0b111;
 	FDC::instance->resetSeekStatusOf(m_floppyToApply->driverNumber);
 	FDC::instance->switchToCommandMode();
 	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time
@@ -243,4 +254,4 @@ E5150::FDC_COMMAND::Invalid::Invalid(): Command("Invalid",1,1)
 { m_resultWords[0] = 0x80; }
 
 bool E5150::FDC_COMMAND::Invalid::configure(const uint8_t data)
-{ return generalConfigure<false>(this, data); }
+{ return generalConfigure<false,false,RESULT_MODE_AFTER_CONFIGURE>(this, data); }

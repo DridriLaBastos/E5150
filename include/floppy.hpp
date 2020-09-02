@@ -24,6 +24,7 @@ struct Status
 	bool headUnloaded;
 	bool motorStoped;
 	bool selected;
+	unsigned int headAddress;
 };
 
 struct Timing
@@ -61,6 +62,8 @@ namespace E5150
 		void motorOff (void);
 		bool select   (void);
 		void unselect (void);
+		void setHeadAddress (const unsigned int headAddress) { status.headAddress=headAddress; }
+		void resetHeadAddress (void) { setHeadAddress(0); }
 
 		const unsigned int driverNumber;
 		unsigned int pcn = 0;
@@ -74,16 +77,9 @@ namespace E5150
 		static unsigned int floppyNumber;
 
 		Geometry geometry { 40, 1, 8, false };
-		Status status { true, true, false };
+		Status status { true, true, false, 0 };
 		Timer timers { Milliseconds(500), Milliseconds(35), Milliseconds(240), Milliseconds(8) };
 		Timing timing;
-
-		private:
-			void loadHeads (void);
-			bool waitingDone (void) const;
-			void wait (const Milliseconds& toWait);
-
-			bool headLoaded (void) const;
 	};
 }
 

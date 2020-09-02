@@ -20,6 +20,6 @@ mov ax, 0b10000
 out dx, al
 
 SPECIFY 0xF,0xB,1
-SEEK 0,5
+SEEK 0b100,5
 
 hlt

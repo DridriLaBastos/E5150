@@ -1,6 +1,7 @@
 #include "floppy.hpp"
 
 #define FLPDebug(REQUIRED_DEBUG_LEVEL,DEBUG_MSG,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: " DEBUG_MSG,driverNumber,##__VA_ARGS__)
+#define EXTERNAL_FLPDebug(REQUIRED_DEBUG_LEVEL,DEBUG_MSG,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: " DEBUG_MSG,flp->driverNumber,##__VA_ARGS__)
 
 unsigned int E5150::Floppy100::floppyNumber = 0;
 
@@ -16,20 +17,8 @@ E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++
 ID E5150::Floppy100::getID (void) const
 { return { pcn, 0,0,0 }; }
 
-bool E5150::Floppy100::headLoaded() const
-{
-	const bool headLoadFinish = (Clock::now() - timing.lastTimeHeadLoadRequest) >= timers.headLoad;
-
-	if (status.headUnloaded)
-		FLPDebug(4,"Head is not loaded");
-	
-	if (!headLoadFinish)
-		FLPDebug(4,"Floppy {}: head loading isn't finish yet\n"
-				"\tYou should wait {}ms after selecting the drive for the head to be loaded", driverNumber,timers.headLoad.count());
-	return !status.headUnloaded && ((Clock::now() - timing.lastTimeHeadLoadRequest) >= timers.headLoad); }
-
-void E5150::Floppy100::loadHeads(void)
-{ timing.lastTimeHeadLoadRequest = Clock::now(); status.headUnloaded = false; }
+static void loadHeads(E5150::Floppy100* const flp)
+{ flp->timing.lastTimeHeadLoadRequest = Clock::now(); flp->status.headUnloaded = false; }
 
 bool E5150::Floppy100::select (void)
 {
@@ -39,7 +28,7 @@ bool E5150::Floppy100::select (void)
 		FLPDebug(DEBUG_LEVEL_MAX,"Selected");
 
 		if (status.headUnloaded)
-			loadHeads();
+			loadHeads(this);
 		
 		return true;
 	}
@@ -51,9 +40,6 @@ bool E5150::Floppy100::select (void)
 
 void E5150::Floppy100::unselect (void)
 { status.selected = false; status.headUnloaded = true; FLPDebug(DEBUG_LEVEL_MAX,"Unselected"); }
-
-static bool motorAtFullSpeed(const E5150::Floppy100* const flp)
-{ return !flp->status.motorStoped && ((Clock::now() - flp->timing.lastTimeMotorStartRequest) >= flp->timers.motorStart); }
 
 void E5150::Floppy100::motorOn(void)
 {
@@ -76,20 +62,45 @@ void E5150::Floppy100::motorOff(void)
 void E5150::Floppy100::setMotorSpinning(const bool spinning)
 { if (spinning) { motorOn(); } else { motorOff(); } }
 
-bool E5150::Floppy100::waitingDone() const
-{ return std::chrono::high_resolution_clock::now() - lastTimeBeforeWait >= timeToWait; }
+//TODO: handle desynchronization
+static bool waitingDone(const E5150::Floppy100* const flp)
+{ return std::chrono::high_resolution_clock::now() - flp->lastTimeBeforeWait >= flp->timeToWait; }
 
-void E5150::Floppy100::wait(const Milliseconds& toWait)
+static void wait(E5150::Floppy100* const flp, Milliseconds& toWait)
 {
-	if (!waitingDone())
+	if (!waitingDone(flp))
 		throw std::logic_error("Cannot wait will previous wait is not finished");
 
-	lastTimeBeforeWait = Clock::now();
-	timeToWait = toWait;
+	flp->lastTimeBeforeWait = Clock::now();
+	flp->timeToWait = toWait;
+}
+
+static bool headLoaded(const E5150::Floppy100* const flp)
+{
+	const bool headLoadFinish = (Clock::now() - flp->timing.lastTimeHeadLoadRequest) >= flp->timers.headLoad;
+
+	if (flp->status.headUnloaded)
+		EXTERNAL_FLPDebug(4,"Head is not loaded");
+	
+	if (!headLoadFinish)
+		EXTERNAL_FLPDebug(4,"Head loading isn't finish yet\n"
+				"\tYou should wait {}ms after selecting the drive for the head to be loaded",flp->timers.headLoad.count());
+	return !flp->status.headUnloaded && ((Clock::now() - flp->timing.lastTimeHeadLoadRequest) >= flp->timers.headLoad);
+}
+
+static bool motorAtFullSpeed(const E5150::Floppy100* const flp)
+{ return !flp->status.motorStoped && ((Clock::now() - flp->timing.lastTimeMotorStartRequest) >= flp->timers.motorStart); }
+
+static bool correctHeadAddress (const E5150::Floppy100* const flp)
+{
+	if (flp->status.headAddress)
+		EXTERNAL_FLPDebug(DEBUG_LEVEL_MAX,"Single sided. Head address can only be 0 but found {}",flp->status.headAddress);
+	
+	return !flp->status.headAddress;
 }
 
 bool E5150::Floppy100::isReady() const
-{ return status.selected && headLoaded() && motorAtFullSpeed(this); }
+{ return status.selected && headLoaded(this) && motorAtFullSpeed(this) && correctHeadAddress(this); }
 
 void E5150::Floppy100::open(const std::string& path)
 {
