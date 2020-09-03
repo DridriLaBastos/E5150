@@ -33,7 +33,6 @@ static bool generalConfigure (E5150::FDC_COMMAND::Command* cmd, const uint8_t co
 	if (configurationFinished)
 	{
 		cmd->m_configurationStep = 0;
-		cmd->onConfigureFinish();
 		if constexpr (MODE_AFTER_CONFIGURE == COMMAND_MODE_AFTER_CONFIGURE)
 			E5150::FDC::instance->switchToCommandMode();
 		
@@ -49,6 +48,7 @@ static bool generalConfigure (E5150::FDC_COMMAND::Command* cmd, const uint8_t co
 			const unsigned int headdAddress = (cmd->m_configurationWords[1] & 0b100) >> 2;
 			FDC::instance->floppyDrives[FDDNumber].setHeadAddress(headdAddress);
 		}
+		cmd->onConfigureFinish();
 	}
 
 	return configurationFinished;
@@ -97,7 +97,6 @@ void E5150::FDC_COMMAND::ReadData::exec()
 /******************************************************************************************/
 /*                                      * READ  ID *                                      */
 /******************************************************************************************/
-
 E5150::FDC_COMMAND::ReadID::ReadID(): Command("Read ID",2) {}
 
 //TODO: timing !
@@ -119,8 +118,6 @@ void E5150::FDC_COMMAND::ReadID::exec()
 	FDC::instance->waitClock(7);
 	FDC::instance->switchToResultMode();
 }
-
-E5150::FDC_COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1){}
 
 /******************************************************************************************/
 /*                                     * RECALIBRATE *                                    */
@@ -162,10 +159,10 @@ static unsigned int millisecondsFromHLTTimer (const unsigned int HLTValue) { ret
 //But it is here in case of I found a way to implement it
 void E5150::FDC_COMMAND::Recalibrate::exec()
 {
-	//static unsigned int stepCount = 0;
+	static unsigned int stepCount = 0;
 
-	//if (m_firstStep)
-	//	stepCount = 0;
+	if (m_firstStep)
+		stepCount = 0;
 
 	if (!m_floppyToApply->isReady())
 	{
@@ -181,11 +178,11 @@ void E5150::FDC_COMMAND::Recalibrate::exec()
 		return;
 	}
 	
-	/*if (stepCount == 77)
+	if (stepCount == 77)
 	{
 		FDCDebug(4,"RECALIBRATE COMMAND: Termination with 77 step issued without track0 found");
 		finish(FDC::ST0_FLAGS::SE | FDC::ST0_FLAGS::EC);
-	}*/
+	}
 
 	const unsigned int millisecondsValueFromSRTTimer = millisecondsFromSRTTimer(FDC::instance->timers[FDC::TIMER::STEP_RATE_TIME]);
 	const Milliseconds millisecondsToWait (millisecondsValueFromSRTTimer*2);
@@ -201,9 +198,8 @@ void E5150::FDC_COMMAND::Recalibrate::exec()
 		FDC::instance->waitMilli(millisecondsValueFromSRTTimer);
 
 	m_firstStep = false;
-	//++stepCount;
+	++stepCount;
 }
-
 
 /*******************************************************************************************/
 /*                                * SENSE INTERRUPT STATUS *                               */
@@ -252,12 +248,24 @@ void E5150::FDC_COMMAND::Specify::onConfigureFinish()
 	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue*2);
 }
 
-//TODO: sense drive status
+/******************************************************************************************/
+/*                                 * SENSE DRIVE STATUS *                                 */
+/******************************************************************************************/
+E5150::FDC_COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive Status",2,1){}
+
+bool E5150::FDC_COMMAND::SenseDriveStatus::configure(const uint8_t data)
+{ return generalConfigure<false,true,RESULT_MODE_AFTER_CONFIGURE>(this,data); }
+
+void E5150::FDC_COMMAND::SenseDriveStatus::onConfigureFinish()
+{
+	const unsigned int floppyIndex = m_configurationWords[2] & 0b11;
+	m_resultWords[0] = FDC::instance->floppyDrives[floppyIndex].getStatusRegister3();
+}
+
 
 /******************************************************************************************/
 /*                                        * SEEK *                                        */
 /******************************************************************************************/
-
 E5150::FDC_COMMAND::Seek::Seek(): Command("Seek",3,0) {}
 
 void E5150::FDC_COMMAND::Seek::onConfigureBegin ()

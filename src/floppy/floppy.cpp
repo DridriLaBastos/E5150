@@ -17,6 +17,9 @@ E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++
 ID E5150::Floppy100::getID (void) const
 { return { pcn, 0,0,0 }; }
 
+void E5150::Floppy100::setHeadAddress(const unsigned int headAddress)
+{ status.headAddress=headAddress; }
+
 static void loadHeads(E5150::Floppy100* const flp)
 { flp->timing.lastTimeHeadLoadRequest = Clock::now(); flp->status.headUnloaded = false; }
 
@@ -158,4 +161,17 @@ bool E5150::Floppy100::step(const bool direction, const Milliseconds& timeSinceL
 	}
 
 	return direction ? stepHeadUp(this) : stepHeadDown(this);
+}
+
+uint8_t E5150::Floppy100::getStatusRegister3() const
+{
+	const unsigned int FT = 0;
+	const unsigned int WP = status.writeProtected ? 1 << 6 : 0;
+	const unsigned int RDY = isReady() ? 1 << 5: 0;
+	const unsigned int T0 = pcn == 0 ? 1 << 4: 0;
+	//const unsigned int TS = 0; single sided but here for completness
+	const unsigned int HD = status.headAddress << 2;
+	const unsigned int USx = driverNumber;
+
+	return FT | WP | RDY | T0 | HD | USx;
 }

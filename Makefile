@@ -46,8 +46,8 @@ $(PCHOBJ): $(PCHSRC) include/util.hpp include/config.hpp
 %.o:%.cpp $(PCHOBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-%.bin: %.s
-	nasm -f bin $^ -o $@
+%.bin: %.s test/util.inc
+	nasm -f bin $< -o $@
 
 src/cpu.o: src/cpu.cpp $(CPUSRC) $(PCHOBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@

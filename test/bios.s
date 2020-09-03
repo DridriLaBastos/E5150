@@ -18,12 +18,5 @@ mov dx, 0x3F2
 mov ax, 0b10000
 out dx, al
 
-SPECIFY 0xF,0xB,1
-SEEK 0,5
-
-hlt
-
-SPECIFY 0xF,0xE,1
-RECALIBRATE 0
-
+SENSE_DRIVE_STATUS(0b100)
 hlt

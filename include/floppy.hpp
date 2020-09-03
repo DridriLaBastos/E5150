@@ -21,10 +21,11 @@ struct Geometry
 
 struct Status
 {
-	bool headUnloaded;
-	bool motorStoped;
-	bool selected;
-	unsigned int headAddress;
+	bool headUnloaded = false;
+	bool motorStoped = true;
+	bool selected = false;
+	bool writeProtected = false;
+	unsigned int headAddress = 0;
 };
 
 struct Timing
@@ -62,8 +63,9 @@ namespace E5150
 		void motorOff (void);
 		bool select   (void);
 		void unselect (void);
-		void setHeadAddress (const unsigned int headAddress) { status.headAddress=headAddress; }
-		void resetHeadAddress (void) { setHeadAddress(0); }
+		void setHeadAddress (const unsigned int headAddress);
+
+		uint8_t getStatusRegister3 (void) const;
 
 		const unsigned int driverNumber;
 		unsigned int pcn = 0;
@@ -77,7 +79,7 @@ namespace E5150
 		static unsigned int floppyNumber;
 
 		Geometry geometry { 40, 1, 8, false };
-		Status status { true, true, false, 0 };
+		Status status;
 		Timer timers { Milliseconds(500), Milliseconds(35), Milliseconds(240), Milliseconds(8) };
 		Timing timing;
 	};

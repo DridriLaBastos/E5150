@@ -42,3 +42,10 @@ sis:
 	FDC_COMMAND(0b111)
 	FDC_COMMAND(%1)
 %endmacro
+
+%macro SENSE_DRIVE_STATUS 1
+	FDC_COMMAND(0b100)
+	FDC_COMMAND(%1)
+
+	FDC_RESULT
+%endmacro

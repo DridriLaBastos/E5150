@@ -94,7 +94,12 @@ namespace E5150
 			public: Specify(void);
 		};
 
-		class SenseDriveStatus: public Command { public: SenseDriveStatus(void); };
+		class SenseDriveStatus: public Command
+		{
+			virtual bool configure (const uint8_t data) final;
+			virtual void onConfigureFinish(void) final;
+			public: SenseDriveStatus(void);
+		};
 		
 		class Seek: public Command
 		{
