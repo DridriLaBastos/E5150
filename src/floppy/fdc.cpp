@@ -138,8 +138,16 @@ static void writeDOR(const uint8_t data)
 
 static void writeDataRegister(const uint8_t data)
 {
+	static unsigned int writePos = 0;
+
 	if (!selectedCommand)
 	{
+		if (E5150::FDC::instance->isBusy())
+		{
+			FDCDebug(1,"New command issued while another command is being processed. Nothing done");
+			return;
+		}
+		
 		uint8_t commandIndex = data & 0b1111;
 
 		//The first four digits of the first world identify the command except when the value equals 9 or 13
@@ -155,10 +163,16 @@ static void writeDataRegister(const uint8_t data)
 		selectedCommand = commands[commandIndex];
 		
 		FDCDebug(5,"Selecting command '{}'",selectedCommand->m_name);
+		selectedCommand->configurationBegin();
 	}
-	
-	selectedCommand->configure(data);
+
+	fdc->configurationDatas[writePos++] = data;
 	fdc->statusRegisterRead = false;
+
+	writePos %= selectedCommand->configurationWordsNumber;
+
+	if (writePos == 0)
+		selectedCommand->configurationEnd();
 }
 
 void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
@@ -212,12 +226,14 @@ static void switchPhase (void)
 
 static uint8_t readDataRegister()
 {
-	const auto [result,readDone] = selectedCommand->readResult();
+	static unsigned int resultWordPos=0;
+	fdc->dataRegister = fdc->resultDatas[resultWordPos++];
 
-	if (readDone)
+	resultWordPos %= selectedCommand->resultWordsNumber;
+
+	if (resultWordPos==0)
 		switchPhase();
 	
-	fdc->dataRegister = result;
 	fdc->statusRegisterRead = false;
 	return fdc->dataRegister;
 }

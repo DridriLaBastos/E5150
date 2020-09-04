@@ -96,6 +96,9 @@ namespace E5150
 			std::array<Floppy100,4> floppyDrives;
 			std::array<uint8_t, 3> timers;
 
+			std::array<uint8_t,9> configurationDatas;
+			std::array<uint8_t,7> resultDatas;
+
 			PHASE phase;
 			unsigned int passClock;
 			bool statusRegisterRead;

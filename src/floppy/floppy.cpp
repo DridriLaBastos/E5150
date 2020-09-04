@@ -149,6 +149,7 @@ static bool stepHeadDown(E5150::Floppy100* const flp)
 }
 
 //TODO: what happen when the heads are unloaded
+//TODO: check cylinder addressing
 bool E5150::Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep)
 {
 	if (!status.selected)

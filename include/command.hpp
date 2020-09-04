@@ -10,25 +10,17 @@ namespace E5150
 		struct Command
 		{
 			public:
-				Command (const std::string& name = "", const unsigned int configurationWorldNumber=9, const unsigned int resultWorldNumber=7);
-
-				virtual bool configure (const uint8_t data);
-
-				//Return true when reading result is done
-				std::pair<uint8_t,bool> readResult (void);
+				Command (const std::string& name = "",const unsigned int configNumber=9,const unsigned int resultNumber=7);
 
 				virtual void exec (void);
 				const std::string m_name;
-				
-				//TODO: I don't like having vectors here
-				std::vector<uint8_t> m_configurationWords;
-				std::vector<uint8_t> m_resultWords;
-				unsigned int m_clockWait;
-				unsigned int m_floppyDrive;
-				unsigned int m_configurationStep;
 
-				virtual void onConfigureBegin  (void);
-				virtual void onConfigureFinish (void);
+				const unsigned int configurationWordsNumber;
+				const unsigned int resultWordsNumber;
+				unsigned int m_clockWait;
+
+				virtual void configurationBegin  (void);
+				virtual void configurationEnd (void);
 			
 		};
 
@@ -39,7 +31,7 @@ namespace E5150
 
 			void loadHeads(void);
 			virtual void exec () final;
-			//virtual void onConfigureFinish(void) final;
+			//virtual void configurationEnd(void) final;
 
 			STATUS m_status { STATUS::LOADING_HEADS };
 		};
@@ -69,10 +61,9 @@ namespace E5150
 
 		class Recalibrate: public Command
 		{
-			virtual bool configure (const uint8_t data) final;
 			virtual void exec (void) final;
-			virtual void onConfigureBegin(void) final;
-			virtual void onConfigureFinish(void) final;
+			virtual void configurationBegin(void) final;
+			virtual void configurationEnd(void) final;
 			void finish (const unsigned int ST0Flags);
 
 			E5150::Floppy100* m_floppyToApply = nullptr;
@@ -82,22 +73,19 @@ namespace E5150
 
 		class SenseInterruptStatus: public Command
 		{
-			virtual void onConfigureFinish(void) final;
-			virtual bool configure (const uint8_t data) final;
+			virtual void configurationEnd(void) final;
 			public: SenseInterruptStatus(void);
 		};
 
 		class Specify: public Command
 		{
-			virtual void onConfigureFinish(void) final;
-			virtual bool configure (const uint8_t data) final;
+			virtual void configurationEnd(void) final;
 			public: Specify(void);
 		};
 
 		class SenseDriveStatus: public Command
 		{
-			virtual bool configure (const uint8_t data) final;
-			virtual void onConfigureFinish(void) final;
+			virtual void configurationEnd(void) final;
 			public: SenseDriveStatus(void);
 		};
 		
@@ -106,9 +94,8 @@ namespace E5150
 			public: Seek(void);
 			private:
 			virtual void exec (void) final;
-			virtual void onConfigureBegin(void) final;
-			virtual void onConfigureFinish(void) final;
-			virtual bool configure (const uint8_t data) final;
+			virtual void configurationBegin(void) final;
+			virtual void configurationEnd(void) final;
 			void execOnFloppyDrive (Floppy100& drive) const;
 
 			private:
@@ -122,7 +109,7 @@ namespace E5150
 
 		class Invalid: public Command
 		{
-			virtual bool configure(const uint8_t data) final;
+			virtual void configurationEnd() final;
 			public: Invalid(void);
 		};
 	}

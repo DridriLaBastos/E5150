@@ -1,6 +1,7 @@
 %include "test/util.inc"
 
 [CPU 8086]
+xchg bx,bx
 mov dx, 0x20
 mov ax, 0b10011
 out dx, al
@@ -18,5 +19,7 @@ mov dx, 0x3F2
 mov ax, 0b10000
 out dx, al
 
-SENSE_DRIVE_STATUS(0b100)
+SPECIFY 0xF,0xB,1
+SEEK 0,150
+
 hlt
