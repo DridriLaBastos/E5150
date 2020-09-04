@@ -191,7 +191,6 @@ E5150::FDC_COMMAND::Specify::Specify(): Command("Specify",3,0) {}
 
 void E5150::FDC_COMMAND::Specify::configurationEnd()
 {
-	generalConfigurationEnd<DONT_CHECK_MFM,DONT_SET_FDD_HEAD,COMMAND_MODE_AFTER_CONFIGURE>();
 	const uint8_t SRTValue = FDC::instance->configurationDatas[1] >> 4;
 	const uint8_t HUTValue = FDC::instance->configurationDatas[1] & 0xF;
 	const uint8_t HLTValue = FDC::instance->configurationDatas[2] >> 1;
@@ -213,6 +212,7 @@ void E5150::FDC_COMMAND::Specify::configurationEnd()
 	FDCDebug(1,"SRT Value set to {}ms",SRTTimerMSValue*2);
 	FDCDebug(1,"HUT Value set to {}ms",HUTTimerMSValue*2);
 	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue*2);
+	generalConfigurationEnd<DONT_CHECK_MFM,DONT_SET_FDD_HEAD,COMMAND_MODE_AFTER_CONFIGURE>();
 }
 
 /******************************************************************************************/
@@ -222,9 +222,9 @@ E5150::FDC_COMMAND::SenseDriveStatus::SenseDriveStatus(): Command("Sense Drive S
 
 void E5150::FDC_COMMAND::SenseDriveStatus::configurationEnd()
 {
-	generalConfigurationEnd<DONT_CHECK_MFM,SET_FDD_HEAD,RESULT_MODE_AFTER_CONFIGURE>();
 	const unsigned int floppyIndex = FDC::instance->configurationDatas[2] & 0b11;
 	FDC::instance->resultDatas[0] = FDC::instance->floppyDrives[floppyIndex].getStatusRegister3();
+	generalConfigurationEnd<DONT_CHECK_MFM,SET_FDD_HEAD,RESULT_MODE_AFTER_CONFIGURE>();
 }
 
 
@@ -241,7 +241,6 @@ void E5150::FDC_COMMAND::Seek::configurationBegin ()
 
 void E5150::FDC_COMMAND::Seek::configurationEnd()
 {
-	generalConfigurationEnd<DONT_CHECK_MFM>();
 	const unsigned int floppyIndex = FDC::instance->configurationDatas[1] & 0b11;
 	m_floppyToApply = &FDC::instance->floppyDrives[floppyIndex];
 
@@ -250,6 +249,7 @@ void E5150::FDC_COMMAND::Seek::configurationEnd()
 	m_direction = ncn > pcn;
 
 	FDC::instance->setSeekStatusOn(floppyIndex);
+	generalConfigurationEnd<DONT_CHECK_MFM>();
 }
 
 void E5150::FDC_COMMAND::Seek::finish(const unsigned int endFlags)
