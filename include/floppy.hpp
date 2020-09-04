@@ -6,7 +6,7 @@
 struct ID
 {
 	unsigned int cylinder; //C: the current selected cylinder
-	unsigned int headAddress;//H: head number 
+	unsigned int headAddress;//H: head number
 	unsigned int record;//R: sector number which will be read/write
 	unsigned int number;//N: number of data byte written in a sector
 };
@@ -54,7 +54,9 @@ namespace E5150
 		void open (const std::string& path);
 
 		void write (const uint8_t data, const size_t dataPos);
-		ID getID (void) const;
+
+		//TODO: better getID function
+		const ID getID (void) const;
 
 		bool isReady (void) const;
 		void setMotorSpinning (const bool spinning);

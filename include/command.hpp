@@ -57,7 +57,10 @@ namespace E5150
 
 		class FormatTrack: public Command {};
 
-		class ScanEqual: public Command {};
+		class ScanEqual: public Command
+		{
+			public: ScanEqual(void);
+		};
 
 		class Recalibrate: public Command
 		{

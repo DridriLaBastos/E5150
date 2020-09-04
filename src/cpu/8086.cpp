@@ -247,10 +247,6 @@ void CPU::printRegisters() const
 	std::printf("CS: %0#6.4x   DS: %0#6.4x   ES: %0#6.4x   SS: %0#6.4x\n",m_regs[CS],m_regs[DS],m_regs[ES],m_regs[SS]);
 	std::printf("AX: %0#6.4x   BX: %0#6.4x   CX: %0#6.4x   DX: %0#6.4x\n",m_gregs[AX],m_gregs[BX],m_gregs[CX],m_gregs[DX]);
 	std::printf("SI: %0#6.4x   DI: %0#6.4x   BP: %0#6.4x   SP: %0#6.4x\n\n",m_regs[SI],m_regs[DI],m_regs[BP],m_regs[SP]);
-	/*std::cout << std::hex << "CS: " << m_regs[CS] << "  DS: " << m_regs[DS] << "   ES: " << m_regs[ES] << "   SS: " << m_regs[SS] << std::endl;
-	std::cout << "AX: " << m_gregs[AX].x << "  BX: " << m_gregs[BX].x << "   CX: " << m_gregs[CX].x << "   DX: " << m_gregs[DX].x << std::endl;
-	std::cout << "SI: " << m_regs[SI] << "  DI: " << m_regs[DI] << "   BP: " << m_regs[BP] << "   SP: " << m_regs[SP] << '\n'
-			  << std::dec << std::endl;*/
 #endif
 }
 

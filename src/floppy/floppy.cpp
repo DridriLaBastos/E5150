@@ -14,8 +14,8 @@ E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++
 }
 
 //TODO: will be removed
-ID E5150::Floppy100::getID (void) const
-{ return { pcn, 0,0,0 }; }
+const ID E5150::Floppy100::getID (void) const
+{ return { pcn,0,0,512 }; }
 
 void E5150::Floppy100::setHeadAddress(const unsigned int headAddress)
 { status.headAddress=headAddress; }
