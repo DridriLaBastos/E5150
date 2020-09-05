@@ -225,7 +225,7 @@ uint8_t E5150::Floppy100::read()
 			++currentID.record;
 		}
 
-		if (currentID.record == 9)
+		if (currentID.record == 9) {}
 			//TODO: end of track
 	}
 
