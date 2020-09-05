@@ -9,6 +9,8 @@ struct ID
 	unsigned int headAddress;//H: head number
 	unsigned int record;//R: sector number which will be read/write
 	unsigned int number;//N: number of data byte written in a sector
+
+	ID (unsigned int c=0,unsigned int h=0, unsigned int r=1,unsigned int n=0): cylinder(c), headAddress(h), record(r), number(n) { ASSERT(r >= 1); }
 };
 
 struct Geometry
@@ -25,6 +27,7 @@ struct Status
 	bool motorStoped = true;
 	bool selected = false;
 	bool writeProtected = false;
+	bool RWOperationHappened=false;
 	unsigned int headAddress = 0;
 };
 
@@ -32,6 +35,7 @@ struct Timing
 {
 	std::chrono::time_point<Clock> lastTimeHeadLoadRequest;
 	std::chrono::time_point<Clock> lastTimeMotorStartRequest;
+	std::chrono::time_point<Clock> endOfLastRWOperation;
 };
 
 struct Timer
@@ -58,7 +62,9 @@ namespace E5150
 		//TODO: better getID function
 		const ID getID (void) const;
 
+		bool headLoaded (void) const;
 		bool isReady (void) const;
+		void loadHeads(void);
 		void setMotorSpinning (const bool spinning);
 		bool step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep);
 		void motorOn  (void);
@@ -70,7 +76,7 @@ namespace E5150
 		uint8_t getStatusRegister3 (void) const;
 
 		const unsigned int driverNumber;
-		unsigned int pcn = 0;
+		ID currentID;
 
 		std::fstream file;
 		bool isOpen;
@@ -84,6 +90,9 @@ namespace E5150
 		Status status;
 		Timer timers { Milliseconds(500), Milliseconds(35), Milliseconds(240), Milliseconds(8) };
 		Timing timing;
+
+		private:
+			bool inserted = false;
 	};
 }
 

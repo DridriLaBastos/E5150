@@ -5,7 +5,7 @@
 
 unsigned int E5150::Floppy100::floppyNumber = 0;
 
-E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),timeToWait(0),lastTimeBeforeWait(Clock::now()),pcn(0)
+E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++),timeToWait(0),lastTimeBeforeWait(Clock::now()),currentID({1,0,0,0})
 {
 	srand(time(NULL));
 
@@ -13,15 +13,42 @@ E5150::Floppy100::Floppy100(const std::string& path):driverNumber(floppyNumber++
 		open(path);
 }
 
+void E5150::Floppy100::open(const std::string& path)
+{
+	file.close();
+	inserted = false;
+
+	if (path.empty())
+	{
+		WARNING("FLOPPY[{}]: empty path will leave the drive empty",driverNumber);
+		return;
+	}
+
+	file.open(path);
+	inserted = file.is_open();
+
+	if (!file.is_open())
+	{
+		WARNING("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
+		return;
+	}
+}
+
 //TODO: will be removed
 const ID E5150::Floppy100::getID (void) const
-{ return { pcn,0,0,512 }; }
+{ return { inserted ? currentID.cylinder :0,0,0, inserted ? 512:0 }; }
 
 void E5150::Floppy100::setHeadAddress(const unsigned int headAddress)
 { status.headAddress=headAddress; }
 
-static void loadHeads(E5150::Floppy100* const flp)
-{ flp->timing.lastTimeHeadLoadRequest = Clock::now(); flp->status.headUnloaded = false; }
+void E5150::Floppy100::loadHeads ()
+{
+	if (!status.selected)
+		return;
+
+	timing.lastTimeHeadLoadRequest = Clock::now();
+	status.headUnloaded = false;
+}
 
 bool E5150::Floppy100::select (void)
 {
@@ -31,7 +58,7 @@ bool E5150::Floppy100::select (void)
 		FLPDebug(DEBUG_LEVEL_MAX,"Selected");
 
 		if (status.headUnloaded)
-			loadHeads(this);
+			loadHeads();
 		
 		return true;
 	}
@@ -42,10 +69,18 @@ bool E5150::Floppy100::select (void)
 }
 
 void E5150::Floppy100::unselect (void)
-{ status.selected = false; status.headUnloaded = true; FLPDebug(DEBUG_LEVEL_MAX,"Unselected"); }
+{
+	status.selected = false;
+	status.headUnloaded = true;
+
+	FLPDebug(DEBUG_LEVEL_MAX,"Unselected");
+}
 
 void E5150::Floppy100::motorOn(void)
 {
+	if (!inserted)
+		return;
+
 	if (status.motorStoped)
 	{
 		FLPDebug(10,"Motor start spinning");
@@ -57,38 +92,45 @@ void E5150::Floppy100::motorOn(void)
 
 void E5150::Floppy100::motorOff(void)
 {
+	if (!inserted)
+		return;
+	
 	if (!status.motorStoped)
 		FLPDebug(DEBUG_LEVEL_MAX,"Motor stop spinning");
 	status.motorStoped = true;
 }
 
 void E5150::Floppy100::setMotorSpinning(const bool spinning)
-{ if (spinning) { motorOn(); } else { motorOff(); } }
-
-//TODO: handle desynchronization
-static bool waitingDone(const E5150::Floppy100* const flp)
-{ return std::chrono::high_resolution_clock::now() - flp->lastTimeBeforeWait >= flp->timeToWait; }
-
-static void wait(E5150::Floppy100* const flp, Milliseconds& toWait)
 {
-	if (!waitingDone(flp))
-		throw std::logic_error("Cannot wait will previous wait is not finished");
-
-	flp->lastTimeBeforeWait = Clock::now();
-	flp->timeToWait = toWait;
+	if (!inserted)
+		return;
+	
+	if (spinning) { motorOn(); } else { motorOff(); }
 }
 
-static bool headLoaded(const E5150::Floppy100* const flp)
+bool E5150::Floppy100::headLoaded() const
 {
-	const bool headLoadFinish = (Clock::now() - flp->timing.lastTimeHeadLoadRequest) >= flp->timers.headLoad;
+	if (!inserted)
+		return false;
 
-	if (flp->status.headUnloaded)
-		EXTERNAL_FLPDebug(4,"Head is not loaded");
+	if (status.headUnloaded)
+	{
+		FLPDebug(4,"Head is not loaded");
+		return false;
+	}
+
+	//If a R/W operation happened and ended, cheking that the head is still loaded
+	if (status.RWOperationHappened)
+		return Clock::now() - timing.endOfLastRWOperation < timers.headUnload;
 	
+	//Checking if the loading part is finish
+	const bool headLoadFinish = (Clock::now() - timing.lastTimeHeadLoadRequest) >= timers.headLoad;
+
 	if (!headLoadFinish)
-		EXTERNAL_FLPDebug(4,"Head loading isn't finish yet\n"
-				"\tYou should wait {}ms after selecting the drive for the head to be loaded",flp->timers.headLoad.count());
-	return !flp->status.headUnloaded && ((Clock::now() - flp->timing.lastTimeHeadLoadRequest) >= flp->timers.headLoad);
+		FLPDebug(4,"Head loading isn't finish yet\n"
+				"\tYou should wait {}ms after selecting the drive for the head to be loaded",timers.headLoad.count());
+
+	return headLoadFinish;
 }
 
 static bool motorAtFullSpeed(const E5150::Floppy100* const flp)
@@ -103,22 +145,7 @@ static bool correctHeadAddress (const E5150::Floppy100* const flp)
 }
 
 bool E5150::Floppy100::isReady() const
-{ return status.selected && headLoaded(this) && motorAtFullSpeed(this) && correctHeadAddress(this); }
-
-void E5150::Floppy100::open(const std::string& path)
-{
-	file.close();
-
-	if (path.empty())
-		WARNING("FLOPPY[{}]: empty path will leave the drive empty",driverNumber);
-	else
-	{
-		file.open(path);
-
-		if (!file.is_open())
-			WARNING("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
-	}
-}
+{ return status.selected && headLoaded() && motorAtFullSpeed(this) && correctHeadAddress(this); }
 
 //TODO: review this
 void E5150::Floppy100::write (const uint8_t data, const size_t dataPos)
@@ -132,19 +159,19 @@ void E5150::Floppy100::write (const uint8_t data, const size_t dataPos)
 
 static bool stepHeadUp(E5150::Floppy100* const flp)
 {
-	if (flp->pcn == flp->geometry.cylinders - 1)
+	if (flp->currentID.cylinder == flp->geometry.cylinders - 1)
 		return false;
 	
-	++flp->pcn;
+	++flp->currentID.cylinder;
 	return true;
 }
 
 static bool stepHeadDown(E5150::Floppy100* const flp)
 {
-	if (flp->pcn == 0)
+	if (flp->currentID.cylinder == 0)
 		return false;
 	
-	--flp->pcn;
+	--flp->currentID.cylinder;
 	return true;
 }
 
@@ -152,6 +179,9 @@ static bool stepHeadDown(E5150::Floppy100* const flp)
 //TODO: check cylinder addressing
 bool E5150::Floppy100::step(const bool direction, const Milliseconds& timeSinceLastStep, const bool firstStep)
 {
+	if (!inserted)
+		return true;
+
 	if (!status.selected)
 		FLPDebug(5,"Step while not selected");
 
@@ -169,7 +199,7 @@ uint8_t E5150::Floppy100::getStatusRegister3() const
 	const unsigned int FT = 0;
 	const unsigned int WP = status.writeProtected ? 1 << 6 : 0;
 	const unsigned int RDY = isReady() ? 1 << 5: 0;
-	const unsigned int T0 = pcn == 0 ? 1 << 4: 0;
+	const unsigned int T0 = currentID.cylinder == 0 ? 1 << 4: 0;
 	//const unsigned int TS = 0; single sided but here for completness
 	const unsigned int HD = status.headAddress << 2;
 	const unsigned int USx = driverNumber;

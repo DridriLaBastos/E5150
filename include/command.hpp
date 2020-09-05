@@ -21,19 +21,16 @@ namespace E5150
 
 				virtual void configurationBegin  (void);
 				virtual void configurationEnd (void);
+
+				Floppy100* floppyToApply = nullptr;
 			
 		};
 
 		class ReadData: public Command
 		{
-			enum class STATUS
-			{ LOADING_HEADS, READ_DATA };
-
-			void loadHeads(void);
-			virtual void exec () final;
-			//virtual void configurationEnd(void) final;
-
-			STATUS m_status { STATUS::LOADING_HEADS };
+			virtual void exec (void) final;
+			virtual void configurationEnd(void) final;
+			bool loadHeadRequested=false;
 		};
 
 		class WriteData: public Command {};
