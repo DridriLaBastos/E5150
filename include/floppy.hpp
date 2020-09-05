@@ -57,6 +57,7 @@ namespace E5150
 		Floppy100(const std::string& path = "");
 		void open (const std::string& path);
 
+		uint8_t read (void);
 		void write (const uint8_t data, const size_t dataPos);
 
 		//TODO: better getID function

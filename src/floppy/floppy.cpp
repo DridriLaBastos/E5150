@@ -191,6 +191,8 @@ bool E5150::Floppy100::step(const bool direction, const Milliseconds& timeSinceL
 		return false;
 	}
 
+	const unsigned int newFilePos = currentID.cylinder*8 + (currentID.record-1);//got to the beginning of the sector
+	file.seekp(newFilePos);
 	return direction ? stepHeadUp(this) : stepHeadDown(this);
 }
 
@@ -205,4 +207,27 @@ uint8_t E5150::Floppy100::getStatusRegister3() const
 	const unsigned int USx = driverNumber;
 
 	return FT | WP | RDY | T0 | HD | USx;
+}
+
+uint8_t E5150::Floppy100::read()
+{
+	uint8_t ret;
+
+	//If non inserted the returned value will be indetermined
+	if (inserted)
+	{
+		ret = file.get();
+		++currentID.number;
+
+		if (currentID.number == 512)
+		{
+			currentID.number = 0;
+			++currentID.record;
+		}
+
+		if (currentID.record == 9)
+			//TODO: end of track
+	}
+
+	return ret;
 }
