@@ -272,6 +272,5 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 	}
 
 	FDCDebug(1,"Value outputed will be undetermined");
-	uint8_t undetermined;
-	return 	undetermined;
+	return E5150::Util::undef;
 }

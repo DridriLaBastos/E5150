@@ -10,7 +10,7 @@ struct ID
 	unsigned int record;//R: sector number which will be read/write
 	unsigned int number;//N: number of data byte written in a sector
 
-	ID (unsigned int c=0,unsigned int h=0, unsigned int r=1,unsigned int n=0): cylinder(c), headAddress(h), record(r), number(n) { ASSERT(r >= 1); }
+	ID (const unsigned int c=0,const unsigned int h=0,const unsigned int r=1,const unsigned int n=0): cylinder(c), headAddress(h), record(r), number(n) { /*ASSERT(r >= 1);*/ }
 };
 
 struct Geometry

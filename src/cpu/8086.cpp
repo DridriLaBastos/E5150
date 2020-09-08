@@ -244,9 +244,9 @@ void CPU::updateStatusFlags (const unsigned int value, const bool byte)
 void CPU::printRegisters() const
 {
 #if defined(SEE_REGS) ||  defined(SEE_ALL)
-	std::printf("CS: %0#6.4x   DS: %0#6.4x   ES: %0#6.4x   SS: %0#6.4x\n",m_regs[CS],m_regs[DS],m_regs[ES],m_regs[SS]);
-	std::printf("AX: %0#6.4x   BX: %0#6.4x   CX: %0#6.4x   DX: %0#6.4x\n",m_gregs[AX],m_gregs[BX],m_gregs[CX],m_gregs[DX]);
-	std::printf("SI: %0#6.4x   DI: %0#6.4x   BP: %0#6.4x   SP: %0#6.4x\n\n",m_regs[SI],m_regs[DI],m_regs[BP],m_regs[SP]);
+	std::printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",m_regs[CS],m_regs[DS],m_regs[ES],m_regs[SS]);
+	std::printf("AX: %#6.4x   BX: %#6.4x   CX: %#6.4x   DX: %#6.4x\n",m_gregs[AX].x,m_gregs[BX].x,m_gregs[CX].x,m_gregs[DX].x);
+	std::printf("SI: %#6.4x   DI: %#6.4x   BP: %#6.4x   SP: %#6.4x\n\n",m_regs[SI],m_regs[DI],m_regs[BP],m_regs[SP]);
 #endif
 }
 

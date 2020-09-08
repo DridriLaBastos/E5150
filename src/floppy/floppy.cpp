@@ -36,7 +36,11 @@ void E5150::Floppy100::open(const std::string& path)
 
 //TODO: will be removed
 const ID E5150::Floppy100::getID (void) const
-{ return { inserted ? currentID.cylinder :0,0,0, inserted ? 512:0 }; }
+{
+	const ID ret (inserted ? currentID.cylinder:0,0,1,inserted ? 512:0);
+	DEBUG("c:{} h:{} r:{} n:{}",ret.cylinder,ret.headAddress,ret.record,ret.number);
+	return ret;
+}
 
 void E5150::Floppy100::setHeadAddress(const unsigned int headAddress)
 { status.headAddress=headAddress; }
