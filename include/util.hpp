@@ -13,6 +13,7 @@ namespace E5150
 		static unsigned int CURRENT_DEBUG_LEVEL;
 		static bool _continue;
 		static bool _stop;
+		static unsigned int undef;//For all undefined value, it is set to a random value at runtime
 	};
 }
 

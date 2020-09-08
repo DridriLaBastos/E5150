@@ -4,8 +4,10 @@
 int main (void)
 {
 #ifdef DEBUG_BUILD
-	spdlog::set_level(spdlog::level::debug);
+	spdlog::set_level(spdlog::level::trace);
 #endif
+	//Well... ty for that C++ -.-
+	E5150::Util::undef = (unsigned long)main & (unsigned int)-1;
 	E5150::Arch arch;
 
 	//Loading bochs BIOS

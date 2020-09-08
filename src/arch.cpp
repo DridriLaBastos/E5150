@@ -16,6 +16,7 @@ static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS * 1.f
 bool E5150::Util::_continue = true;
 bool E5150::Util::_stop = true;
 unsigned int E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
+unsigned int E5150::Util::undef;
 
 static void stop(const int signum)
 {
