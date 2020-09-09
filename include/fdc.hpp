@@ -24,6 +24,8 @@ namespace E5150
 			void waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
 			void waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 
+			void interruptPIC(void) const;
+
 			void switchToCommandMode (void);
 			void switchToExecutionMode (void);
 			void switchToResultMode (void);
@@ -31,8 +33,14 @@ namespace E5150
 			void makeAvailable (void) { statusRegister &= ~(1 << 4); }
 			void setSeekStatusOn (const unsigned int driveNumber) { statusRegister |= (1 << driveNumber); }
 			void resetSeekStatusOf (const unsigned int driveNumber) { statusRegister &= ~(1 << driveNumber); }
+
+			void E5150::FDC::makeDataRegisterReady (void);
+			void E5150::FDC::makeDataRegisterNotReady (void);
+			void E5150::FDC::makeDataRegisterInReadMode (void);
+			void E5150::FDC::makeDataRegisterInWriteMode (void);
 			
 			bool isBusy (void) const { return statusRegister & 0b10000; }
+			bool E5150::FDC:: dataRegisterReady (void) const;
 		
 		public:
 			void clock (void);
@@ -62,6 +70,16 @@ namespace E5150
 				SE  = 1 << 5,
 				IC1 = 1 << 6,
 				IC2 = 1 << 7
+			};
+
+			enum ST1_FLAGS
+			{
+				MA = 1 << 0,
+				NW = 1 << 1,
+				ND = 1 << 2,
+				OR = 1 << 4,
+				DE = 1 << 5,
+				EN = 1 << 7
 			};
 
 			enum TIMER
@@ -101,9 +119,13 @@ namespace E5150
 
 			PHASE phase;
 			unsigned int passClock;
+			unsigned int clockFromCommandStart;
 			bool statusRegisterRead;
+			bool readCommandInProcess;
+			uint8_t readFromFloppy;
 
 			static FDC* instance;
+			static const PIC::IR_LINE ConnectedIRLine = PIC::IR6;
 		
 		private:
 			virtual void write (const unsigned int localAddress, const uint8_t data) final;

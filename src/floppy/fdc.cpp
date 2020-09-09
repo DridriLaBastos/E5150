@@ -43,11 +43,15 @@ static void reinit()
 	fdc->dorRegister |= FDC::DOR_REGISTER::FDC_RESET | FDC::DOR_REGISTER::IO;
 	fdc->dataRegister = 0;
 	fdc->passClock = 0;
+	fdc->clockFromCommandStart = 0;
 	fdc->statusRegisterRead = false;
+	fdc->readCommandInProcess = false;
 
 	fdc->timers[0] = 0;
 	fdc->timers[1] = 0;
 	fdc->timers[2] = 0;
+
+	fdc->readFromFloppy = 0;
 
 	fdc->switchToCommandMode();
 }
@@ -67,10 +71,10 @@ E5150::FDC::FDC(E5150::PIC& pic, PORTS& ports):
 	reinit();
 }
 
-static void makeDataRegisterReady (void) { fdc->statusRegister |= (1 << 7); }
-static void makeDataRegisterNotReady (void) { fdc->statusRegister &= ~(1 << 7); }
-static void makeDataRegisterInReadMode (void) { fdc->statusRegister |= 1 << 6; }
-static void makeDataRegisterInWriteMode (void) { fdc->statusRegister &= ~(1 << 6); }
+void E5150::FDC::makeDataRegisterReady () { fdc->statusRegister |= (1 << 7); }
+void E5150::FDC::makeDataRegisterNotReady () { fdc->statusRegister &= ~(1 << 7); }
+void E5150::FDC::makeDataRegisterInReadMode () { fdc->statusRegister |= 1 << 6; }
+void E5150::FDC::makeDataRegisterInWriteMode () { fdc->statusRegister &= ~(1 << 6); }
 
 void E5150::FDC::switchToCommandMode (void)
 {
@@ -96,18 +100,23 @@ void E5150::FDC::switchToResultMode (void)
 	FDCDebug(7,"switched to result mode");
 }
 
+void E5150::FDC::interruptPIC() const
+{ picConnected.assertInterruptLine(PIC::IR_LINE::IR6,this); }
+
 /*** Some utility functions ***/
-static bool dataRegisterReady (void) { return fdc->statusRegister & (1 << 7); }
+bool E5150::FDC:: dataRegisterReady () const { return statusRegister & (1 << 7); }
 static bool dataRegisterInReadMode (void) { return fdc->statusRegister & (1 << 6); }
 static bool dataRegisterInWriteMode (void) { return !dataRegisterInReadMode(); }
-static bool statusRegisterAllowReading (void) { return dataRegisterReady() && dataRegisterInReadMode() && fdc->statusRegisterRead; }
-static bool statusRegisterAllowWriting (void) { return dataRegisterReady() && dataRegisterInWriteMode() && fdc->statusRegisterRead; }
+static bool statusRegisterAllowReading (void) { return fdc->dataRegisterReady() && dataRegisterInReadMode() && fdc->statusRegisterRead; }
+static bool statusRegisterAllowWriting (void) { return fdc->dataRegisterReady() && dataRegisterInWriteMode() && fdc->statusRegisterRead; }
 
 static void setST0Flag (const FDC::ST0_FLAGS flag) { fdc->STRegisters[0] |= flag; }
 static void resetST0Flag (const FDC::ST0_FLAGS flag) { fdc->STRegisters[0] &= ~flag; }
 
+//TODO: implement interrupt on ready line change
 void E5150::FDC::clock()
 {
+	++clockFromCommandStart;
 	if (passClock == 0)
 	{
 		if (phase == PHASE::EXECUTION)
@@ -227,6 +236,7 @@ static void switchPhase (void)
 static uint8_t readDataRegister()
 {
 	static unsigned int resultWordPos=0;
+
 	fdc->dataRegister = fdc->resultDatas[resultWordPos++];
 
 	resultWordPos %= selectedCommand->resultWordsNumber;
@@ -246,6 +256,13 @@ static uint8_t readStatusRegister()
 
 uint8_t E5150::FDC::read	(const unsigned int localAddress)
 {
+	//No need to check addresse: from the doc the read signal only need to be a requested (end of page 4)
+	if (readCommandInProcess)
+	{
+		makeDataRegisterNotReady();
+		return readFromFloppy;
+	}
+
 	switch (localAddress)
 	{
 		case 2:

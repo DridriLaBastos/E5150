@@ -30,6 +30,7 @@ namespace E5150
 		{
 			virtual void exec (void) final;
 			virtual void configurationEnd(void) final;
+			void finish(const unsigned int endFlags);
 			bool loadHeadRequested=false;
 		};
 
@@ -96,7 +97,7 @@ namespace E5150
 			void execOnFloppyDrive (Floppy100& drive) const;
 
 			private:
-				void finish(const unsigned int st0Flags);
+				void finish(const unsigned int st0Flags, const unsigned int st1Flags);
 
 			private:
 				bool m_direction;

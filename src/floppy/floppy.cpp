@@ -148,8 +148,9 @@ static bool correctHeadAddress (const E5150::Floppy100* const flp)
 	return !flp->status.headAddress;
 }
 
+//TODO: investigate what make a floppy ready or not
 bool E5150::Floppy100::isReady() const
-{ return status.selected && headLoaded() && motorAtFullSpeed(this) && correctHeadAddress(this); }
+{ return inserted && status.selected && headLoaded() && motorAtFullSpeed(this) && correctHeadAddress(this); }
 
 //TODO: review this
 void E5150::Floppy100::write (const uint8_t data, const size_t dataPos)
@@ -215,7 +216,7 @@ uint8_t E5150::Floppy100::getStatusRegister3() const
 
 uint8_t E5150::Floppy100::read()
 {
-	uint8_t ret;
+	uint8_t ret = Util::undef;
 
 	//If non inserted the returned value will be indetermined
 	if (inserted)

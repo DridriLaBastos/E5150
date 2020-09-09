@@ -38,7 +38,6 @@ static void generalConfigurationEnd (void)
 }
 
 /*** BASE CLASS ***/
-
 E5150::FDC_COMMAND::Command::Command(const std::string& name,const unsigned int configNumber,const unsigned int resultNumber):
 m_name(name),configurationWordsNumber(configNumber),resultWordsNumber(resultNumber)
 {}
@@ -54,7 +53,30 @@ static unsigned int millisecondsFromHLTTimer (void) { return E5150::FDC::instanc
 /******************************************************************************************/
 /*                                     * READ  DATA *                                     */
 /******************************************************************************************/
-void E5150::FDC_COMMAND::ReadData::configurationEnd() { loadHeadRequested=false; }
+void E5150::FDC_COMMAND::ReadData::configurationEnd()
+{
+	loadHeadRequested=false;
+	FDC::instance->readCommandInProcess = true;
+	FDC::instance->makeDataRegisterInReadMode();
+
+	if ((FDC::instance->configurationDatas[5] != 0) && (FDC::instance->configurationDatas[8] != 0x0F))
+		FDCDebug(DEBUG_LEVEL_MAX," READ DATA: DTL (configuration word 9) should be 0xFF when N (configuration word 6) is non 0");
+}
+
+void E5150::FDC_COMMAND::ReadData::finish(const unsigned int st1Flags)
+{
+	FDC::instance->STRegisters[1] = st1Flags;
+	FDC::instance->interruptPIC();
+	FDC::instance->switchToResultMode();
+}
+
+//TODO:
+// - implement DMA transfert
+// - CRC check (really ?)
+// - DTL to 0x0FF when N is non 0
+// - detection of index hole
+// - implement getting sector id
+//From IBM doc: 250K bits/sec --> 32000o/s --> 31.25 us/octet --> 125 clocks at 4MHz (250 ns/clk)
 void E5150::FDC_COMMAND::ReadData::exec()
 {
 	if (!floppyToApply->headLoaded() && !loadHeadRequested)
@@ -65,12 +87,33 @@ void E5150::FDC_COMMAND::ReadData::exec()
 		return;
 	}
 
-	//floppyToApply->read();
-	//FDC::instance->waitClocks(125);
-	//From IBM doc: 250K bits/sec --> 32000o/s --> 31.25 us/octet --> 125 clocks at 4MHz (250 ns/clk)
-	static const unsigned int clockPerOctet = 125;
+	//TODO: How exact this counter should be ?
+	if (FDC::instance->clockFromCommandStart != 52)
+	{
+		finish(FDC::ST1_FLAGS::OR);
+		return;
+	}
 
+	//TODO:
+	//if terminalCount
+	//	stop uploading data
+	//	continue reading until end of sector
+	//	terminate count
+	const uint8_t readFromFloppy = floppyToApply->read();
 
+	//if N==0
+	if (FDC::instance->configurationDatas[5] == 0)
+	{
+		if (floppyToApply->currentID.number > FDC::instance->configurationDatas[8])
+			return;
+	}
+
+	FDC::instance->makeDataRegisterReady();
+	FDC::instance->readFromFloppy = floppyToApply->read();
+	FDC::instance->picConnected.assertInterruptLine(FDC::ConnectedIRLine,FDC::instance);
+	return;
+
+	FDC::instance->clockFromCommandStart = 0;
 }
 
 /******************************************************************************************/
@@ -247,14 +290,15 @@ void E5150::FDC_COMMAND::Seek::configurationEnd()
 	generalConfigurationEnd<DONT_CHECK_MFM>();
 }
 
-void E5150::FDC_COMMAND::Seek::finish(const unsigned int endFlags)
+void E5150::FDC_COMMAND::Seek::finish(const unsigned int st0Flags, const unsigned int st1Flags = 0)
 {
-	const unsigned int st0Flags = endFlags | (FDC::instance->configurationDatas[1] & 0b111);
+	const unsigned int st0Flags = st0Flags | (FDC::instance->configurationDatas[1] & 0b111);
 	FDC::instance->STRegisters[0] = st0Flags;
+	FDC::instance->STRegisters[1] = st1Flags;
 	FDC::instance->resetSeekStatusOf(floppyToApply->driverNumber);
 	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time
 	FDC::instance->makeAvailable();
-	FDC::instance->picConnected.assertInterruptLine(PIC::IR6,FDC::instance);
+	FDC::instance->interruptPIC();
 	FDC::instance->switchToCommandMode();
 }
 
