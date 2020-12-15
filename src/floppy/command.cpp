@@ -34,7 +34,6 @@ static void generalConfigurationEnd (void)
 	
 	if constexpr (MODE_AFTER_CONFIGURE == RESULT_MODE_AFTER_CONFIGURE)
 		E5150::FDC::instance->switchToResultMode();
-	
 }
 
 /*** BASE CLASS ***/
@@ -292,8 +291,7 @@ void E5150::FDC_COMMAND::Seek::configurationEnd()
 
 void E5150::FDC_COMMAND::Seek::finish(const unsigned int st0Flags, const unsigned int st1Flags = 0)
 {
-	const unsigned int st0Flags = st0Flags | (FDC::instance->configurationDatas[1] & 0b111);
-	FDC::instance->STRegisters[0] = st0Flags;
+	FDC::instance->STRegisters[0] = st0Flags | (FDC::instance->configurationDatas[1] & 0b111);
 	FDC::instance->STRegisters[1] = st1Flags;
 	FDC::instance->resetSeekStatusOf(floppyToApply->driverNumber);
 	//TODO: this shouldn't be there, but for now I don't know how to make multiple seek at a time

@@ -34,13 +34,13 @@ namespace E5150
 			void setSeekStatusOn (const unsigned int driveNumber) { statusRegister |= (1 << driveNumber); }
 			void resetSeekStatusOf (const unsigned int driveNumber) { statusRegister &= ~(1 << driveNumber); }
 
-			void E5150::FDC::makeDataRegisterReady (void);
-			void E5150::FDC::makeDataRegisterNotReady (void);
-			void E5150::FDC::makeDataRegisterInReadMode (void);
-			void E5150::FDC::makeDataRegisterInWriteMode (void);
+			void makeDataRegisterReady (void);
+			void makeDataRegisterNotReady (void);
+			void makeDataRegisterInReadMode (void);
+			void makeDataRegisterInWriteMode (void);
 			
 			bool isBusy (void) const { return statusRegister & 0b10000; }
-			bool E5150::FDC:: dataRegisterReady (void) const;
+			bool  dataRegisterReady (void) const;
 		
 		public:
 			void clock (void);
@@ -54,10 +54,10 @@ namespace E5150
 				DS1 = 1 << 1,
 				FDC_RESET = 1 << 2,
 				IO = 1 << 3,
-				MA = 1 << 4,
-				MB = 1 << 5,
-				MC = 1 << 6,
-				MD = 1 << 7
+				MA_ENABLE = 1 << 4,
+				MB_ENABLE = 1 << 5,
+				MC_ENABLE = 1 << 6,
+				MD_ENABLE = 1 << 7
 			};
 
 			enum ST0_FLAGS

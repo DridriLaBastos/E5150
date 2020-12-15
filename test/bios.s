@@ -22,4 +22,6 @@ out dx, al
 SPECIFY 0xF,0xB,1
 SEEK 0,150
 
-hlt
+hltLoop:
+	hlt
+jmp hltLoop
