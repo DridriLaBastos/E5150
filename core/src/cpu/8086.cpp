@@ -1,61 +1,49 @@
 #include "8086.hpp"
+#include "instructions.hpp"
 
-CPU::CPU(RAM &ram, PORTS &ports) : m_flags(0), m_ip(0), m_regs(), m_ram(ram), hlt(false), m_ports(ports),
-								   intr(false), nmi(false), intr_v(0), m_gregs(), interrupt_enable(true),m_clockCountDown(0),
-								   instructionExecuted(0)
+CPU::CPU(RAM& r, PORTS& p) : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
+							 ram(r), ports(p)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
-	m_regs[CS] = 0xF000;
-	m_regs[SS] = 0xEF0;
-	m_regs[SP] = 0xFF;
-	m_ip = 0xFFF0;
-	m_flags = 0x02;
+	cs = 0xF000;
+	ss = 0xEF0;
+	sp = 0xFF;
+	ip = 0xFFF0;
+	flags = 0x02;
 
 	/* initialisation de xed */
 	xed_tables_init();
-	xed_decoded_inst_zero(&m_decoded_inst);
-	xed_decoded_inst_set_mode(&m_decoded_inst, XED_MACHINE_MODE_REAL_16, XED_ADDRESS_WIDTH_16b);
+	xed_decoded_inst_zero(&decodedInst);
+	xed_decoded_inst_set_mode(&decodedInst, XED_MACHINE_MODE_REAL_16, XED_ADDRESS_WIDTH_16b);
 }
 
-void CPU::request_nmi (void)
+void CPU::requestNmi (void)
 {
 	nmi = true;
-	request_intr(2);
+	requestIntr(2);
 }
 
-void CPU::request_intr (const uint8_t vector)
+void CPU::requestIntr (const uint8_t vector)
 { intr_v = vector; intr = true; }
-
-unsigned int CPU::gen_address (const reg_t base, const uint16_t offset) const
-{ return (base << 4) + offset; }
-
-unsigned int CPU::gen_address (const reg_t base, const xed_reg_enum_t offset) const 
-{ return gen_address(base, read_reg(offset)); }
-
-unsigned int CPU::gen_address (const xed_reg_enum_t segment, const uint16_t offset) const 
-{ return gen_address(read_reg(segment), offset); }
-
-unsigned int CPU::gen_address (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const 
-{return gen_address(read_reg(segment), read_reg(offset));}
 
 /**
  * This function compute the effective address for a memory operand and add the corresponding number of 
- * instructions cycles. The instruction cycles are îcked up from https://zsmith.co/intel.php#ea:
+ * instructions cycles. The instruction cycles are picked up from https://zsmith.co/intel.php#ea:
  * 1.  disp: mod = 0b00 and rm = 0b110								+6
  * 2.  (BX,BP,SI,DI): mod = 0b00 and rm != 0b110 and rm = 0b1xx		+5
  * 3.  disp + (BX,BP,SI,DI): mod = 0b10 and rm = 0b1xx				+9
- * 4.1 (BP+DI, BX+SI): mod = 0b00 and rm = 0b01x					+7
- * 4.2 (BP+SI, BX+DI): mod = 0b00 and rm = 0b00x					+8
- * 5.1 disp + (BP+DI, BX+SI) +-> same as precedet with mod = 0b10	+11
- * 5.2 disp + (BP+SI, BX+DI) +										+12
+ * 4.1 (BP+DI, bx+SI): mod = 0b00 and rm = 0b01x					+7
+ * 4.2 (BP+SI, bx+DI): mod = 0b00 and rm = 0b00x					+8
+ * 5.1 disp + (BP+DI, bx+SI) +-> same as precedet with mod = 0b10	+11
+ * 5.2 disp + (BP+SI, bx+DI) +										+12
  * 
  * word operands at odd addresses	+4
  * segment override					+2
  */
 unsigned int CPU::genEA (void) 
 {
-	const unsigned int modrm = xed_decoded_inst_get_modrm(&m_decoded_inst);
+	const unsigned int modrm = xed_decoded_inst_get_modrm(&decodedInst);
 	const unsigned int mod = (modrm & 0b11000000) >> 6;
 	const unsigned int rm = modrm & 0b111;
 
@@ -63,15 +51,15 @@ unsigned int CPU::genEA (void)
 	{
 		//1. disp: mod == 0b00 and rm 0b110
 		if (rm == 0b110)
-			m_clockCountDown += 6;
+			clockCountDown += 6;
 		else
 		{
 			//2. (base,index) mod = 0b00 and rm = 0b1xx and rm != 0b110
 			if (rm & 0b100)
-				m_clockCountDown += 5;
+				clockCountDown += 5;
 			//4.1/4.2 base + index mod = 0b00 and rm = 0b01x/0b00x
 			else
-				m_clockCountDown += (rm & 0b10) ? 7 : 8;
+				clockCountDown += (rm & 0b10) ? 7 : 8;
 		}
 	}
 	//mod = 0b10
@@ -79,78 +67,78 @@ unsigned int CPU::genEA (void)
 	{
 		//3. disp + (base,index): mod = 0b10 rm = 0b1xx
 		if (rm & 0b100)
-			m_clockCountDown += 9;
+			clockCountDown += 9;
 		//5.1/5.2 base + index + disp: mod = 0b10 rm = 0b01x/0b00x
 		else
-			m_clockCountDown += (rm & 0b10) ? 11 : 12;
+			clockCountDown += (rm & 0b10) ? 11 : 12;
 	}
 
-	const unsigned int address = gen_address(xed_decoded_inst_get_seg_reg(&m_decoded_inst,0), xed_decoded_inst_get_memory_displacement(&m_decoded_inst,0));
+	const unsigned int address = genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
 
-	if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 2)
-		m_clockCountDown += (address & 0b1) ? 4 : 0;
+	if (xed_decoded_inst_get_memory_operand_length(&decodedInst, 0) == 2)
+		clockCountDown += (address & 0b1) ? 4 : 0;
 	
-	if (xed_operand_values_has_segment_prefix(&m_decoded_inst))
-		m_clockCountDown += 2;
+	if (xed_operand_values_has_segment_prefix(&decodedInst))
+		clockCountDown += 2;
 	
 	return address;
 
 }
 
-uint8_t  CPU::readByte (const unsigned int addr) const 
-{ return m_ram.read(addr); }
+uint8_t CPU::readByte (const unsigned int addr) const 
+{ return ram.read(addr); }
 
 uint16_t CPU::readWord (const unsigned int addr) const 
-{ return (uint16_t)m_ram.read(addr) | (uint16_t)(m_ram.read(addr + 1) << 8); }
+{ return (uint16_t)ram.read(addr) | (uint16_t)(ram.read(addr + 1) << 8); }
 
 void CPU::writeByte (const unsigned int addr, const uint8_t  data) 
-{ m_ram.write(addr, data); }
+{ ram.write(addr, data); }
 
 void CPU::writeWord (const unsigned int addr, const uint16_t data) 
-{ m_ram.write(addr, (uint8_t)data); m_ram.write(addr + 1, (uint8_t)(data >> 8)); }
+{ ram.write(addr, (uint8_t)data); ram.write(addr + 1, (uint8_t)(data >> 8)); }
 
 void CPU::push (const uint16_t data)
-{ m_regs[SP] -= 2; writeWord(gen_address(m_regs[SS], m_regs[SP]), data); }
+{ sp -= 2; writeWord(genAddress(ss,sp), data); }
 
 uint16_t CPU::pop (void)
 {
-	const uint16_t ret = readWord(gen_address(m_regs[SS], m_regs[SP])); m_regs[SP] += 2;
+	const uint16_t ret = readWord(genAddress(ss,sp)); sp += 2;
 	return ret;
 }
 
 void CPU::far_call (const reg_t seg, const uint16_t offset)
 {
-	push(m_regs[CS]);
-	push(m_ip);
+	push(cs);
+	push(ip);
 
-	m_regs[CS] = seg;
-	m_ip	   = offset;
+	cs = seg;
+	ip = offset;
 }
 
 void CPU::far_ret (void)
 {
-	m_ip = pop();
-	m_regs[CS] = pop();
+	ip = pop();
+	cs = pop();
 }
 
 void CPU::interrupt (const bool isNMI)
 {
 	E5150::Util::_stop = true;
 	const unsigned int interruptVector = isNMI ? 2 : intr_v;
-	push(m_flags);
+	push(flags);
 	clearFlags(INTF);
-	far_call(readWord(gen_address(0, 4 * interruptVector + 2)), readWord(gen_address(0, 4 * interruptVector)));
+	far_call(readWord(genAddress(0, 4 * interruptVector + 2)), readWord(genAddress(0, 4 * interruptVector)));
 	hlt = false;
 }
 
-void CPU::setFlags (const unsigned int flags)
-{ m_flags |= flags; }
+void CPU::setFlags (const unsigned int requestedFlags)
+{ flags |= requestedFlags; }
 
-void CPU::clearFlags (const unsigned int flags)
-{ m_flags &= (~flags); }
+void CPU::clearFlags (const unsigned int requestedFlags)
+{ flags &= (~requestedFlags); }
 
-bool CPU::getFlagStatus (const unsigned int flag)
-{ return (m_flags & (unsigned int) flag) == flag; }
+bool CPU::getFlagStatus (const CPU::FLAGS_T flag) const
+{ return flags & (unsigned int) flag; }
 
 void CPU::testCF (const unsigned int value, const bool byte)
 {
@@ -242,35 +230,35 @@ void CPU::updateStatusFlags (const unsigned int value, const bool byte)
 	testOF(value, byte);
 }
 
-void CPU::printRegisters() const
+static void printRegisters(const CPU& cpu)
 {
 #if defined(SEE_REGS) ||  defined(SEE_ALL)
-	std::printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",m_regs[CS],m_regs[DS],m_regs[ES],m_regs[SS]);
-	std::printf("AX: %#6.4x   BX: %#6.4x   CX: %#6.4x   DX: %#6.4x\n",m_gregs[AX].x,m_gregs[BX].x,m_gregs[CX].x,m_gregs[DX].x);
-	std::printf("SI: %#6.4x   DI: %#6.4x   BP: %#6.4x   SP: %#6.4x\n\n",m_regs[SI],m_regs[DI],m_regs[BP],m_regs[SP]);
+	std::printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
+	std::printf("AX: %#6.4x   bx: %#6.4x   CX: %#6.4x   DX: %#6.4x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
+	std::printf("SI: %#6.4x   DI: %#6.4x   BP: %#6.4x   SP: %#6.4x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
 #endif
 }
 
-void CPU::printFlags() const
+static void printFlags(const CPU& cpu)
 {
 #if defined(SEE_FLAGS) || defined(SEE_ALL)
-	std::cout << ((m_flags & CARRY) ? "CF" : "cf") << "  " << ((m_flags & PARRITY) ? "PF" : "pf") << "  " << ((m_flags & A_CARRY) ? "AF" : "af") << "  " << ((m_flags & ZERRO) ? "ZF" : "zf") << "  " << ((m_flags & SIGN) ? "SF" : "sf") << "  " << ((m_flags & TRAP) ? "TF" : "tf") << "  " << ((m_flags & INTF) ? "IF" : "if") << "  " << ((m_flags & DIR) ? "DF" : "df") << "  " << ((m_flags & OVER) ? "OF" : "of") << std::endl;
+	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
 #endif
 }
 
-void CPU::printCurrentInstruction() const
+static void printCurrentInstruction(const CPU& cpu)
 {
 #if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	if (!inst)
 		return;
-	std::cout << std::hex << m_regs[CS] << ":" << m_ip << " (" << gen_address(m_regs[CS], m_ip) << ")" << std::dec << ": ";
-	//std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&m_decoded_inst)) << " : length = " << xed_decoded_inst_get_length(&m_decoded_inst) << std::endl;
-	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&m_decoded_inst)) << " ";
+	std::cout << std::hex << cpu.cs << ":" << cpu.ip << " (" << cpu.genAddress(cpu.cs,cpu.ip) << ")" << std::dec << ": ";
+	//std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.decodedInst)) << " : length = " << xed_decoded_inst_get_length(&cpu.decodedInst) << std::endl;
+	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.decodedInst)) << " ";
 	unsigned int realOperandPos = 0;
 	bool foundPtr = false;
 
-	for (unsigned int i = 0; i < xed_decoded_inst_noperands(&m_decoded_inst); ++i)
+	for (unsigned int i = 0; i < xed_decoded_inst_noperands(&cpu.decodedInst); ++i)
 	{
 		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
 		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
@@ -291,33 +279,33 @@ void CPU::printCurrentInstruction() const
 			switch (op_name)
 			{
 			case XED_OPERAND_RELBR:
-				std::cout << xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+				std::cout << xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 				break;
 
 			case XED_OPERAND_PTR:
-				std::cout << xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+				std::cout << xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 				foundPtr = true;
 				break;
 
 			case XED_OPERAND_REG0:
 			case XED_OPERAND_REG1:
 			case XED_OPERAND_REG2:
-				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 				break;
 
 			case XED_OPERAND_IMM0:
 			case XED_OPERAND_IMM1:
-				std::cout << std::hex << xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst) << std::dec;
+				std::cout << std::hex << xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst) << std::dec;
 				break;
 
 			//Displaying memory operand woth format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
 			case XED_OPERAND_MEM0:
 			{
-				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&m_decoded_inst, 0);
-				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&m_decoded_inst, 0);
-				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&m_decoded_inst,0);
-				std::cout << ((xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1) ? "BYTE" : "WORD") << " ";
-				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&m_decoded_inst, 0)) << ":[";
+				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&cpu.decodedInst, 0);
+				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&cpu.decodedInst, 0);
+				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&cpu.decodedInst,0);
+				std::cout << ((xed_decoded_inst_get_memory_operand_length(&cpu.decodedInst, 0) == 1) ? "BYTE" : "WORD") << " ";
+				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&cpu.decodedInst, 0)) << ":[";
 
 				if (baseReg != XED_REG_INVALID)
 					std::cout << xed_reg_enum_t2str(baseReg);
@@ -355,226 +343,223 @@ void CPU::printCurrentInstruction() const
 #endif
 }
 
-void CPU::NOP()
-{ m_clockCountDown = 3; }
-
-bool CPU::execNonControlTransferInstruction()
+static bool execNonControlTransferInstruction(CPU& cpu)
 {
 	bool hasExecutedInstruction = true;
 
-	//TODO: optimize this switch
-	switch (xed_decoded_inst_get_iclass(&m_decoded_inst))
+	//TODO: check if this switch needs to be optimized
+	switch (xed_decoded_inst_get_iclass(&cpu.decodedInst))
 	{
 	case XED_ICLASS_MOV:
-		MOV();
+		MOV(cpu);
 		break;
 
 	case XED_ICLASS_PUSH:
-		PUSH();
+		PUSH(cpu);
 		break;
 
 	case XED_ICLASS_POP:
-		POP();
+		POP(cpu);
 		break;
 
 	case XED_ICLASS_ADD:
-		ADD();
+		ADD(cpu);
 		break;
 
 	case XED_ICLASS_INC:
-		INC();
+		INC(cpu);
 		break;
 
 	case XED_ICLASS_SUB:
-		SUB();
+		SUB(cpu);
 		break;
 
 	case XED_ICLASS_DEC:
-		DEC();
+		DEC(cpu);
 		break;
 
 	case XED_ICLASS_NEG_LOCK:
 	case XED_ICLASS_NEG:
-		NEG();
+		NEG(cpu);
 		break;
 
 	case XED_ICLASS_CMP:
-		CMP();
+		CMP(cpu);
 		break;
 
 	case XED_ICLASS_MUL:
-		MUL();
+		MUL(cpu);
 		break;
 
 	case XED_ICLASS_IMUL:
-		IMUL();
+		IMUL(cpu);
 		break;
 
 	case XED_ICLASS_DIV:
-		DIV();
+		DIV(cpu);
 		break;
 
 	case XED_ICLASS_IDIV:
-		IDIV();
+		IDIV(cpu);
 		break;
 
 	case XED_ICLASS_XCHG:
-		XCHG();
+		XCHG(cpu);
 		break;
 
 	case XED_ICLASS_NOT:
-		NOT();
+		NOT(cpu);
 		break;
 
 	case XED_ICLASS_IN:
-		IN();
+		IN(cpu);
 		break;
 
 	case XED_ICLASS_OUT:
-		OUT();
+		OUT(cpu);
 		break;
 
 	case XED_ICLASS_XLAT:
-		XLAT();
+		XLAT(cpu);
 		break;
 
 	case XED_ICLASS_LEA:
-		LEA();
+		LEA(cpu);
 		break;
 
 	case XED_ICLASS_LDS:
-		LDS();
+		LDS(cpu);
 		break;
 
 	case XED_ICLASS_LES:
-		LES();
+		LES(cpu);
 		break;
 
 	case XED_ICLASS_LAHF:
-		LAHF();
+		LAHF(cpu);
 		break;
 
 	case XED_ICLASS_SAHF:
-		SAHF();
+		SAHF(cpu);
 		break;
 
 	case XED_ICLASS_PUSHF:
-		PUSHF();
+		PUSHF(cpu);
 		break;
 
 	case XED_ICLASS_POPF:
-		POPF();
+		POPF(cpu);
 		break;
 
 	case XED_ICLASS_CLC:
-		CLC();
+		CLC(cpu);
 		break;
 
 	case XED_ICLASS_STC:
-		STC();
+		STC(cpu);
 		break;
 
 	case XED_ICLASS_CLI:
-		CLI();
+		CLI(cpu);
 		break;
 
 	case XED_ICLASS_STI:
-		STI();
+		STI(cpu);
 		break;
 
 	case XED_ICLASS_CLD:
-		CLD();
+		CLD(cpu);
 		break;
 
 	case XED_ICLASS_STD:
-		STD();
+		STD(cpu);
 		break;
 
 	case XED_ICLASS_HLT:
-		HLT();
+		HLT(cpu);
 		break;
 	
 	case XED_ICLASS_NOP:
-		NOP();
+		NOP(cpu);
 		break;
 	
 	default:
 		hasExecutedInstruction = false;
 	}
 
-	m_ip += xed_decoded_inst_get_length(&m_decoded_inst);
+	cpu.ip += xed_decoded_inst_get_length(&cpu.decodedInst);
 
 	return hasExecutedInstruction;
 }
 
-void CPU::execControlTransferInstruction()
+static void execControlTransferInstruction(CPU& cpu)
 {
 	/* Control transfert */
 	//TODO: Implement Jcc instructions
-	switch (xed_decoded_inst_get_iclass(&m_decoded_inst))
+	switch (xed_decoded_inst_get_iclass(&cpu.decodedInst))
 	{
 	case XED_ICLASS_CALL_NEAR:
-		NEAR_CALL();
+		NEAR_CALL(cpu);
 		break;
 
 	case XED_ICLASS_CALL_FAR:
-		FAR_CALL();
+		FAR_CALL(cpu);
 		break;
 
 	case XED_ICLASS_JMP:
-		NEAR_JMP();
+		NEAR_JMP(cpu);
 		break;
 
 	case XED_ICLASS_JMP_FAR:
-		FAR_JMP();
+		FAR_JMP(cpu);
 		break;
 
 	case XED_ICLASS_RET_NEAR:
-		NEAR_RET();
+		NEAR_RET(cpu);
 		break;
 
 	case XED_ICLASS_RET_FAR:
-		FAR_RET();
+		FAR_RET(cpu);
 		break;
 
 	case XED_ICLASS_JZ:
-		JZ();
+		JZ(cpu);
 		break;
 
 	case XED_ICLASS_JL:
-		JL();
+		JL(cpu);
 		break;
 
 	case XED_ICLASS_JLE:
-		JLE();
+		JLE(cpu);
 		break;
 
 	case XED_ICLASS_JNZ:
-		JNZ();
+		JNZ(cpu);
 		break;
 
 	case XED_ICLASS_JNL:
-		JNL();
+		JNL(cpu);
 		break;
 
 	case XED_ICLASS_JNLE:
-		JNLE();
+		JNLE(cpu);
 		break;
 
 	case XED_ICLASS_LOOP:
-		LOOP();
+		LOOP(cpu);
 		break;
 
 	case XED_ICLASS_JCXZ:
-		JCXZ();
+		JCXZ(cpu);
 		break;
 
 	case XED_ICLASS_INT:
-		INT();
+		INT(cpu);
 		break;
 
 	case XED_ICLASS_IRET:
-		IRET();
+		IRET(cpu);
 		break;
 	}
 }
@@ -627,19 +612,113 @@ void CPU::exec()
 	}
 }
 
+unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
+{ return (base << 4) + offset; }
+
+unsigned int CPU::genAddress (const uint16_t base, const xed_reg_enum_t offset) const
+{ return genAddress(base, readReg(offset)); }
+
+unsigned int CPU::genAddress (const xed_reg_enum_t segment, const uint16_t offset) const
+{ return genAddress(readReg(segment), offset); }
+
+unsigned int CPU::genAddress (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const
+{return genAddress(readReg(segment), readReg(offset));}
+
+uint16_t CPU::readReg(const xed_reg_enum_t reg) const
+{
+	switch (reg)
+	{
+	case XED_REG_AX:
+		return ax;
+
+	case XED_REG_BX:
+		return bx;
+
+	case XED_REG_CX:
+		return cx;
+
+	case XED_REG_DX:
+		return dx;
+
+	case XED_REG_AH:
+		return ah;
+
+	case XED_REG_BH:
+		return bh;
+
+	case XED_REG_CH:
+		return ch;
+
+	case XED_REG_DH:
+		return dh;
+
+	case XED_REG_AL:
+		return al;
+
+	case XED_REG_BL:
+		return bl;
+
+	case XED_REG_CL:
+		return cl;
+
+	case XED_REG_DL:
+		return dl;
+
+	case XED_REG_SI:
+		return si;
+
+	case XED_REG_DI:
+		return di;
+
+	case XED_REG_BP:
+		return bp;
+
+	case XED_REG_SP:
+		return sp;
+
+	case XED_REG_CS:
+		return cs;
+
+	case XED_REG_DS:
+		return ds;
+
+	case XED_REG_ES:
+		return es;
+
+	case XED_REG_SS:
+		return ss;
+	}
+
+	// Should never be reached but here to silent compiler warning
+	// TODO: launch an exception here ? (probably yes, it is not ok if the program goes here)
+	return 0;
+}
+
 void CPU::clock()
 {
-	if (m_clockCountDown != 0)
-		--m_clockCountDown;
+	if (clockCountDown != 0)
+	{
+		--clockCountDown;
+		return;
+	}
 
 	if (!hlt)
 	{
-		xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
-		xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
+		xed_decoded_inst_zero_keep_mode(&decodedInst);
+		xed_decode(&decodedInst, ram.m_ram + genAddress(cs,ip), 16);
 
-		if (!execNonControlTransferInstruction())
-			execControlTransferInstruction();
-		instructionExecuted += 1;
+	#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+		if (E5150::Util::_stop)
+		{
+			printRegisters(*this);
+			printFlags(*this);
+			printCurrentInstruction(*this);
+			clockWait();
+		}
+	#endif
+
+		if (!execNonControlTransferInstruction(*this))
+			execControlTransferInstruction(*this);
 	}
 
 	if (intr)
@@ -666,153 +745,83 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 	switch (reg)
 	{
 	case XED_REG_AX:
-		m_gregs[AX].x = data;
+		ax = data;
 		break;
 
 	case XED_REG_BX:
-		m_gregs[BX].x = data;
+		bx = data;
 		break;
 
 	case XED_REG_CX:
-		m_gregs[CX].x = data;
+		cx = data;
 		break;
 
 	case XED_REG_DX:
-		m_gregs[DX].x = data;
+		dx = data;
 		break;
 
 	case XED_REG_AH:
-		m_gregs[AX].h = data;
+		ah = data;
 		break;
 
 	case XED_REG_BH:
-		m_gregs[BX].h = data;
+		bh = data;
 		break;
 
 	case XED_REG_CH:
-		m_gregs[CX].h = data;
+		ch = data;
 		break;
 
 	case XED_REG_DH:
-		m_gregs[DX].h = data;
+		dh = data;
 		break;
 
 	case XED_REG_AL:
-		m_gregs[AX].l = data;
+		al = data;
 		break;
 
 	case XED_REG_BL:
-		m_gregs[BX].l = data;
+		bl = data;
 		break;
 
 	case XED_REG_CL:
-		m_gregs[CX].l = data;
+		cl = data;
 		break;
 
 	case XED_REG_DL:
-		m_gregs[DX].l = data;
+		dl = data;
 		break;
 
 	case XED_REG_SI:
-		m_regs[SI] = data;
+		si = data;
 		break;
 
 	case XED_REG_DI:
-		m_regs[DI] = data;
+		di = data;
 		break;
 
 	case XED_REG_BP:
-		m_regs[BP] = data;
+		bp = data;
 		break;
 
 	case XED_REG_SP:
-		m_regs[SP] = data;
+		sp = data;
 		break;
 
 	case XED_REG_CS:
-		m_regs[CS] = data;
+		cs = data;
 		break;
 
 	case XED_REG_DS:
-		m_regs[DS] = data;
+		ds = data;
 		break;
 
 	case XED_REG_ES:
-		m_regs[ES] = data;
+		es = data;
 		break;
 
 	case XED_REG_SS:
-		m_regs[SS] = data;
+		ss = data;
 		break;
 	}
-}
-
-uint16_t CPU::read_reg(const xed_reg_enum_t reg) const
-{
-	switch (reg)
-	{
-	case XED_REG_AX:
-		return m_gregs[AX].x;
-
-	case XED_REG_BX:
-		return m_gregs[BX].x;
-
-	case XED_REG_CX:
-		return m_gregs[CX].x;
-
-	case XED_REG_DX:
-		return m_gregs[DX].x;
-
-	case XED_REG_AH:
-		return m_gregs[AX].h;
-
-	case XED_REG_BH:
-		return m_gregs[BX].h;
-
-	case XED_REG_CH:
-		return m_gregs[CX].h;
-
-	case XED_REG_DH:
-		return m_gregs[DX].h;
-
-	case XED_REG_AL:
-		return m_gregs[AX].l;
-
-	case XED_REG_BL:
-		return m_gregs[BX].l;
-
-	case XED_REG_CL:
-		return m_gregs[CX].l;
-
-	case XED_REG_DL:
-		return m_gregs[DX].l;
-
-	case XED_REG_SI:
-		return m_regs[SI];
-
-	case XED_REG_DI:
-		return m_regs[DI];
-
-	case XED_REG_BP:
-		return m_regs[BP];
-
-	case XED_REG_SP:
-		return m_regs[SP];
-
-	case XED_REG_CS:
-		return m_regs[CS];
-
-	case XED_REG_DS:
-		return m_regs[DS];
-
-	case XED_REG_ES:
-		return m_regs[ES];
-
-	case XED_REG_SS:
-		return m_regs[SS];
-	}
-
-	// Should never be reached but here to silent compiler warning
-	// TODO: launch an exception here ? (probably here, it is not ok the program goes here)
-	return 0;
 }

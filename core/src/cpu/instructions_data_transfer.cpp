@@ -1,8 +1,9 @@
 #include "8086.hpp"
+#include "instructions.hpp"
 
-void CPU::MOV()
+void MOV(CPU& cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 
 	xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 1));
 
@@ -11,19 +12,19 @@ void CPU::MOV()
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			move_v = read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			move_v = cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 
 		case XED_OPERAND_REG1:
-			move_v = read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			move_v = cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_IMM0:
-			move_v = xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+			move_v = xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 			break;
 
 		case XED_OPERAND_MEM0:
-			move_v = readWord(genEA());
+			move_v = cpu.readWord(cpu.genEA());
 			break;
 	}
 
@@ -32,56 +33,56 @@ void CPU::MOV()
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name), move_v);
+			cpu.write_reg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name), move_v);
 			break;
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int write_addr = genEA();
+			const unsigned int write_addr = cpu.genEA();
 
-			if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1)
-				writeByte(write_addr, (uint8_t)move_v);
+			if (xed_decoded_inst_get_memory_operand_length(&cpu.decodedInst, 0) == 1)
+				cpu.writeByte(write_addr, (uint8_t)move_v);
 			else
-				writeWord(write_addr, move_v);
+				cpu.writeWord(write_addr, move_v);
 			
 			break;
 		}
 	}
 }
 
-void CPU::PUSH (void)
+void PUSH (CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			push(read_reg(xed_decoded_inst_get_reg(&m_decoded_inst,op_name)));
+			cpu.push(cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst,op_name)));
 			break;
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int data_to_push_addr = genEA();
-			push(readWord(data_to_push_addr));
+			const unsigned int dataToPushAddr = cpu.genEA();
+			cpu.push(cpu.readWord(dataToPushAddr));
 		}
 		break;
 	}
 }
 
-void CPU::POP (void)
+void POP (CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t tmp_reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name);
+			const xed_reg_enum_t tmp_reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
 
-			write_reg(tmp_reg, pop());
+			cpu.write_reg(tmp_reg, cpu.pop());
 
 			if (tmp_reg == XED_REG_SP)
-				m_regs[SP] += 2;
+				cpu.sp += 2;
 
 			break;
 		}
@@ -89,23 +90,23 @@ void CPU::POP (void)
 	}
 }
 
-void CPU::XCHG()
+void XCHG(CPU& cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
 	// The second operand is always a register
-	const xed_reg_enum_t register_xchg = xed_decoded_inst_get_reg(&m_decoded_inst, xed_operand_name(xed_inst_operand(inst, 1)));
+	const xed_reg_enum_t register_xchg = xed_decoded_inst_get_reg(&cpu.decodedInst, xed_operand_name(xed_inst_operand(inst, 1)));
 
-	const uint16_t value1 = read_reg(register_xchg);
+	const uint16_t value1 = cpu.readReg(register_xchg);
 	uint16_t value2;
 
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg1 = xed_decoded_inst_get_reg(&m_decoded_inst, op_name);
-			write_reg(register_xchg, read_reg(reg1));
-			write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name), value1);
+			const xed_reg_enum_t reg1 = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
+			cpu.write_reg(register_xchg, cpu.readReg(reg1));
+			cpu.write_reg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name), value1);
 
 		#ifdef DEBUG_BUILD
 			if (!E5150::Util::_stop)
@@ -121,83 +122,83 @@ void CPU::XCHG()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			const unsigned int value2 = readWord(addr);
-			write_reg(register_xchg, value2);
+			const unsigned int addr = cpu.genEA();
+			const unsigned int value2 = cpu.readWord(addr);
+			cpu.write_reg(register_xchg, value2);
 
-			if (xed_decoded_inst_get_memory_operand_length(&m_decoded_inst, 0) == 1)
-				writeByte(addr, value1);
+			if (xed_decoded_inst_get_memory_operand_length(&cpu.decodedInst, 0) == 1)
+				cpu.writeByte(addr, value1);
 			else
-				writeWord(addr, value1);
+				cpu.writeWord(addr, value1);
 		}
 	}
 }
 
-void CPU::IN()
+void IN(CPU& cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
 
 	uint16_t iaddr = 0;
 
 	if (op_name == XED_OPERAND_IMM0)
-		iaddr = (uint16_t)xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+		iaddr = (uint16_t)xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 	else 
-		iaddr = m_gregs[DX].x;
+		iaddr = cpu.dx;
 
-	m_gregs[AX].l = m_ports.read(iaddr);
+	cpu.ax = cpu.ports.read(iaddr);
 
-	if (xed_decoded_inst_get_reg(&m_decoded_inst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
-		m_gregs[AX].h = m_ports.read(iaddr + 1);
+	if (xed_decoded_inst_get_reg(&cpu.decodedInst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
+		cpu.ax = cpu.ports.read(iaddr + 1);
 }
 
-void CPU::OUT()
+void OUT(CPU& cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
 
 	uint16_t oaddr = 0;
 
 	if (op_name == XED_OPERAND_IMM0)
-		oaddr = (uint16_t)xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+		oaddr = (uint16_t)xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 	else
-		oaddr = m_gregs[DX].x;
+		oaddr = cpu.dx;
 		
-	m_ports.write(oaddr, m_gregs[AX].l);
+	cpu.ports.write(oaddr, cpu.ax);
 
-	if (xed_decoded_inst_get_reg(&m_decoded_inst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
-		m_ports.write(oaddr + 1, m_gregs[AX].h);
+	if (xed_decoded_inst_get_reg(&cpu.decodedInst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
+		cpu.ports.write(oaddr + 1, cpu.ax);
 }
 
-void CPU::XLAT  (void)
-{ m_gregs[AX].l = readByte(gen_address(m_regs[DS], m_gregs[BX].x + m_gregs[AX].l)); }
+void XLAT (CPU& cpu)
+{ cpu.ax = cpu.readByte(cpu.genAddress(cpu.ds, cpu.bx + cpu.ax)); }
 
-void CPU::LEA()
+void LEA(CPU& cpu)
 {
-	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
-	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 1));
+	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 1));
 
-	write_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name0), genEA());
+	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name0), cpu.genEA());
 }
 
-void CPU::LDS()
+void LDS(CPU& cpu)
 {
 	//TODO: Implement LDS
 }
 
-void CPU::LES()
+void LES(CPU& cpu)
 {
 	//TODO: Implement LES
 }
 
-void CPU::LAHF  (void) 
-{ m_gregs[AX].h = (m_flags & 0b11010101)|0b10; }
+void LAHF (CPU& cpu)
+{ cpu.ax = (cpu.flags & 0b11010101)|0b10; }
 
-void CPU::SAHF  (void) 
-{ setFlags(m_gregs[AX].h & (0b11010101)); }
+void SAHF (CPU& cpu)
+{ cpu.setFlags(cpu.ax & (0b11010101)); }
 
-void CPU::PUSHF (void) 
-{ push(m_flags); }
+void PUSHF (CPU& cpu)
+{ cpu.push(cpu.flags); }
 
-void CPU::POPF  (void) 
-{ m_flags = pop(); }
+void POPF (CPU& cpu)
+{ cpu.flags = cpu.pop(); }
