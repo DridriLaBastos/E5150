@@ -35,7 +35,7 @@ static std::array<FDC_COMMAND::Command*, 16> commands
 
 static FDC_COMMAND::Command* selectedCommand = nullptr;
 
-//TODO: search more info of the init state of the status register. For now is is set to the status:
+//TODO: search more info of the init state of the status register. For now it is set to the status:
 // + all drives in seek mode
 static void reinit()
 {
@@ -105,10 +105,10 @@ void E5150::FDC::interruptPIC() const
 
 /*** Some utility functions ***/
 bool E5150::FDC:: dataRegisterReady () const { return statusRegister & (1 << 7); }
-static bool dataRegisterInReadMode (void) { return fdc->statusRegister & (1 << 6); }
-static bool dataRegisterInWriteMode (void) { return !dataRegisterInReadMode(); }
-static bool statusRegisterAllowReading (void) { return fdc->dataRegisterReady() && dataRegisterInReadMode() && fdc->statusRegisterRead; }
-static bool statusRegisterAllowWriting (void) { return fdc->dataRegisterReady() && dataRegisterInWriteMode() && fdc->statusRegisterRead; }
+static bool dataRegisterIsInReadMode (void) { return fdc->statusRegister & (1 << 6); }
+static bool dataRegisterIsInWriteMode (void) { return !dataRegisterIsInReadMode(); }
+static bool statusRegisterAllowReading (void) { return fdc->dataRegisterReady() && dataRegisterIsInReadMode() && fdc->statusRegisterRead; }
+static bool statusRegisterAllowWriting (void) { return fdc->dataRegisterReady() && dataRegisterIsInWriteMode() && fdc->statusRegisterRead; }
 
 static void setST0Flag (const FDC::ST0_FLAGS flag) { fdc->STRegisters[0] |= flag; }
 static void resetST0Flag (const FDC::ST0_FLAGS flag) { fdc->STRegisters[0] &= ~flag; }
@@ -196,7 +196,7 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 		{
 			if (statusRegisterRead)
 			{
-				if (dataRegisterInWriteMode())
+				if (dataRegisterIsInWriteMode())
 				{
 					writeDataRegister(data);
 					return;
@@ -275,7 +275,7 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 		{
 			if (statusRegisterRead)
 			{
-				if (dataRegisterInReadMode())
+				if (dataRegisterIsInReadMode())
 					return readDataRegister();
 				else
 					FDCDebug(1,"Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");

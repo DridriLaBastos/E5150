@@ -1,5 +1,10 @@
 #include "command.hpp"
 
+/**
+ * Maybe all this template stuffs are not needed but I wanted to try something because I don't template
+ * programming often, I wanted to try and learn. The idea was to reflect the fact that we do know at compile
+ * time what a command does
+ */
 static constexpr bool CHECK_MFM=true;
 static constexpr bool DONT_CHECK_MFM=false;
 
