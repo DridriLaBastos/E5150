@@ -27,7 +27,7 @@ void E5150::Floppy100::open(const std::string& path)
 	file.open(path);
 	inserted = file.is_open();
 
-	if (!file.is_open())
+	if (!inserted)
 	{
 		WARNING("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
 		return;
