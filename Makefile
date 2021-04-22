@@ -1,21 +1,27 @@
-CXXSRC = $(wildcard src/*.cpp) main.cpp
-CXXOBJ = $(CXXSRC:.cpp=.o)
+DEPFLAGS = -MM -MF
 
-CPUSRC = $(wildcard src/cpu/*.cpp)
-FLOPPYSRC = $(wildcard src/floppy/*.cpp)
+CXXSRC = main.cpp $(wildcard src/*.cpp)
+CXXOBJ = $(CXXSRC:.cpp=.o)
+DEPOBJ = $(CXXSRC:.cpp=.d)
+
+#CPUSRC = $(wildcard src/cpu/*.cpp)
+#CPUOBJ = $(CPUSRC: .cpp=.o)
+
+#FLOPPYSRC = $(wildcard src/floppy/*.cpp)
+#FLOPPYOBJ = $(FLOPPYSRC: .cpp=.o)
 
 PCHSRC = include/pch.hpp
 PCHOBJ = $(PCHSRC).pch
+
 ASMSRC = $(wildcard test/*.s)
 ASMOBJ = $(ASMSRC:.s=.bin)
 
-CXX := $(CXX) --std=c++17 -O1
+CXX := $(CXX) --std=c++17 -O3
 
-OBJ = $(CXXOBJ)
 SPDLOG_INCLUDE = third-party/spdlog/include
 CATCH2_INCLUDE = third-party/catch2/include
 
-DEBUG = 1
+DEBUG = 0
 
 ifeq ($(DEBUG),1)
 	CPPFLAGS := $(CPPFLAGS) -DDEBUG_BUILD
@@ -28,14 +34,14 @@ CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -Wno-switch
 PRODUCT = epc.out
 TESTING_PRODUCT = test.out
 
-.PHONY: clean mrproper cleanpch asm run testing all
+.PHONY: clean mrproper cleanpch asm run testing depend all
 
-all: $(PRODUCT)
+$(PRODUCT): $(DEPOBJ) $(CXXOBJ)
+	$(CXX) $(LDFLAGS) $(CXXOBJ) -lxed -lsfml-system -o $@
+	install_name_tool -change @rpath/libsfml-system.2.5.dylib $(DEV)/lib/libsfml-system.2.5.dylib $@
+
 asm: $(ASMOBJ)
 testing: $(TESTING_PRODUCT)
-
-$(PRODUCT): $(OBJ)
-	$(CXX) $(LDFLAGS) $^ -lxed -lsfml-system -o $@
 
 $(TESTING_PRODUCT): $(wildcard testing/*.cpp) $(CXXOBJ)
 	$(CXX) $(CPPFLAGS) -I$(CATCH2_INCLUDE) $(CXXFLAGS) $^ -o $@
@@ -43,26 +49,37 @@ $(TESTING_PRODUCT): $(wildcard testing/*.cpp) $(CXXOBJ)
 $(PCHOBJ): $(PCHSRC) include/util.hpp include/config.hpp
 	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -x c++-header $(PCHSRC) -o $@
 
-%.o:%.cpp $(PCHOBJ)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+%.d: %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) $@ $^
+
+#%.o:%.cpp $(PCHOBJ)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@
 
-src/cpu.o: src/cpu.cpp $(CPUSRC) $(PCHOBJ)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+#src/cpu.o: src/cpu.cpp $(CPUSRC) $(PCHOBJ)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-src/floppy.o: src/floppy.cpp $(FLOPPYSRC) $(PCHOBJ)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+#src/floppy.o: src/floppy.cpp $(FLOPPYSRC) $(PCHOBJ)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+depend: $(DEPOBJ)
 
 run:
 	@./$(PRODUCT)
 
 clean:
-	rm $(CXXOBJ) $(ASMOBJ)
-
-mrproper:
-	rm $(PRODUCT)
+	rm -f $(CXXOBJ)
 
 cleanpch:
-	rm $(PCHOBJ)
+	rm -f $(PCHOBJ)
+
+mrproper:
+	rm -f $(PRODUCT)
+
+distclean: clean cleanpch
+	rm -f main.d src/*.d
+
+
+include $(wildcard $(DEPOBJ))
