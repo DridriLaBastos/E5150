@@ -16,7 +16,7 @@ PCHOBJ = $(PCHSRC).pch
 ASMSRC = $(wildcard test/*.s)
 ASMOBJ = $(ASMSRC:.s=.bin)
 
-CXX := $(CXX) --std=c++17 -O3
+CXX := $(CXX) --std=c++17 -O3 -flto
 
 SPDLOG_INCLUDE = third-party/spdlog/include
 CATCH2_INCLUDE = third-party/catch2/include
