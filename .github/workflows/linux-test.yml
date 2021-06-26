@@ -4,20 +4,23 @@ jobs:
   compile-program:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Getting the project source
+        uses: actions/checkout@v2
         with:
-          submodules: 'recursives'
+          submodules: recursives
+      - name: Compiling the project
       - run: make -j4
         working-directory: /home/runner/work/E5150/E5150
+      
 
   compile-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
         with:
-          submodules: 'recursives'
-      - run: cd /home/runner/work/E5150/E5150
+          submodules: recursives
       - run: make -j4
+        working-directory: /home/runner/work/E5150/E5150
 
   test:
     runs-on: ubuntu-latest
