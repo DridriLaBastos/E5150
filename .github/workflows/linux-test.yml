@@ -11,6 +11,8 @@ jobs:
       
       - name: Cheking submodules
         run: |
+          ls /home/runner/work/E5150/
+          ls /home/runner/work/E5150/E5150
           ls /home/runner/work/E5150/E5150/third-party/catch2
           ls /home/runner/work/E5150/E5150/third-party/spdlog
 
