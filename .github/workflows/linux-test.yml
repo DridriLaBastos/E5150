@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          submodules: recursives
+          submodules: 'recursives'
       - run: ls /home/runner/work/E5150/
       - run: ls /home/runner/work/E5150/E5150
       - run: ls /home/runner/work/E5150/E5150/third-party
