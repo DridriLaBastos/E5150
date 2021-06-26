@@ -5,9 +5,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Getting the project source
-        uses: actions/checkout@v2
+        uses: actions/checkout@latest
         with:
           submodules: recursives
+      
+      - name: Cheking submodules
+        run: ls /home/runner/work/E5150/E5150/third-party/catch2
+        run: ls /home/runner/work/E5150/E5150/third-party/spdlog
 
       - name: Compiling the project
         run: make -j4
