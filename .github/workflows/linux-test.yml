@@ -9,6 +9,7 @@ jobs:
           submodules: recursives
       - run: ls /home/runner/work/E5150/
       - run: ls /home/runner/work/E5150/E5150
+      - run: ls /home/runner/work/E5150/E5150/third-party
       - run: ls /home/runner/work/E5150/E5150/third-party/catch2
       - run: ls /home/runner/work/E5150/E5150/third-party/spdlog
 
