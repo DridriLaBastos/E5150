@@ -10,8 +10,9 @@ jobs:
           submodules: recursives
       
       - name: Cheking submodules
-        run: ls /home/runner/work/E5150/E5150/third-party/catch2
-        run: ls /home/runner/work/E5150/E5150/third-party/spdlog
+        run: |
+          ls /home/runner/work/E5150/E5150/third-party/catch2
+          ls /home/runner/work/E5150/E5150/third-party/spdlog
 
       - name: Compiling the project
         run: make -j4
