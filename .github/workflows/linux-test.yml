@@ -11,17 +11,11 @@ jobs:
       
       - name: Check submodules presence
         run:
-          pwd
-          ls /home/runner/work/E5150/
-          pwd
-          ls /home/runner/work/E5150/E5150
-          pwd
-          ls /home/runner/work/E5150/E5150/third-party
-          pwd
-          ls /home/runner/work/E5150/E5150/third-party/catch2
-          pwd
-          ls /home/runner/work/E5150/E5150/third-party/spdlog
-          pwd
+          ls /home/runner/work/E5150/;
+          ls /home/runner/work/E5150/E5150;
+          ls /home/runner/work/E5150/E5150/third-party;
+          ls /home/runner/work/E5150/E5150/third-party/catch2;
+          ls /home/runner/work/E5150/E5150/third-party/spdlog;
 
       - name: Compiling the project
         run: make -j4
