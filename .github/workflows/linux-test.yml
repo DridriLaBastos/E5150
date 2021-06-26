@@ -6,7 +6,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          submodules: 'recursives'
+          submodules: 'true'
       - run: ls /home/runner/work/E5150/
       - run: ls /home/runner/work/E5150/E5150
       - run: ls /home/runner/work/E5150/E5150/third-party
@@ -26,6 +26,11 @@ jobs:
           submodules: recursives
       - run: make -j4
         working-directory: /home/runner/work/E5150/E5150
+
+  a:
+    needs: [compile-program]
+    steps:
+      - run: pwd
 
   test:
     runs-on: ubuntu-latest
