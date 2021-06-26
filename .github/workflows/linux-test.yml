@@ -13,6 +13,7 @@ jobs:
         run: make -j4
         working-directory: /home/runner/work/E5150/E5150
 
+
   compile-tests:
     runs-on: ubuntu-latest
     steps:
@@ -24,3 +25,4 @@ jobs:
     runs-on: ubuntu-latest
     needs: [compile-program, compile-tests]
     steps:
+      - run: pwd
