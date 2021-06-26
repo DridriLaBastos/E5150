@@ -1,14 +1,26 @@
 name: test-on-ubuntu
 on: [push]
 jobs:
-  compile:
+  compile-program:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      
-      
+        with:
+          submodules: 'recursives'
+      - run: |
+          working-directory: /home/runner/work/E5150/E5150
+          pwd
+          ls
+
+
+  compile-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursives'
+
   test:
     runs-on: ubuntu-latest
-    needs: [compile]
+    needs: [compile-program, compile-tests]
     steps:
-      - uses: actions/checkout@v2
