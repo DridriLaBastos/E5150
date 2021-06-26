@@ -10,9 +10,8 @@ jobs:
           submodules: 'recursives'
     steps:
       - name: Compiling The Program
-        run: make -j4
+      - run: make -j4
         working-directory: /home/runner/work/E5150/E5150
-
 
   compile-tests:
     runs-on: ubuntu-latest
