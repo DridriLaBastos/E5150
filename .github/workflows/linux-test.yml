@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Getting the project source
-        uses: actions/checkout@latest
+        uses: actions/checkout@v2
         with:
           submodules: recursives
       
