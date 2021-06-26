@@ -1,0 +1,10 @@
+name: test-on-ubuntu
+on: [push]
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - actions/checkout@v2
+  test:
+    runs-on: ubuntu-latest
+      - actions/checkout@v2
