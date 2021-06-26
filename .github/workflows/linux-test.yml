@@ -4,7 +4,6 @@ jobs:
   compile-program:
     runs-on: ubuntu-latest
     steps:
-      - name: Getting Repository
       - uses: actions/checkout@v2
         with:
           submodules: 'recursives'
