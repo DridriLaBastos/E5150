@@ -4,14 +4,18 @@ jobs:
   compile-program:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Getting repository sources
+        uses: actions/checkout@v2
         with:
-          submodules: 'true'
-      - run: ls /home/runner/work/E5150/
-      - run: ls /home/runner/work/E5150/E5150
-      - run: ls /home/runner/work/E5150/E5150/third-party
-      - run: ls /home/runner/work/E5150/E5150/third-party/catch2
-      - run: ls /home/runner/work/E5150/E5150/third-party/spdlog
+          submodules: 'recursive'
+      
+      - name: Check submodules presence
+        run: |
+          ls /home/runner/work/E5150/
+          ls /home/runner/work/E5150/E5150
+          ls /home/runner/work/E5150/E5150/third-party
+          ls /home/runner/work/E5150/E5150/third-party/catch2
+          ls /home/runner/work/E5150/E5150/third-party/spdlog
 
       - name: Compiling the project
         run: make -j4
