@@ -5,12 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Getting Repository
-        uses: actions/checkout@v2
-          with:
-            submodules: 'recursives'
-      - name: Compiling the program
-        run: make -j4
-          working-directory: /home/runner/work/E5150/E5150
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursives'
+      - run: make -j4
+        working-directory: /home/runner/work/E5150/E5150
 
   compile-tests:
     runs-on: ubuntu-latest
