@@ -7,15 +7,21 @@ jobs:
       - name: Getting repository sources
         uses: actions/checkout@v2
         with:
-          submodules: 'recursive'
+          submodules: recursive
       
       - name: Check submodules presence
-        run: |
+        run:
+          pwd
           ls /home/runner/work/E5150/
+          pwd
           ls /home/runner/work/E5150/E5150
+          pwd
           ls /home/runner/work/E5150/E5150/third-party
+          pwd
           ls /home/runner/work/E5150/E5150/third-party/catch2
+          pwd
           ls /home/runner/work/E5150/E5150/third-party/spdlog
+          pwd
 
       - name: Compiling the project
         run: make -j4
