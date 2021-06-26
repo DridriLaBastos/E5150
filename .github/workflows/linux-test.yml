@@ -8,8 +8,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursives
+
       - name: Compiling the project
-      - run: make -j4
+        run: make -j4
         working-directory: /home/runner/work/E5150/E5150
       
 
