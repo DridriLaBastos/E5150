@@ -32,6 +32,12 @@
 *.app
 *.bin
 
+# Build Artifacts
+third-party/lib
+third-party/include
+third-party/xed/build
+third-party/xed/kits
+
 #Visual Studio Code
 .vscode
 
