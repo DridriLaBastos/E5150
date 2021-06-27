@@ -4,3 +4,9 @@
 [submodule "catch2"]
 	path = third-party/catch2
 	url = https://github.com/catchorg/Catch2.git
+[submodule "third-party/xed/xed"]
+	path = third-party/xed/xed
+	url = https://github.com/intelxed/xed.git
+[submodule "third-party/xed/mbuild"]
+	path = third-party/xed/mbuild
+	url = https://github.com/intelxed/mbuild.git
