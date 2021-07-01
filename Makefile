@@ -4,12 +4,6 @@ CXXSRC = main.cpp $(wildcard src/*.cpp)
 CXXOBJ = $(CXXSRC:.cpp=.o)
 DEPOBJ = $(CXXSRC:.cpp=.d)
 
-#CPUSRC = $(wildcard src/cpu/*.cpp)
-#CPUOBJ = $(CPUSRC: .cpp=.o)
-
-#FLOPPYSRC = $(wildcard src/floppy/*.cpp)
-#FLOPPYOBJ = $(FLOPPYSRC: .cpp=.o)
-
 PCHSRC = include/pch.hpp
 PCHOBJ = $(PCHSRC).pch
 
@@ -32,7 +26,7 @@ endif
 
 COMMON_CPPFLAGS := $(CPPFLAGS) $(THIRD_PARTY_INCLUDE_FLAGS) -Iinclude
 CPPPCH_FLAGS := $(COMMON_CPPFLAGS) -I.
-CPPFLAGS := $(COMMON_CPPFLAGS) -include-pch $(PCHOBJ)
+CPPFLAGS := $(COMMON_CPPFLAGS) -include $(PCHSRC)
 CXXFLAGS := $(CXXFLAGS) -Wall -Wextra -Wno-switch
 LDFLAGS := $(LDFLAGS) -Lthird-party/lib
 
