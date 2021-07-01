@@ -3,27 +3,21 @@ on: [push]
 jobs:
   compile-program:
     container: ghcr.io/dridrilabastos/e5150/ci
-    credentials:
-      username: ${{ github.actor }}
-      password: ${{ secrets.ghcr_token }}
     runs-on: ubuntu-latest
     steps:
       - name: Getting repository sources
         uses: actions/checkout@v2
 
       - name: Compiling the project
-        run: make -j$(sysctl -n hw.ncpu)
+        run: make -j8
         working-directory: /home/runner/work/E5150/E5150
 
   compile-tests:
     container: ghcr.io/dridrilabastos/e5150/ci
-    credentials:
-      username: ${{ github.actor }}
-      password: ${{ secrets.ghcr_token }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: make -j$(sysctl -n hw.ncpu)
+      - run: make -j8
         working-directory: /home/runner/work/E5150/E5150
 
   test:
