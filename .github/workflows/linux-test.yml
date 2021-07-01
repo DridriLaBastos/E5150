@@ -2,24 +2,20 @@ name: test-on-ubuntu
 on: [push]
 jobs:
   compile-program:
-    runs-on: ubuntu-latest
+    container: ghcr.io/dridrilabastos/e5150/ci
     steps:
       - name: Getting repository sources
         uses: actions/checkout@v2
-        with:
-          submodules: recursive
 
       - name: Compiling the project
-        run: make -j4
+        run: make -j$(sysctl -n hw.ncpu)
         working-directory: /home/runner/work/E5150/E5150
 
   compile-tests:
-    runs-on: ubuntu-latest
+    container: ghcr.io/dridrilabastos/e5150/ci
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: recursives
-      - run: make -j4
+      - run: make -j$(sysctl -n hw.ncpu)
         working-directory: /home/runner/work/E5150/E5150
 
   test:
