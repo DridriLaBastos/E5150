@@ -3,6 +3,7 @@ on: [push]
 jobs:
   compile-program:
     container: ghcr.io/dridrilabastos/e5150/ci
+    runs-on: ubuntu-latest
     steps:
       - name: Getting repository sources
         uses: actions/checkout@v2
@@ -13,6 +14,7 @@ jobs:
 
   compile-tests:
     container: ghcr.io/dridrilabastos/e5150/ci
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - run: make -j$(sysctl -n hw.ncpu)
