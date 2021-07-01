@@ -37,7 +37,6 @@ TESTING_PRODUCT = test.out
 
 $(PRODUCT): $(CXXOBJ)
 	$(CXX) $(LDFLAGS) $(CXXOBJ) -lxed -lsfml-system -o $@
-	install_name_tool -change @rpath/libsfml-system.2.5.dylib $(DEV)/lib/libsfml-system.2.5.dylib $@
 
 $(CXXOBJ): %.o: %.d
 
