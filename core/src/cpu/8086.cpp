@@ -1,8 +1,8 @@
 #include "8086.hpp"
 #include "instructions.hpp"
 
-CPU::CPU(RAM& r, PORTS& p) : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
-							 ram(r), ports(p)
+CPU::CPU(RAM& r, PORTS& p, BUS<20>& a, BUS<8>& d) : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
+							 ram(r), ports(p), addressBus(a), dataBus(d)
 {
 	std::cout << xed_get_copyright() << std::endl;
 

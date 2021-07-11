@@ -4,6 +4,7 @@
 #include "util.hpp"
 
 #include "ram.hpp"
+#include "bus.hpp"
 #include "ports.hpp"
 
 union reg_t
@@ -47,7 +48,7 @@ union reg_t
 class CPU
 {
 	public:
-		CPU(RAM& ram, PORTS& ports);
+		CPU(RAM& ram, PORTS& ports, BUS<20>& addressBus, BUS<8>& dataBus);
 
 		void clock (void);
 		bool decode(void);
@@ -159,6 +160,9 @@ class CPU
 
 		RAM&	ram;
 		PORTS&	ports;
+
+		BUS<20>& addressBus;
+		BUS<8>& dataBus;
 };
 
 #endif
