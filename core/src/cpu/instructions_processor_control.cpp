@@ -1,12 +1,15 @@
 #include "8086.hpp"
+#include "instructions.hpp"
 
-void CPU::CLC (void) { clearFlags(CARRY); }
-void CPU::STC (void) { setFlags(CARRY); }
+void CLC (CPU& cpu) { cpu.clearFlags(CPU::CARRY); }
+void STC (CPU& cpu) { cpu.setFlags(CPU::CARRY); }
 
-void CPU::CLD (void) { clearFlags(DIR); }
-void CPU::STD (void) { setFlags(DIR); }
+void CLD (CPU& cpu) { cpu.clearFlags(CPU::DIR); }
+void STD (CPU& cpu) { cpu.setFlags(CPU::DIR); }
 
-void CPU::CLI (void) { clearFlags(INTF); }
-void CPU::STI (void) { setFlags(INTF); }
+void CLI (CPU& cpu) { cpu.clearFlags(CPU::INTF); }
+void STI (CPU& cpu) { cpu.setFlags(CPU::INTF); }
 
-void CPU::HLT (void) { hlt = true; }
+void HLT (CPU& cpu) { cpu.hlt = true; }
+
+void NOP(CPU& cpu) { cpu.clockCountDown = 3; }

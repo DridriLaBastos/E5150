@@ -1,10 +1,11 @@
 #include "8086.hpp"
+#include "instructions.hpp"
 
-void CPU::ADD()
+void ADD(CPU& cpu)
 {
-	const unsigned int iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = ((iform >= 33) && (iform <= 38)) || ((iform >= 44) && (iform <= 46));
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
 
@@ -14,49 +15,49 @@ void CPU::ADD()
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name1);
-			value1 = read_reg(reg);
-			write_reg(reg, value1);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name1);
+			value1 = cpu.readReg(reg);
+			cpu.write_reg(reg, value1);
 		} break;
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 = cond ? readByte(addr) : readWord(addr);
+			const unsigned int addr = cpu.genEA();
+			value1 = cond ? cpu.readByte(addr) : cpu.readWord(addr);
 
 			if (cond)
-				writeByte(addr, value1);
+				cpu.writeByte(addr, value1);
 			else
-				writeWord(addr, value1);
+				cpu.writeWord(addr, value1);
 		} break;
 	}
 
 	switch (op_name2)
 	{
 		case XED_OPERAND_IMM0:
-			value1 += xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+			value1 += xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 			break;
 		
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			value1 += read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name2));
+			value1 += cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name2));
 			break;
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 += cond ? readByte(addr) : readWord(addr);
+			const unsigned int addr = cpu.genEA();
+			value1 += cond ? cpu.readByte(addr) : cpu.readWord(addr);
 		} break;
 	}
 
-	updateStatusFlags(value1, cond ? 1 : 2);
+	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void CPU::INC()
+void INC(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
-	const unsigned int iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = (iform == XED_IFORM_INC_GPR8) || (iform == XED_IFORM_INC_MEMb) || (iform == XED_IFORM_INC_LOCK_MEMb);
 
 	unsigned int value1;
@@ -65,32 +66,32 @@ void CPU::INC()
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name);
-			value1 = read_reg(reg) + 1;
-			write_reg(reg, value1);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
+			value1 = cpu.readReg(reg) + 1;
+			cpu.write_reg(reg, value1);
 		} break;
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 = (cond ? readByte(addr) : readWord(addr)) + 1;
+			const unsigned int addr = cpu.genEA();
+			value1 = (cond ? cpu.readByte(addr) : cpu.readWord(addr)) + 1;
 
 			if (cond)
-				writeByte(addr, value1);
+				cpu.writeByte(addr, value1);
 			else
-				writeWord(addr, value1);
+				cpu.writeWord(addr, value1);
 		} break;
 	}
 
-	updateStatusFlags(value1, cond ? 1 : 2);
+	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void CPU::SUB()
+void SUB(CPU& cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = 	((iform >= XED_IFORM_SUB_AL_IMMb) && (iform >= XED_IFORM_SUB_GPR8_MEMb)) ||
 					  	((iform >= XED_IFORM_SUB_MEMb_GPR8) && (iform <= XED_IFORM_SUB_MEMb_IMMb_82r5));
 
@@ -100,46 +101,46 @@ void CPU::SUB()
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name1);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name1);
 
-			value1 = read_reg(reg);
-			write_reg(reg, value1);
+			value1 = cpu.readReg(reg);
+			cpu.write_reg(reg, value1);
 		} break;
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 = cond ? readByte(addr) : readWord(addr);
+			const unsigned int addr = cpu.genEA();
+			value1 = cond ? cpu.readByte(addr) : cpu.readWord(addr);
 
-			if (cond) writeByte(addr, value1); else writeWord(addr, value1);
+			if (cond) cpu.writeByte(addr, value1); else cpu.writeWord(addr, value1);
 		} break;
 	}
 
 	switch (op_name2)
 	{
 		case XED_OPERAND_IMM0:
-			value1 -= xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+			value1 -= xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 			break;
 		
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			value1 -= read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name2));
+			value1 -= cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name2));
 			break;
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 -= cond ? readByte(addr) : readWord(addr);
+			const unsigned int addr = cpu.genEA();
+			value1 -= cond ? cpu.readByte(addr) : cpu.readWord(addr);
 		} break;
 	}
 
-	updateStatusFlags(value1, cond ? 1 : 2);
+	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void CPU::DEC()
+void DEC(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
-	const xed_iform_enum_t   iform   = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_iform_enum_t   iform   = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = (iform == XED_IFORM_DEC_GPR8) || (iform == XED_IFORM_DEC_MEMb) || (XED_IFORM_DEC_LOCK_MEMb);
 
 	unsigned int value1;
@@ -148,31 +149,31 @@ void CPU::DEC()
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
 
-			value1 = read_reg(reg) - 1;
-			write_reg(reg, value1);
+			value1 = cpu.readReg(reg) - 1;
+			cpu.write_reg(reg, value1);
 		} break;
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 = (cond ? readByte(addr) : readWord(addr)) - 1;
+			const unsigned int addr = cpu.genEA();
+			value1 = (cond ? cpu.readByte(addr) : cpu.readWord(addr)) - 1;
 
 			if (cond)
-				writeByte(addr, value1);
+				cpu.writeByte(addr, value1);
 			else
-				writeWord(addr, value1);
+				cpu.writeWord(addr, value1);
 		} break;
 	}
 
-	updateStatusFlags(value1, cond ? 1 : 2);
+	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void CPU::NEG()
+void NEG(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = (iform == XED_IFORM_NEG_GPR8) || (iform == XED_IFORM_NEG_MEMb) || (iform == XED_IFORM_NEG_LOCK_MEMb);
 
 	unsigned int value1;
@@ -181,41 +182,41 @@ void CPU::NEG()
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&m_decoded_inst, op_name);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
 
-			value1 = read_reg(reg);
+			value1 = cpu.readReg(reg);
 			value1 *= -1;
-			write_reg(reg, value1);
+			cpu.write_reg(reg, value1);
 		} break;
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
+			const unsigned int addr = cpu.genEA();
 
-			value1 = cond ? readByte(addr) : readWord(addr);
+			value1 = cond ? cpu.readByte(addr) : cpu.readWord(addr);
 			value1 *= -1;
 
 			if (cond)
-				writeByte(addr, value1);
+				cpu.writeByte(addr, value1);
 			else
-				writeWord(addr, value1);
+				cpu.writeWord(addr, value1);
 		} break;
 	}
 
 	if (value1 == 0)
-		clearFlags(CARRY);
+		cpu.clearFlags(CPU::CARRY);
 	else
-		setFlags(CARRY);
+		cpu.setFlags(CPU::CARRY);
 	
-	updateStatusFlags(value1, cond ? 1: 2);
+	cpu.updateStatusFlags(value1, cond ? 1: 2);
 }
 
-void CPU::CMP()
+void CMP(CPU& cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&m_decoded_inst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = 	((iform >= XED_IFORM_CMP_AL_IMMb) && (iform <= XED_IFORM_CMP_GPR8_MEMb)) ||
 						((iform >= XED_IFORM_CMP_MEMb_GPR8) && (iform <= XED_IFORM_CMP_MEMb_IMMb_82r7));
 
@@ -224,41 +225,41 @@ void CPU::CMP()
 	switch (op_name1)
 	{
 		case XED_OPERAND_REG0:
-			value1 += read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name1));
+			value1 += cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name1));
 			break;
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 += cond ? readByte(addr) : readWord(addr);
+			const unsigned int addr = cpu.genEA();
+			value1 += cond ? cpu.readByte(addr) : cpu.readWord(addr);
 		} break;
 	}
 
 	switch (op_name2)
 	{
 		case XED_OPERAND_IMM0:
-			value1 -= xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+			value1 -= xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 			break;
 			
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			value1 -= read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name2));
+			value1 -= cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name2));
 			break;
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = genEA();
-			value1 -= cond ? readByte(addr) : readWord(addr);
+			const unsigned int addr = cpu.genEA();
+			value1 -= cond ? cpu.readByte(addr) : cpu.readWord(addr);
 		} break;
 	}
 
-	updateStatusFlags(value1, cond ? 1 : 2);
+	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void CPU::MUL()
+void MUL(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = (iform == XED_IFORM_MUL_GPR8) || (iform == XED_IFORM_MUL_MEMb);
 
 	unsigned int value1 = 1;
@@ -266,41 +267,41 @@ void CPU::MUL()
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			value1 *= read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			value1 *= cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= cond ? readByte(genEA()) : readWord(genEA());
+			value1 *= cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA());
 			break;
 	}
 
-	value1 *= cond ? m_gregs[AX].l : m_gregs[AX].x;
+	value1 *= cond ? cpu.regs[CPU::AX].l : cpu.regs[CPU::AX].x;
 
-	m_gregs[AX].x = value1;
+	cpu.regs[CPU::AX].x = value1;
 
 	if (!cond)
-		m_gregs[DX].x = value1 >> 16;
+		cpu.regs[CPU::DX].x = value1 >> 16;
 	
 	if (cond)
 	{
-		if (m_gregs[AX].h == 0)
-			clearFlags(CARRY|OVER);
+		if (cpu.regs[CPU::AX].h == 0)
+			cpu.clearFlags(CPU::CARRY|CPU::OVER);
 		else
-			setFlags(CARRY|OVER);
+			cpu.setFlags(CPU::CARRY|CPU::OVER);
 	}
 	else
 	{
-		if (m_gregs[DX].x == 0)
-			clearFlags(CARRY|OVER);
+		if (cpu.regs[CPU::DX].x == 0)
+			cpu.clearFlags(CPU::CARRY|CPU::OVER);
 		else
-			setFlags(CARRY|OVER);
+			cpu.setFlags(CPU::CARRY|CPU::OVER);
 	}
 }
 
-void CPU::IMUL()
+void IMUL(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = (iform == XED_IFORM_IMUL_GPR8) || (iform == XED_IFORM_IMUL_MEMb);
 
 	int value1 = 1;
@@ -308,42 +309,42 @@ void CPU::IMUL()
 	switch(op_name)
 	{
 		case XED_OPERAND_REG0:
-			value1 *= (signed)read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			value1 *= (signed)cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= (signed)(cond ? readByte(genEA()) : readWord(genEA()));
+			value1 *= (signed)(cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA()));
 			break;
 	}
 
-	value1 *= (signed)(cond ? m_gregs[AX].l : m_gregs[AX].x); 
+	value1 *= (signed)(cond ? cpu.regs[CPU::AX].l : cpu.regs[CPU::AX].x); 
 
-	m_gregs[AX].x = value1;
+	cpu.regs[CPU::AX].x = value1;
 
 	if (!cond)
-		m_gregs[DX].x = value1 >> 16;
+		cpu.regs[CPU::DX].x = value1 >> 16;
 	
 	if (cond)
 	{
-		if (m_gregs[AX].h == 0)
-			clearFlags(CARRY|OVER);
+		if (cpu.regs[CPU::AX].h == 0)
+			cpu.clearFlags(CPU::CARRY|CPU::OVER);
 		else
-			setFlags(CARRY|OVER);
+			cpu.setFlags(CPU::CARRY|CPU::OVER);
 	}
 	else
 	{
-		if (m_gregs[DX].x == 0)
-			clearFlags(CARRY|OVER);
+		if (cpu.regs[CPU::DX].x == 0)
+			cpu.clearFlags(CPU::CARRY|CPU::OVER);
 		else
-			setFlags(CARRY|OVER);
+			cpu.setFlags(CPU::CARRY|CPU::OVER);
 	}
 }
 
 //TODO: what happens when dividing by zero ? Restart ?
-void CPU::DIV()
+void DIV(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = (iform == XED_IFORM_DIV_GPR8) || (iform == XED_IFORM_DIV_MEMb);
 
 	unsigned int value1;
@@ -354,36 +355,36 @@ void CPU::DIV()
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			value2 = read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			value2 = cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = cond ? readByte(genEA()) : readWord(genEA());
+			value2 = cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA());
 			break;
 	}
 
-	value1 = cond ? m_gregs[AX].l : m_gregs[AX].x;
+	value1 = cond ? cpu.regs[CPU::AX].l : cpu.regs[CPU::AX].x;
 
 	result = value1 / value2;
 	r = value1 % value2;
 
 	if (cond)
 	{
-		m_gregs[AX].l = result;
-		m_gregs[AX].h = r;
+		cpu.regs[CPU::AX].l = result;
+		cpu.regs[CPU::AX].h = r;
 	}
 	else
 	{
-		m_gregs[AX].x = result;
-		m_gregs[DX].x = r;
+		cpu.regs[CPU::AX].x = result;
+		cpu.regs[CPU::DX].x = r;
 	}
 }
 
 //TODO: I am not sure about that !
-void CPU::IDIV()
+void IDIV(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&m_decoded_inst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = (iform == XED_IFORM_IDIV_GPR8) || (iform == XED_IFORM_IDIV_MEMb);
 
 	int value1;
@@ -394,27 +395,27 @@ void CPU::IDIV()
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			value2 = (signed)read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			value2 = (signed)cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = (signed)(cond ? readByte(genEA()) : readWord(genEA()));
+			value2 = (signed)(cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA()));
 			break;
 	}
 
-	value1 = cond ? m_gregs[AX].l : m_gregs[AX].x;
+	value1 = cond ? cpu.regs[CPU::AX].l : cpu.regs[CPU::AX].x;
 
 	result = value1 / value2;
 	r = value1 % value2;
 
 	if (cond)
 	{
-		m_gregs[AX].l = result;
-		m_gregs[AX].h = r;
+		cpu.regs[CPU::AX].l = result;
+		cpu.regs[CPU::AX].h = r;
 	}
 	else
 	{
-		m_gregs[AX].x = result;
-		m_gregs[DX].x = r;
+		cpu.regs[CPU::AX].x = result;
+		cpu.regs[CPU::DX].x = r;
 	}
 }

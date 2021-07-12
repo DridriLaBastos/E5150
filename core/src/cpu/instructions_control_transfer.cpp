@@ -1,163 +1,164 @@
 #include "8086.hpp"
+#include "instructions.hpp"
 
-void CPU::NEAR_CALL()
+void NEAR_CALL(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
-	push(m_ip);
+	cpu.push(cpu.ip);
 
 	switch (op_name)
 	{   
 		case XED_OPERAND_REG0:
-			m_ip = read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			cpu.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_RELBR:
-			m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+			cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 			break;
 		
 		case XED_OPERAND_MEM0:
-			m_ip = readWord(genEA());
+			cpu.ip = cpu.readWord(cpu.genEA());
 			break;
 	}
 }
 
-void CPU::FAR_CALL()
+void FAR_CALL(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
 	switch (op_name)
 	{
 		case XED_OPERAND_PTR:
-			far_call(xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst),
-					xed_decoded_inst_get_branch_displacement(&m_decoded_inst));
+			cpu.far_call(xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst),
+					xed_decoded_inst_get_branch_displacement(&cpu.decodedInst));
 			break;
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = genEA();
+			const unsigned far_addr_location = cpu.genEA();
 			
-			far_call(readWord(far_addr_location),
-					 readWord(far_addr_location + 2));
+			cpu.far_call(cpu.readWord(far_addr_location),
+					 cpu.readWord(far_addr_location + 2));
 			break;
 		}
 	}
 }
 
-void CPU::NEAR_JMP()
+void NEAR_JMP(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
 	switch (op_name)
 	{
 		case XED_OPERAND_MEM0:
-			m_ip = readWord(genEA());
+			cpu.ip = cpu.readWord(cpu.genEA());
 			break;
 
 		case XED_OPERAND_REG0:
-			m_ip = read_reg(xed_decoded_inst_get_reg(&m_decoded_inst, op_name));
+			cpu.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
 			break;
 
 		case XED_OPERAND_RELBR:
-			m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+			cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 			break;
 	}
 }
 
-void CPU::FAR_JMP()
+void FAR_JMP(CPU& cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&m_decoded_inst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
 	switch (op_name)
 	{
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = genEA();
+			const unsigned far_addr_location = cpu.genEA();
 			
-			m_regs[CS] = readWord(far_addr_location);
-			m_ip = readWord(far_addr_location + 2);
+			cpu.regs[CPU::CS] = cpu.readWord(far_addr_location);
+			cpu.ip = cpu.readWord(far_addr_location + 2);
 			break;
 		}
 
 		case XED_OPERAND_PTR:
-			m_ip = xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
-			m_regs[CS] = xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+			cpu.ip = xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
+			cpu.regs[CPU::CS] = xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 			break;
 	}
 }
 
-void CPU::NEAR_RET()
+void NEAR_RET(CPU& cpu)
 {
-	m_ip = pop();
+	cpu.ip = cpu.pop();
 
-	if (xed_decoded_inst_get_length(&m_decoded_inst) > 1)
-		m_regs[SP] += xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+	if (xed_decoded_inst_get_length(&cpu.decodedInst) > 1)
+		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 }
 
-void CPU::FAR_RET()
+void FAR_RET(CPU& cpu)
 {
-	far_ret();
+	cpu.far_ret();
 
-	if (xed_decoded_inst_get_length(&m_decoded_inst) > 1)
-		m_regs[SP] += xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
+	if (xed_decoded_inst_get_length(&cpu.decodedInst) > 1)
+		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 }
 
-void CPU::JZ()
+void JZ(CPU& cpu)
 {
-	if (getFlagStatus(ZERRO))
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (cpu.getFlagStatus(CPU::ZERRO))
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::JL()
+void JL(CPU& cpu)
 {
-	if (getFlagStatus(SIGN) != getFlagStatus(OVER))
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::JLE()
+void JLE(CPU& cpu)
 {
-	if (getFlagStatus(ZERRO) || (getFlagStatus(SIGN) != getFlagStatus(OVER)))
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)))
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::JNZ()
+void JNZ(CPU& cpu)
 {
-	if (!getFlagStatus(ZERRO))
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (!cpu.getFlagStatus(CPU::ZERRO))
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::JNL()
+void JNL(CPU& cpu)
 {
-	if (getFlagStatus(SIGN) == getFlagStatus(OVER))
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::JNLE()
+void JNLE(CPU& cpu)
 {
-	if (!(getFlagStatus(ZERRO) || (getFlagStatus(SIGN) != getFlagStatus(OVER))))
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (!(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))))
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::LOOP()
+void LOOP(CPU& cpu)
 {
-	if (m_regs[CX]-- != 0)
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (cpu.regs[CPU::CX]-- != 0)
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::JCXZ()
+void JCXZ(CPU& cpu)
 {
-	if (m_gregs[CX].x == 0)
-		m_ip += xed_decoded_inst_get_branch_displacement(&m_decoded_inst);
+	if (cpu.regs[CPU::CX].x == 0)
+		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void CPU::INT(void)
+void INT(CPU& cpu)
 {
-	intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&m_decoded_inst);
-	interrupt(); //interrupt takes care of pushing flags and clearing IF
+	cpu.intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
+	cpu.interrupt(); //interrupt takes care of cpu.pushing flags and clearing IF
 }
 
-void CPU::IRET (void)
+void IRET (CPU& cpu)
 {
-	far_ret();
-	m_flags = pop();
+	cpu.far_ret();
+	cpu.flags = cpu.pop();
 }
