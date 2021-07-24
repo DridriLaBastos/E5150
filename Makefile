@@ -28,7 +28,7 @@ e5150 tests core:
 	$(MAKE) -C $@
 
 run:
-	@./$(PRODUCT)
+	$(MAKE) -C e5150 $@
 
 clean mrproper:
 	for d in $(SRC_DIR); do $(MAKE) -C $$d $@; done;
