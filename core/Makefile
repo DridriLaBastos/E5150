@@ -18,7 +18,8 @@ CXXFLAGS := $(CXXFLAGS) -Wno-switch
 
 .PHONY: clean mrproper
 
-all: $(CXXOBJ)
+$(PRODUCT): $(CXXOBJ)
+	$(AR) -vrcu $@ $^
 
 $(CXXOBJ): %.o: %.d
 

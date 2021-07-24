@@ -11,12 +11,7 @@ static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
 
-static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS * 1.f/(float)BASE_CLOCK);
-
-bool E5150::Util::_continue = true;
-bool E5150::Util::_stop = true;
-unsigned int E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
-unsigned int E5150::Util::undef;
+static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS * 1.f/BASE_CLOCK);
 
 static void stop(const int signum)
 {
@@ -27,14 +22,17 @@ static void stop(const int signum)
 E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_fdc(m_pic,m_ports)
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
+	#ifndef STOP_AT_END
+		INFO("Configured : {} clk per block - {} ms per block", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMicroseconds());
+	#endif
 	INFO("This program use the library Intel XED to decode the instructions");
 	INFO("This library is accessible at : https://intelxed.github.io");
-	INFO("xed version : {} \n",xed_get_version());
+	INFO("xed version : {}\n",xed_get_version());
 
-	//irrelevent message if we stop at the end of each instructions
-	#ifndef STOP_AT_END
-		DEBUG("Duration for {} blocks: {}us", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMicroseconds());
-	#endif
+	E5150::Util::_continue = true;
+	E5150::Util::_stop = true;
+	E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
+	E5150::Util::undef = (unsigned int)(unsigned long)(&m_ram);
 
 	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
@@ -53,6 +51,7 @@ void E5150::Arch::startSimulation()
 	unsigned int currentClock = 0;
 	unsigned int masterClock = 0;
 	unsigned int fdcClock = 0;
+	unsigned int instructionExecuted = 0;
 
 	try
 	{
@@ -73,7 +72,7 @@ void E5150::Arch::startSimulation()
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
 				++masterClock;
-				m_cpu.clock();
+				instructionExecuted += m_cpu.clock();
 				m_pit.clock();
 
 				while (((fdcClock+1)*1000 <= masterClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
@@ -103,7 +102,8 @@ void E5150::Arch::startSimulation()
 				std::cout << "fdc clock accurency: " << fdcClockAccurency << "%\n";
 				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
 					<< timeForAllBlocks.asMicroseconds()/blockCount  << "(" << timeForAllBlocks.asMilliseconds()/blockCount
-					<< ") us(ms)/block\n\n";
+					<< ") us(ms)/block\n";
+				std::cout << "instructions executed: " << (float)instructionExecuted/1e6 << "M" << '\n' << std::endl;
 				timeForAllBlocks = sf::Time::Zero;
 				clock.restart();
 			#endif
@@ -111,6 +111,7 @@ void E5150::Arch::startSimulation()
 				currentClock = 0;
 				masterClock = 0;
 				fdcClock = 0;
+				instructionExecuted = 0;
 			}
 		}
 	}

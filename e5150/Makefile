@@ -3,15 +3,15 @@ PRODUCT = epc.out
 ASSRC = $(wildcard test/*.s)
 ASOBJ = $(ASSRC:.s=.bin)
 
-CXXOBJ = main.o $(CORE_OBJ)
+CXXOBJ = main.o
 
 CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)
 LDFLAGS := $(LDFLAGS) -L$(PROJECT_DIR)/core
 
 .PHONY: clean mrproper run
 
-$(PRODUCT): $(CXXOBJ) $(ASOBJ)
-	$(CXX) $(LDFLAGS) -lxed -lsfml-system -o $@ $(CXXOBJ)
+$(PRODUCT): $(CXXOBJ) $(ASOBJ) $(PROJECT_DIR)/core/libcore.a
+	$(CXX) $(LDFLAGS) -lxed -lsfml-system -lcore -o $@ $(CXXOBJ)
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@

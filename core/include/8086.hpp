@@ -28,7 +28,7 @@ class CPU
 	public:
 		CPU(RAM& ram, PORTS& ports);
 
-		void clock (void);
+		unsigned int clock (void);
 
 		void request_nmi (void);
 		void request_intr (const uint8_t vector);

@@ -600,12 +600,12 @@ static void clockWait()
 	}
 }
 
-void CPU::clock()
+unsigned int CPU::clock()
 {
 	if (m_clockCountDown != 0)
 	{
 		--m_clockCountDown;
-		return;
+		return 0;
 	}
 
 	if (!hlt)
@@ -644,6 +644,8 @@ void CPU::clock()
 				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
 	}
+
+	return 1;
 }
 
 void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)

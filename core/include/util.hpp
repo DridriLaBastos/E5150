@@ -8,7 +8,7 @@ constexpr unsigned int DEBUG_LEVEL_MAX = 10;
 
 namespace E5150
 {
-	struct  Util
+	namespace  Util
 	{
 		static unsigned int CURRENT_DEBUG_LEVEL;
 		static bool _continue;
