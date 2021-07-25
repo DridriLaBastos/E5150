@@ -4,19 +4,25 @@ SPDLOG_INCLUDE	= $(PROJECT_DIR)/third-party/spdlog/include
 
 THIRD_PARTY_INCLUDE_FLAGS = -I$(SPDLOG_INCLUDE)
 DEBUG = 0
+RELEASE = 0
 
 ifeq ($(DEBUG),1)
 	CPPFLAGS := $(CPPFLAGS) -DDEBUG_BUILD
 endif
 
-export CXX := $(CXX) --std=c++17 -O3 -flto
+ifeq ($(RELEASE),1)
+	CXX := $(CXX) --std=c++17 -O3 -flto
+else
+	CXX := $(CXX) --std=c++17 -O0 -g
+endif
 
+export CXX
 export DEPFLAGS = -MM -MF
 export CPPFLAGS := $(CPPFLAGS) $(THIRD_PARTY_INCLUDE_FLAGS)
 export CXXFLAGS := $(CXXFLAGS) -Wall -Wextra
 export CORE_OBJ = $(wildcard $(PROJECT_DIR)/core/src/*.o)
 
-SRC_DIR = core e5150 test
+SRC_DIR = core e5150
 
 .PHONY: all $(SRC_DIR) clean mrproper
 

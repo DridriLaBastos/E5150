@@ -28,14 +28,15 @@ class CPU
 	public:
 		CPU(RAM& ram, PORTS& ports);
 
-		unsigned int clock (void);
+		void clock (void);
+		bool decode(void);
+		void exec (void);
 
 		void request_nmi (void);
 		void request_intr (const uint8_t vector);
 		
 		bool isHalted (void) const;
 	
-	private:
 		void printRegisters	(void) const;
 		void printFlags		(void) const;
 		void printCurrentInstruction (void) const;
@@ -168,7 +169,7 @@ class CPU
 		reg_t m_flags;
 		reg_t m_ip;
 		
-	private:
+	public:
 		bool hlt;
 		bool nmi;
 		bool intr;
@@ -176,6 +177,7 @@ class CPU
 		uint8_t intr_v;
 		unsigned int fault_count;
 		unsigned int m_clockCountDown;
+		unsigned int instructionExecuted;
 		
 	private:
 		RAM&	m_ram;

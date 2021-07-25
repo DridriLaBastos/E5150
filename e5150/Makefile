@@ -10,8 +10,10 @@ LDFLAGS := $(LDFLAGS) -L$(PROJECT_DIR)/core
 
 .PHONY: clean mrproper run
 
-$(PRODUCT): $(CXXOBJ) $(ASOBJ) $(PROJECT_DIR)/core/libcore.a
-	$(CXX) $(LDFLAGS) -lxed -lsfml-system -lcore -o $@ $(CXXOBJ)
+all: $(PRODUCT) $(ASOBJ)
+
+$(PRODUCT): $(CXXOBJ) $(PROJECT_DIR)/core/libcore.a
+	$(CXX) $(LDFLAGS) -lxed -lsfml-system -lcore -rpath $(DEV)/lib -o $@ $(CXXOBJ)
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@

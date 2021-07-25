@@ -1,7 +1,8 @@
 #include "8086.hpp"
 
 CPU::CPU(RAM &ram, PORTS &ports) : m_flags(0), m_ip(0), m_regs(), m_ram(ram), hlt(false), m_ports(ports),
-								   intr(false), nmi(false), intr_v(0), m_gregs(), interrupt_enable(true),m_clockCountDown(0)
+								   intr(false), nmi(false), intr_v(0), m_gregs(), interrupt_enable(true),m_clockCountDown(0),
+								   instructionExecuted(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -580,51 +581,65 @@ void CPU::execControlTransferInstruction()
 
 bool CPU::isHalted (void) const { return hlt; }
 
-static void clockWait()
-{
-	if (E5150::Util::_stop)
-	{
-		if (E5150::Util::CURRENT_DEBUG_LEVEL == 0)
-			E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
+static bool cpuCanProcessClock (const CPU* cpu)
+{ return ((cpu->m_clockCountDown == 0) && (!cpu->hlt)); }
 
-		std::string tmp;
-		std::getline(std::cin, tmp);
-		if (tmp == "q")
-			E5150::Util::_continue = false;
-		
-		if (tmp == "c")
+bool CPU::decode()
+{
+	const bool canProcessClock = cpuCanProcessClock(this);
+	if (canProcessClock)
+	{
+		xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
+		xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS],m_ip),16);
+	}
+
+	return canProcessClock;
+}
+
+void CPU::exec()
+{
+	if (!cpuCanProcessClock(this))
+	{
+		if (m_clockCountDown != 0)
+			--m_clockCountDown;
+		return;
+	}
+	
+	if (!execNonControlTransferInstruction())
+			execControlTransferInstruction();
+
+	if (intr)
+	{
+		intr = false;
+
+		if (nmi)
 		{
-			E5150::Util::CURRENT_DEBUG_LEVEL = 0;
-			E5150::Util::_stop=false;
+			interrupt(true);
+			nmi = false;
+		}
+		else
+		{
+			if (getFlagStatus(INTF))
+				interrupt();
+			else
+				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
 	}
 }
 
-unsigned int CPU::clock()
+void CPU::clock()
 {
 	if (m_clockCountDown != 0)
-	{
 		--m_clockCountDown;
-		return 0;
-	}
 
 	if (!hlt)
 	{
 		xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
 		xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS], m_ip), 16);
 
-	#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-		if (E5150::Util::_stop)
-		{
-			printRegisters();
-			printFlags();
-			printCurrentInstruction();
-			clockWait();
-		}
-	#endif
-
 		if (!execNonControlTransferInstruction())
 			execControlTransferInstruction();
+		instructionExecuted += 1;
 	}
 
 	if (intr)
@@ -644,8 +659,6 @@ unsigned int CPU::clock()
 				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
 	}
-
-	return 1;
 }
 
 void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
