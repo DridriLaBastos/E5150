@@ -1,5 +1,4 @@
 PRODUCT = libcore.a
-THIRD_PARTY_LIB = third-party/lib/libxed.a
 
 CXXSRC = $(wildcard src/*.cpp)
 CXXOBJ = $(CXXSRC:.cpp=.o)
@@ -14,9 +13,18 @@ CPPFLAGS := $(COMMON_CPPFLAGS) -include $(PCHSRC)
 
 CXXFLAGS := $(CXXFLAGS) -Wno-switch
 
+BUILD_XED = $(shell sh xed-is-missing.sh)
+THIRD_PARTY_LIB = 
+
+ifeq ($(BUILD_XED),1)
+	THIRD_PARTY_LIB += third-party/lib/libxed.a
+endif
+
 .PHONY: clean mrproper
 
 $(PRODUCT): $(CXXOBJ)
+	@echo BUILD_XED: $$BUILD_XED
+	@echo THIRD_PARTY_LIB: $$THIRD_PARTY_LIB
 	$(AR) -vrcu $@ $^
 
 $(CXXOBJ): %.o: %.d
@@ -33,7 +41,7 @@ $(PCHOBJ): $(PCHSRC) $(THIRD_PARTY_LIB)
 clean:
 	rm -f $(CXXOBJ)
 
-mrproper: clean
+mrproper:
 	rm -f $(PRODUCT)
 
 include $(DEPOBJ)
