@@ -33,10 +33,10 @@
 *.bin
 
 # Build Artifacts
-third-party/lib
-third-party/include
-third-party/xed/build
-third-party/xed/kits
+core/third-party/lib
+core/third-party/include
+core/third-party/xed/build
+core/third-party/xed/kits
 
 #Visual Studio Code
 .vscode
