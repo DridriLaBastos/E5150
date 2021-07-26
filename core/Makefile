@@ -23,8 +23,6 @@ endif
 .PHONY: clean mrproper
 
 $(PRODUCT): $(CXXOBJ)
-	@echo BUILD_XED: $$BUILD_XED
-	@echo THIRD_PARTY_LIB: $$THIRD_PARTY_LIB
 	$(AR) -vrcu $@ $^
 
 $(CXXOBJ): %.o: %.d
