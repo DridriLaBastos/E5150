@@ -6,14 +6,14 @@ ASOBJ = $(ASSRC:.s=.bin)
 CXXOBJ = main.o
 
 CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)
-LDFLAGS := $(LDFLAGS) -L$(PROJECT_DIR)/core
+LDFLAGS := $(LDFLAGS) -L$(PROJECT_DIR)/core -L$(PROJECT_DIR)/core/third-party/lib
 
 .PHONY: clean mrproper run
 
 all: $(PRODUCT) $(ASOBJ)
 
 $(PRODUCT): $(CXXOBJ) $(PROJECT_DIR)/core/libcore.a
-	$(CXX) $(LDFLAGS) -lxed -lsfml-system -lcore -rpath $(DEV)/lib -o $@ $(CXXOBJ)
+	$(CXX) $(LDFLAGS) -lxed -lsfml-system -lcore -Xlinker -rpath -Xlinker $(DEV)/lib -o $@ $(CXXOBJ)
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@

@@ -118,6 +118,7 @@ void E5150::Arch::startSimulation()
 					m_fdc.clock();
 				}
 			}
+
 		#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			const sf::Time blockEnd = clock.getElapsedTime();
 			++blockCount;
@@ -138,7 +139,7 @@ void E5150::Arch::startSimulation()
 				std::cout << "\tfdc clock accurency: " << fdcClockAccurency << "%\n";
 				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
 					<< timeForAllBlocks.asMicroseconds()/blockCount  << "us (" << timeForAllBlocks.asMilliseconds()/blockCount
-					<< "ms) /block - real time: " << TIME_PER_BLOCK.asMicroseconds() << "us (" << TIME_PER_BLOCK.asMilliseconds() << "ms)\n";
+					<< "ms) / block - real time: " << TIME_PER_BLOCK.asMicroseconds() << "us (" << TIME_PER_BLOCK.asMilliseconds() << "ms)\n";
 				std::cout << "instructions executed: " << (float)m_cpu.instructionExecuted/1e6 << "M" << '\n' << std::endl;
 				timeForAllBlocks = sf::Time::Zero;
 				clock.restart();
