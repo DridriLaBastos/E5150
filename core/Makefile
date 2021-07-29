@@ -23,7 +23,7 @@ endif
 .PHONY: clean mrproper
 
 $(PRODUCT): $(CXXOBJ)
-	$(AR) -rcv $@ $^
+	$(AR) -vrcu $@ $^
 
 $(CXXOBJ): %.o: %.d
 
@@ -31,7 +31,7 @@ $(THIRD_PARTY_LIB):
 	$(MAKE) -C third-party
 
 $(PCHOBJ): $(PCHSRC) $(THIRD_PARTY_LIB)
-	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -x c++-header $(PCHSRC) -o $@
+	$(CXX) $(CPPPCH_FLAGS) $(CXXFLAGS) -c -x c++-header $(PCHSRC) -o $@
 
 %.d: %.cpp $(PCHOBJ)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) $@ $<

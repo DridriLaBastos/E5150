@@ -10,8 +10,7 @@ using FloatMicroDuration = std::chrono::duration<float, std::micro>;
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
-
-static const sf::Time TIME_PER_BLOCK = sf::seconds((float)CLOCK_PER_BLOCKS * 1.f/BASE_CLOCK);
+static constexpr unsigned int NANOSECONDS_PER_CLOCK = 1.f/BASE_CLOCK * 1e9 + .5f;
 
 static void stop(const int signum)
 {
@@ -23,7 +22,7 @@ E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pi
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	#ifndef STOP_AT_END
-		INFO("Configured : {} clk per block - {} ms per block", CLOCK_PER_BLOCKS,TIME_PER_BLOCK.asMilliseconds());
+		INFO("Configured : {} clk per block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
 	#endif
 	INFO("This program use the library Intel XED to decode the instructions");
 	INFO("This library is accessible at : https://intelxed.github.io");
@@ -69,7 +68,6 @@ void E5150::Arch::startSimulation()
 	sf::Time timeForAllBlocks = sf::Time::Zero;
 	unsigned int blockCount = 0;
 	unsigned int currentClock = 0;
-	unsigned int masterClock = 0;
 	unsigned int fdcClock = 0;
 
 	try
@@ -84,14 +82,12 @@ void E5150::Arch::startSimulation()
 			
 			if (clocksLeftAfterThisBlock < CLOCK_PER_BLOCKS)
 				clockToExecute += clocksLeftAfterThisBlock;
-			
-			currentClock += clockToExecute;
 
+			const sf::Time realTimeForBlock = sf::microseconds(clockToExecute * NANOSECONDS_PER_CLOCK / 1000);
 			const sf::Time blockBegin = clock.getElapsedTime();
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
-				++masterClock;
-
+				currentClock += 1;
 				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
 				const bool instructionExecuted = m_cpu.decode();
 
@@ -112,7 +108,7 @@ void E5150::Arch::startSimulation()
 
 				m_pit.clock();
 
-				while (((fdcClock+1)*1000 <= masterClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
+				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
 				{
 					++fdcClock;
 					m_fdc.clock();
@@ -121,32 +117,33 @@ void E5150::Arch::startSimulation()
 
 		#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
 			const sf::Time blockEnd = clock.getElapsedTime();
-			++blockCount;
 			const sf::Time timeForBlock = blockEnd - blockBegin;
+			const sf::Int64 millisecondsToWait = (realTimeForBlock - timeForBlock).asMilliseconds();
+			
+			blockCount += 1;
 			timeForAllBlocks += timeForBlock;
-			const sf::Int64 microsecondsToWait = TIME_PER_BLOCK.asMicroseconds() - timeForBlock.asMicroseconds();
-			if (microsecondsToWait > 0)
-				std::this_thread::sleep_for(std::chrono::microseconds(microsecondsToWait));
+
+			if (millisecondsToWait > 0)
+				std::this_thread::sleep_for(std::chrono::milliseconds(millisecondsToWait));
 		#endif
 
 			if (clock.getElapsedTime() >= sf::seconds(1.f))
 			{
 			#if not defined(DEBUG_BUILD)
-				const float clockAccurency = (float)currentClock/(float)BASE_CLOCK*100.f;
+				const float clockAccurency = (float)currentClock/BASE_CLOCK*100.f;
 				const float fdcClockAccurency = (float)fdcClock/4e6*100.f;
-				std::cout << "clock executed: " << masterClock << " / " << BASE_CLOCK << std::endl;
+				std::cout << "clock executed: " << currentClock << " / " << BASE_CLOCK << std::endl;
 				std::cout << "\tclock accurency: " << clockAccurency << "%\n";
 				std::cout << "\tfdc clock accurency: " << fdcClockAccurency << "%\n";
 				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
 					<< timeForAllBlocks.asMicroseconds()/blockCount  << "us (" << timeForAllBlocks.asMilliseconds()/blockCount
-					<< "ms) / block - real time: " << TIME_PER_BLOCK.asMicroseconds() << "us (" << TIME_PER_BLOCK.asMilliseconds() << "ms)\n";
+					<< "ms) / block - real time: " << realTimeForBlock.asMicroseconds() << "us (" << realTimeForBlock.asMilliseconds() << "ms)\n";
 				std::cout << "instructions executed: " << (float)m_cpu.instructionExecuted/1e6 << "M" << '\n' << std::endl;
 				timeForAllBlocks = sf::Time::Zero;
 				clock.restart();
 			#endif
 				blockCount = 0;
 				currentClock = 0;
-				masterClock = 0;
 				fdcClock = 0;
 				m_cpu.instructionExecuted = 0;
 			}
