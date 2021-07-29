@@ -13,7 +13,7 @@ LDFLAGS := $(LDFLAGS) -L$(PROJECT_DIR)/core -L$(PROJECT_DIR)/core/third-party/li
 all: $(PRODUCT) $(ASOBJ)
 
 $(PRODUCT): $(CXXOBJ) $(PROJECT_DIR)/core/libcore.a
-	$(CXX) $(LDFLAGS) -lxed -lsfml-system -lcore -Xlinker -rpath -Xlinker $(DEV)/lib -o $@ $(CXXOBJ)
+	$(CXX) $(LDFLAGS) -Xlinker -rpath -Xlinker $(DEV)/lib -o $@ $(CXXOBJ) -lsfml-system -lcore -lxed 
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@

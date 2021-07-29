@@ -23,7 +23,7 @@ endif
 .PHONY: clean mrproper
 
 $(PRODUCT): $(CXXOBJ)
-	$(AR) -vrcu $@ $^
+	$(AR) -rcv $@ $^
 
 $(CXXOBJ): %.o: %.d
 
