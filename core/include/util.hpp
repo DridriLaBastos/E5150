@@ -8,12 +8,12 @@ constexpr unsigned int DEBUG_LEVEL_MAX = 10;
 
 namespace E5150
 {
-	namespace  Util
+	namespace Util
 	{
-		static unsigned int CURRENT_DEBUG_LEVEL;
-		static bool _continue;
-		static bool _stop;
-		static unsigned int undef;//For all undefined value, it is set to a random value at runtime
+		extern unsigned int CURRENT_DEBUG_LEVEL;
+		extern bool _continue;
+		extern bool _stop;
+		extern unsigned int undef;//For all undefined value, it is set to a random value at runtime
 	};
 }
 

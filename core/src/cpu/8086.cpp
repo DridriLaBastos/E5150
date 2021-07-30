@@ -1,8 +1,9 @@
+#include "arch.hpp"
 #include "8086.hpp"
 #include "instructions.hpp"
 
-CPU::CPU(RAM& r, PORTS& p, BUS<20>& a, BUS<8>& d) : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
-							 ram(r), ports(p), addressBus(a), dataBus(d), BIUClockCountDown(5), EUClockCountDown(0), instructionExecuted(0)
+CPU::CPU() : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
+							 BIUClockCountDown(5), EUClockCountDown(0), instructionExecuted(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -12,6 +13,7 @@ CPU::CPU(RAM& r, PORTS& p, BUS<20>& a, BUS<8>& d) : hlt(false), intr(false), nmi
 	ip = 0xFFF0;
 	flags = 0x02;
 	addressBus = genAddress(cs,ip);
+	printf("%#x\n", addressBus);
 
 	/* initialisation de xed */
 	xed_tables_init();
@@ -231,7 +233,7 @@ void CPU::updateStatusFlags (const unsigned int value, const bool byte)
 	testOF(value, byte);
 }
 
-static void printRegisters(const CPU& cpu)
+static void printRegisters(const CPU& _cpu)
 {
 #if defined(SEE_REGS) ||  defined(SEE_ALL)
 	std::printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
@@ -240,14 +242,14 @@ static void printRegisters(const CPU& cpu)
 #endif
 }
 
-static void printFlags(const CPU& cpu)
+static void printFlags(const CPU& _cpu)
 {
 #if defined(SEE_FLAGS) || defined(SEE_ALL)
 	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
 #endif
 }
 
-static void printCurrentInstruction(const CPU& cpu)
+static void printCurrentInstruction(const CPU& _cpu)
 {
 #if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
@@ -344,7 +346,7 @@ static void printCurrentInstruction(const CPU& cpu)
 #endif
 }
 
-static bool execNonControlTransferInstruction(CPU& cpu)
+static bool execNonControlTransferInstruction(CPU& _cpu)
 {
 	bool hasExecutedInstruction = true;
 
@@ -493,7 +495,7 @@ static bool execNonControlTransferInstruction(CPU& cpu)
 	return hasExecutedInstruction;
 }
 
-static void execControlTransferInstruction(CPU& cpu)
+static void execControlTransferInstruction(CPU& _cpu)
 {
 	/* Control transfert */
 	//TODO: Implement Jcc instructions
@@ -567,7 +569,7 @@ static void execControlTransferInstruction(CPU& cpu)
 
 bool CPU::isHalted (void) const { return hlt; }
 
-static bool cpuCanProcessClock (const CPU* cpu)
+static bool cpuCanProcessClock (const CPU* _cpu)
 { /*return ((cpu->m_clockCountDown == 0) && (!cpu->hlt));*/ }
 
 bool CPU::decode()
@@ -698,32 +700,33 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 	return 0;
 }
 
-static void BIUClock(CPU* cpu)
+static void BIUClock()
 {
-	if (cpu->BIUClockCountDown > 0)
+	printf("%#x (%#x, %#x)\n", addressBus, cpu.cs, cpu.ip);
+	if (cpu.BIUClockCountDown > 0)
 	{
-		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - cpu->BIUClockCountDown, cpu->BIUClockCountDown);
-		cpu->BIUClockCountDown -= 1;
+		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - cpu.BIUClockCountDown, cpu.BIUClockCountDown);
+		cpu.BIUClockCountDown -= 1;
 		return;
 	}
 
-	cpu->ram.read();
-	cpu->ip += 1;
-	cpu->BIUClockCountDown = 5;
-	cpu->addressBus = cpu->genAddress(cpu->cs,cpu->ip);
+	ram.read();
+	cpu.ip += 1;
+	cpu.BIUClockCountDown = 5;
+	addressBus = cpu.genAddress(cpu.cs,cpu.ip);
 }
 
-static void EUClock(CPU* cpu)
+static void EUClock()
 {
-	if (cpu->EUClockCountDown > 0)
-		cpu->EUClockCountDown -= 1;
+	if (cpu.EUClockCountDown > 0)
+		cpu.EUClockCountDown -= 1;
 		return;
 }
 
 void CPU::clock()
 {
-	BIUClock(this);
-	EUClock(this);
+	BIUClock();
+	EUClock();
 #if 0
 	if (clockCountDown != 0)
 	{

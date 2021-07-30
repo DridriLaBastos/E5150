@@ -1,6 +1,7 @@
 #include "ram.hpp"
+#include "arch.hpp"
 
-RAM::RAM(BUS<20>& addressBus, BUS<8>& dataBus): mRamPtr(new uint8_t[0x100000]), m_mappedDevices(), addressBus(addressBus), dataBus(dataBus)
+RAM::RAM(): mRamPtr(new uint8_t[0x100000]), m_mappedDevices()
 {
 	m_mappedDevices.reserve(5);
 	m_ram = mRamPtr.get();
@@ -42,14 +43,14 @@ void RAM::read()
 	dataBus = m_ram[addressBus];
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_READ) || defined(SEE_ALL)
 	if (E5150::Util::CURRENT_DEBUG_LEVEL == DEBUG_LEVEL_MAX)
-		std::cout << std::hex << "0x" << dataBus << " --> " << "0x" << addressBus << std::dec << std::endl;
+		std::cout << std::hex << dataBus << " --> " << addressBus << std::dec << std::endl;
 #endif
 }
 void RAM::write()
 {
 	m_ram[addressBus] = dataBus;
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_WRITE) || defined(SEE_ALL)
-	if (E5150::Util::CURRENT_DEBUG_LEVEL == DEBUG_LEVEL_MAX)
+	if (E5150::Util::CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_MAX)
 		std::cout << std::hex << "0x" << addressBus << " <-- " << "0x" << dataBus << std::dec << std::endl;
 #endif
 }

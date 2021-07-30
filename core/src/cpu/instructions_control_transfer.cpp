@@ -1,7 +1,7 @@
 #include "8086.hpp"
 #include "instructions.hpp"
 
-void NEAR_CALL(CPU& cpu)
+void NEAR_CALL(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
@@ -23,7 +23,7 @@ void NEAR_CALL(CPU& cpu)
 	}
 }
 
-void FAR_CALL(CPU& cpu)
+void FAR_CALL(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
@@ -45,7 +45,7 @@ void FAR_CALL(CPU& cpu)
 	}
 }
 
-void NEAR_JMP(CPU& cpu)
+void NEAR_JMP(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
@@ -65,7 +65,7 @@ void NEAR_JMP(CPU& cpu)
 	}
 }
 
-void FAR_JMP(CPU& cpu)
+void FAR_JMP(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
@@ -87,7 +87,7 @@ void FAR_JMP(CPU& cpu)
 	}
 }
 
-void NEAR_RET(CPU& cpu)
+void NEAR_RET(CPU& _cpu)
 {
 	cpu.ip = cpu.pop();
 
@@ -95,7 +95,7 @@ void NEAR_RET(CPU& cpu)
 		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 }
 
-void FAR_RET(CPU& cpu)
+void FAR_RET(CPU& _cpu)
 {
 	cpu.far_ret();
 
@@ -103,61 +103,61 @@ void FAR_RET(CPU& cpu)
 		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 }
 
-void JZ(CPU& cpu)
+void JZ(CPU& _cpu)
 {
 	if (cpu.getFlagStatus(CPU::ZERRO))
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void JL(CPU& cpu)
+void JL(CPU& _cpu)
 {
 	if (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void JLE(CPU& cpu)
+void JLE(CPU& _cpu)
 {
 	if (cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)))
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void JNZ(CPU& cpu)
+void JNZ(CPU& _cpu)
 {
 	if (!cpu.getFlagStatus(CPU::ZERRO))
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void JNL(CPU& cpu)
+void JNL(CPU& _cpu)
 {
 	if (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void JNLE(CPU& cpu)
+void JNLE(CPU& _cpu)
 {
 	if (!(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))))
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void LOOP(CPU& cpu)
+void LOOP(CPU& _cpu)
 {
 	if (cpu.regs[CPU::CX]-- != 0)
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void JCXZ(CPU& cpu)
+void JCXZ(CPU& _cpu)
 {
 	if (cpu.regs[CPU::CX].x == 0)
 		cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.decodedInst);
 }
 
-void INT(CPU& cpu)
+void INT(CPU& _cpu)
 {
 	cpu.intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
 	cpu.interrupt(); //interrupt takes care of cpu.pushing flags and clearing IF
 }
 
-void IRET (CPU& cpu)
+void IRET (CPU& _cpu)
 {
 	cpu.far_ret();
 	cpu.flags = cpu.pop();

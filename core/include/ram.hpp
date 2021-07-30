@@ -15,7 +15,7 @@ struct MapInfo
 class RAM
 {
 	public:
-		RAM(BUS<20>& addressBus, BUS<8>& dataBus);
+		RAM(void);
 
 	public:
 		uint8_t read(const unsigned int address);
@@ -33,9 +33,6 @@ class RAM
 		std::unique_ptr<uint8_t> mRamPtr;
 		uint8_t* m_ram;
 		std::vector<MapInfo> m_mappedDevices;
-
-		BUS<20>& addressBus;
-		BUS<8>& dataBus;
 
 };
 

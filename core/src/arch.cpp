@@ -18,7 +18,24 @@ static void stop(const int signum)
 	INFO("Simulation stopped by 'signal {}'", signum);
 }
 
-E5150::Arch::Arch(): m_ram(mAddressBus, mDataBus), m_cpu(m_ram,m_ports,mAddressBus,mDataBus), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_fdc(m_pic,m_ports)
+bool E5150::Util::_continue;
+bool E5150::Util::_stop;
+unsigned int E5150::Util::CURRENT_DEBUG_LEVEL;
+unsigned int E5150::Util::undef;
+
+/* All the componentns will be globaly accessable for any other component */
+//TODO: convert all components to the new global system
+CPU E5150::Arch::_cpu;
+RAM E5150::Arch::_ram;
+PORTS E5150::Arch::_ports;
+E5150::PIC E5150::Arch::_pic(ports, cpu);
+E5150::PIT E5150::Arch::_pit(ports, pic);
+E5150::PPI E5150::Arch::_ppi(ports);
+E5150::FDC E5150::Arch::_fdc(pic,ports);
+BUS<20> E5150::Arch::_addressBus;
+BUS<8> E5150::Arch::_dataBus;
+
+E5150::Arch::Arch()
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	#ifndef STOP_AT_END
@@ -31,7 +48,7 @@ E5150::Arch::Arch(): m_ram(mAddressBus, mDataBus), m_cpu(m_ram,m_ports,mAddressB
 	E5150::Util::_continue = true;
 	E5150::Util::_stop = true;
 	E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
-	E5150::Util::undef = (unsigned int)(unsigned long)(&m_ram);
+	E5150::Util::undef = (unsigned int)(unsigned long)(&ram);
 
 	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
@@ -39,8 +56,6 @@ E5150::Arch::Arch(): m_ram(mAddressBus, mDataBus), m_cpu(m_ram,m_ports,mAddressB
 	signal(SIGABRT, stop);
 	signal(SIGINT, stop);
 }
-
-RAM& E5150::Arch::getRam() { return m_ram; }
 
 static void clockWait()
 {
@@ -105,7 +120,7 @@ void E5150::Arch::startSimulation()
 				#else
 					m_cpu.clock();
 				#endif*/
-				m_cpu.clock();
+				cpu.clock();
 				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
 					if (E5150::Util::_stop)
 					{
@@ -115,12 +130,12 @@ void E5150::Arch::startSimulation()
 						clockWait();
 					}
 				#endif
-				m_pit.clock();
+				pit.clock();
 
 				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
 				{
 					++fdcClock;
-					m_fdc.clock();
+					fdc.clock();
 				}
 			}
 
@@ -147,14 +162,14 @@ void E5150::Arch::startSimulation()
 				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
 					<< timeForAllBlocks.asMicroseconds()/blockCount  << "us (" << timeForAllBlocks.asMilliseconds()/blockCount
 					<< "ms) / block - real time: " << realTimeForBlock.asMicroseconds() << "us (" << realTimeForBlock.asMilliseconds() << "ms)\n";
-				std::cout << "instructions executed: " << (float)m_cpu.instructionExecuted/1e6 << "M" << '\n' << std::endl;
+				std::cout << "instructions executed: " << (float)cpu.instructionExecuted/1e6 << "M" << '\n' << std::endl;
 				timeForAllBlocks = sf::Time::Zero;
 				clock.restart();
 			#endif
 				blockCount = 0;
 				currentClock = 0;
 				fdcClock = 0;
-				m_cpu.instructionExecuted = 0;
+				cpu.instructionExecuted = 0;
 			}
 		}
 	}

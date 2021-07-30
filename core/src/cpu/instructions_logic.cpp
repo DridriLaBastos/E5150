@@ -1,7 +1,7 @@
 #include "8086.hpp"
 #include "instructions.hpp"
 
-void NOT(CPU& cpu)
+void NOT(CPU& _cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));

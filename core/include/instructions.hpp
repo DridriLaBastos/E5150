@@ -5,63 +5,63 @@
 
 //TODO: continue to implement data transfer instructions
 /* Data Transfer */
-void MOV	(CPU& cpu);
-void PUSH	(CPU& cpu);
-void POP	(CPU& cpu);
-void XCHG	(CPU& cpu);
-void IN		(CPU& cpu);
-void OUT	(CPU& cpu);
-void XLAT	(CPU& cpu);
-void LEA	(CPU& cpu);
-void LDS	(CPU& cpu);
-void LES	(CPU& cpu);
-void LAHF	(CPU& cpu);
-void SAHF	(CPU& cpu);
-void PUSHF	(CPU& cpu);
-void POPF	(CPU& cpu);
+void MOV	(CPU&);
+void PUSH	(CPU&);
+void POP	(CPU&);
+void XCHG	(CPU&);
+void IN		(CPU&);
+void OUT	(CPU&);
+void XLAT	(CPU&);
+void LEA	(CPU&);
+void LDS	(CPU&);
+void LES	(CPU&);
+void LAHF	(CPU&);
+void SAHF	(CPU&);
+void PUSHF	(CPU&);
+void POPF	(CPU&);
 
 //TODO: continue to implement arithmetic instructions
 /* Arithmetic */
-void ADD  (CPU& cpu);
-void INC  (CPU& cpu);
-void SUB  (CPU& cpu);
-void DEC  (CPU& cpu);
-void NEG  (CPU& cpu);
-void CMP  (CPU& cpu);
-void MUL  (CPU& cpu);
-void IMUL (CPU& cpu);
-void DIV  (CPU& cpu);
-void IDIV (CPU& cpu);
+void ADD  (CPU&);
+void INC  (CPU&);
+void SUB  (CPU&);
+void DEC  (CPU&);
+void NEG  (CPU&);
+void CMP  (CPU&);
+void MUL  (CPU&);
+void IMUL (CPU&);
+void DIV  (CPU&);
+void IDIV (CPU&);
 
 /* Control Transfer */
-void NEAR_CALL	(CPU& cpu);
-void FAR_CALL	(CPU& cpu);
-void NEAR_JMP	(CPU& cpu);
-void FAR_JMP	(CPU& cpu);
-void NEAR_RET	(CPU& cpu);
-void FAR_RET	(CPU& cpu);
-void JZ			(CPU& cpu);/*  JZ/JE   */
-void JL			(CPU& cpu);/*  JL/JNGE */
-void JLE		(CPU& cpu);/* JLE/JNG  */
-void JNZ		(CPU& cpu);
-void JNL		(CPU& cpu);
-void JNLE		(CPU& cpu);
-void LOOP		(CPU& cpu);
-void JCXZ		(CPU& cpu);
-void INT		(CPU& cpu);
-void IRET		(CPU& cpu);
+void NEAR_CALL	(CPU&);
+void FAR_CALL	(CPU&);
+void NEAR_JMP	(CPU&);
+void FAR_JMP	(CPU&);
+void NEAR_RET	(CPU&);
+void FAR_RET	(CPU&);
+void JZ			(CPU&);/*  JZ/JE   */
+void JL			(CPU&);/*  JL/JNGE */
+void JLE		(CPU&);/* JLE/JNG  */
+void JNZ		(CPU&);
+void JNL		(CPU&);
+void JNLE		(CPU&);
+void LOOP		(CPU&);
+void JCXZ		(CPU&);
+void INT		(CPU&);
+void IRET		(CPU&);
 
-void NOT (CPU& cpu);
+void NOT (CPU&);
 
 //TODO: continue to implements processor control instructions
 /* Processor Control */
-void CLC (CPU& cpu);
-void STC (CPU& cpu);
-void CLD (CPU& cpu);
-void STD (CPU& cpu);
-void CLI (CPU& cpu);
-void STI (CPU& cpu);
-void HLT (CPU& cpu);
-void NOP (CPU& cpu);
+void CLC (CPU&);
+void STC (CPU&);
+void CLD (CPU&);
+void STD (CPU&);
+void CLI (CPU&);
+void STI (CPU&);
+void HLT (CPU&);
+void NOP (CPU&);
 
 #endif

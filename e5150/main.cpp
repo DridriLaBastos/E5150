@@ -7,7 +7,6 @@ int main (void)
 	spdlog::set_level(spdlog::level::trace);
 #endif
 	E5150::Arch arch;
-	RAM& ram = arch.getRam();
 
 	#if 1
 		//Loadin bochs BIOS

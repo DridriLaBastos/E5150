@@ -1,7 +1,7 @@
 #include "8086.hpp"
 #include "instructions.hpp"
 
-void ADD(CPU& cpu)
+void ADD(CPU& _cpu)
 {
 	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
 	const bool cond = ((iform >= 33) && (iform <= 38)) || ((iform >= 44) && (iform <= 46));
@@ -53,7 +53,7 @@ void ADD(CPU& cpu)
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void INC(CPU& cpu)
+void INC(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
@@ -86,7 +86,7 @@ void INC(CPU& cpu)
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void SUB(CPU& cpu)
+void SUB(CPU& _cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
@@ -137,7 +137,7 @@ void SUB(CPU& cpu)
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void DEC(CPU& cpu)
+void DEC(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 	const xed_iform_enum_t   iform   = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
@@ -170,7 +170,7 @@ void DEC(CPU& cpu)
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void NEG(CPU& cpu)
+void NEG(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
@@ -211,7 +211,7 @@ void NEG(CPU& cpu)
 	cpu.updateStatusFlags(value1, cond ? 1: 2);
 }
 
-void CMP(CPU& cpu)
+void CMP(CPU& _cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
@@ -256,7 +256,7 @@ void CMP(CPU& cpu)
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
 
-void MUL(CPU& cpu)
+void MUL(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
@@ -298,7 +298,7 @@ void MUL(CPU& cpu)
 	}
 }
 
-void IMUL(CPU& cpu)
+void IMUL(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
@@ -341,7 +341,7 @@ void IMUL(CPU& cpu)
 }
 
 //TODO: what happens when dividing by zero ? Restart ?
-void DIV(CPU& cpu)
+void DIV(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
@@ -381,7 +381,7 @@ void DIV(CPU& cpu)
 }
 
 //TODO: I am not sure about that !
-void IDIV(CPU& cpu)
+void IDIV(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);

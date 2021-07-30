@@ -1,7 +1,8 @@
+#include "arch.hpp"
 #include "8086.hpp"
 #include "instructions.hpp"
 
-void MOV(CPU& cpu)
+void MOV(CPU& _cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 
@@ -50,7 +51,7 @@ void MOV(CPU& cpu)
 	}
 }
 
-void PUSH (CPU& cpu)
+void PUSH (CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
@@ -69,7 +70,7 @@ void PUSH (CPU& cpu)
 	}
 }
 
-void POP (CPU& cpu)
+void POP (CPU& _cpu)
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 
@@ -90,7 +91,7 @@ void POP (CPU& cpu)
 	}
 }
 
-void XCHG(CPU& cpu)
+void XCHG(CPU& _cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -134,7 +135,7 @@ void XCHG(CPU& cpu)
 	}
 }
 
-void IN(CPU& cpu)
+void IN(CPU& _cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -146,13 +147,13 @@ void IN(CPU& cpu)
 	else 
 		iaddr = cpu.dx;
 
-	cpu.ax = cpu.ports.read(iaddr);
+	cpu.ax = ports.read(iaddr);
 
 	if (xed_decoded_inst_get_reg(&cpu.decodedInst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
-		cpu.ax = cpu.ports.read(iaddr + 1);
+		cpu.ax = ports.read(iaddr + 1);
 }
 
-void OUT(CPU& cpu)
+void OUT(CPU& _cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -164,16 +165,16 @@ void OUT(CPU& cpu)
 	else
 		oaddr = cpu.dx;
 		
-	cpu.ports.write(oaddr, cpu.ax);
+	ports.write(oaddr, cpu.ax);
 
 	if (xed_decoded_inst_get_reg(&cpu.decodedInst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
-		cpu.ports.write(oaddr + 1, cpu.ax);
+		ports.write(oaddr + 1, cpu.ax);
 }
 
-void XLAT (CPU& cpu)
+void XLAT (CPU& _cpu)
 { cpu.ax = cpu.readByte(cpu.genAddress(cpu.ds, cpu.bx + cpu.ax)); }
 
-void LEA(CPU& cpu)
+void LEA(CPU& _cpu)
 {
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 1));
@@ -181,24 +182,24 @@ void LEA(CPU& cpu)
 	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name0), cpu.genEA());
 }
 
-void LDS(CPU& cpu)
+void LDS(CPU& _cpu)
 {
 	//TODO: Implement LDS
 }
 
-void LES(CPU& cpu)
+void LES(CPU& _cpu)
 {
 	//TODO: Implement LES
 }
 
-void LAHF (CPU& cpu)
+void LAHF (CPU& _cpu)
 { cpu.ax = (cpu.flags & 0b11010101)|0b10; }
 
-void SAHF (CPU& cpu)
+void SAHF (CPU& _cpu)
 { cpu.setFlags(cpu.ax & (0b11010101)); }
 
-void PUSHF (CPU& cpu)
+void PUSHF (CPU& _cpu)
 { cpu.push(cpu.flags); }
 
-void POPF (CPU& cpu)
+void POPF (CPU& _cpu)
 { cpu.flags = cpu.pop(); }

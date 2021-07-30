@@ -3,10 +3,6 @@
 
 #include "util.hpp"
 
-#include "ram.hpp"
-#include "bus.hpp"
-#include "ports.hpp"
-
 union reg_t
 {
 	//Represents both the 'x' value ax,bx,cx,dx registers, and the integer value (the 'v') of other registers
@@ -48,7 +44,7 @@ union reg_t
 class CPU
 {
 	public:
-		CPU(RAM& ram, PORTS& ports, BUS<20>& addressBus, BUS<8>& dataBus);
+		CPU(void);
 
 		void clock (void);
 		bool decode(void);
@@ -160,12 +156,6 @@ class CPU
 		unsigned int BIUClockCountDown;
 		unsigned int EUClockCountDown;
 		unsigned int instructionExecuted;
-
-		RAM&	ram;
-		PORTS&	ports;
-
-		BUS<20>& addressBus;
-		BUS<8>& dataBus;
 };
 
 #endif
