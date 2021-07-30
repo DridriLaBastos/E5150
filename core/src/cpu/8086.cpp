@@ -3,7 +3,7 @@
 #include "instructions.hpp"
 
 CPU::CPU() : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
-							 BIUClockCountDown(5), EUClockCountDown(0), instructionExecuted(0)
+							BIUClockCountDown(5), EUClockCountDown(0), instructionExecuted(0), instructionBufferQueuePos(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -248,7 +248,7 @@ static void printFlags(const CPU& _cpu)
 #endif
 }
 
-static void printCurrentInstruction(const CPU& _cpu)
+static void printCurrentInstruction()
 {
 #if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
@@ -709,17 +709,48 @@ static void BIUClock()
 		return;
 	}
 
-	ram.read();
-	cpu.ip += 1;
+	if (cpu.instructionBufferQueuePos < 5)
+	{
+		ram.read();
+		cpu.instructionBufferQueue[cpu.instructionBufferQueuePos] = dataBus;
+		cpu.ip += 1;
+		cpu.instructionBufferQueuePos += 1;
+		addressBus = cpu.genAddress(cpu.cs,cpu.ip);
+		printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.instructionBufferQueuePos);
+
+		printf("Instruction buffer: ");
+		for (uint8_t b: cpu.instructionBufferQueue)
+			printf("%#x ",b);
+		putchar('\n');
+	}
+
 	cpu.BIUClockCountDown = 5;
-	addressBus = cpu.genAddress(cpu.cs,cpu.ip);
+}
+
+static void instructionBufferQueuePop (const unsigned int n = 1)
+{
+	for (size_t i = 0; i+n < 5; i++)
+		cpu.instructionBufferQueue[i] = cpu.instructionBufferQueue[i+n];
+	cpu.instructionBufferQueuePos -= n;
 }
 
 static void EUClock()
 {
 	if (cpu.EUClockCountDown > 0)
+	{
 		cpu.EUClockCountDown -= 1;
 		return;
+	}
+
+	xed_decoded_inst_zero_keep_mode(&cpu.decodedInst);
+	if (xed_decode(&cpu.decodedInst,cpu.instructionBufferQueue.data(),cpu.instructionBufferQueuePos) == xed_error_enum_t::XED_ERROR_NONE)
+	{
+		printCurrentInstruction();
+		instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.decodedInst));
+		cpu.EUClockCountDown = 7;
+	}
+	else
+		printf("INVALID!\n");
 }
 
 void CPU::clock()

@@ -156,6 +156,8 @@ class CPU
 		unsigned int BIUClockCountDown;
 		unsigned int EUClockCountDown;
 		unsigned int instructionExecuted;
+		std::array<uint8_t, 5> instructionBufferQueue;
+		unsigned int instructionBufferQueuePos;
 };
 
 #endif
