@@ -13,7 +13,6 @@ CPU::CPU() : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(tru
 	ip = 0xFFF0;
 	flags = 0x02;
 	addressBus = genAddress(cs,ip);
-	printf("%#x\n", addressBus);
 
 	/* initialisation de xed */
 	xed_tables_init();
@@ -702,7 +701,7 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 
 static void BIUClock()
 {
-	printf("%#x (%#x, %#x)\n", addressBus, cpu.cs, cpu.ip);
+	printf("%#x (%#x, %#x)\n", (unsigned)addressBus, cpu.cs, cpu.ip);
 	if (cpu.BIUClockCountDown > 0)
 	{
 		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - cpu.BIUClockCountDown, cpu.BIUClockCountDown);

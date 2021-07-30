@@ -25,6 +25,9 @@ unsigned int E5150::Util::undef;
 
 /* All the componentns will be globaly accessable for any other component */
 //TODO: convert all components to the new global system
+BUS<20> E5150::Arch::_addressBus;
+BUS<8> E5150::Arch::_dataBus;
+
 CPU E5150::Arch::_cpu;
 RAM E5150::Arch::_ram;
 PORTS E5150::Arch::_ports;
@@ -32,8 +35,6 @@ E5150::PIC E5150::Arch::_pic(ports, cpu);
 E5150::PIT E5150::Arch::_pit(ports, pic);
 E5150::PPI E5150::Arch::_ppi(ports);
 E5150::FDC E5150::Arch::_fdc(pic,ports);
-BUS<20> E5150::Arch::_addressBus;
-BUS<8> E5150::Arch::_dataBus;
 
 E5150::Arch::Arch()
 {
