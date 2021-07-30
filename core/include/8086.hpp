@@ -157,6 +157,9 @@ class CPU
 		bool intr;
 		bool interrupt_enable;
 		unsigned int fault_count;
+		unsigned int BIUClockCountDown;
+		unsigned int EUClockCountDown;
+		unsigned int instructionExecuted;
 
 		RAM&	ram;
 		PORTS&	ports;

@@ -2,7 +2,7 @@
 #include "instructions.hpp"
 
 CPU::CPU(RAM& r, PORTS& p, BUS<20>& a, BUS<8>& d) : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
-							 ram(r), ports(p), addressBus(a), dataBus(d)
+							 ram(r), ports(p), addressBus(a), dataBus(d), BIUClockCountDown(5), EUClockCountDown(0), instructionExecuted(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -11,6 +11,7 @@ CPU::CPU(RAM& r, PORTS& p, BUS<20>& a, BUS<8>& d) : hlt(false), intr(false), nmi
 	sp = 0xFF;
 	ip = 0xFFF0;
 	flags = 0x02;
+	addressBus = genAddress(cs,ip);
 
 	/* initialisation de xed */
 	xed_tables_init();
@@ -567,10 +568,10 @@ static void execControlTransferInstruction(CPU& cpu)
 bool CPU::isHalted (void) const { return hlt; }
 
 static bool cpuCanProcessClock (const CPU* cpu)
-{ return ((cpu->m_clockCountDown == 0) && (!cpu->hlt)); }
+{ /*return ((cpu->m_clockCountDown == 0) && (!cpu->hlt));*/ }
 
 bool CPU::decode()
-{
+{/*
 	const bool canProcessClock = cpuCanProcessClock(this);
 	if (canProcessClock)
 	{
@@ -579,10 +580,12 @@ bool CPU::decode()
 	}
 
 	return canProcessClock;
+	*/
 }
 
 void CPU::exec()
 {
+#if 0
 	if (!cpuCanProcessClock(this))
 	{
 		if (m_clockCountDown != 0)
@@ -610,6 +613,7 @@ void CPU::exec()
 				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
 	}
+#endif
 }
 
 unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
@@ -694,8 +698,33 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 	return 0;
 }
 
+static void BIUClock(CPU* cpu)
+{
+	if (cpu->BIUClockCountDown > 0)
+	{
+		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - cpu->BIUClockCountDown, cpu->BIUClockCountDown);
+		cpu->BIUClockCountDown -= 1;
+		return;
+	}
+
+	cpu->ram.read();
+	cpu->ip += 1;
+	cpu->BIUClockCountDown = 5;
+	cpu->addressBus = cpu->genAddress(cpu->cs,cpu->ip);
+}
+
+static void EUClock(CPU* cpu)
+{
+	if (cpu->EUClockCountDown > 0)
+		cpu->EUClockCountDown -= 1;
+		return;
+}
+
 void CPU::clock()
 {
+	BIUClock(this);
+	EUClock(this);
+#if 0
 	if (clockCountDown != 0)
 	{
 		--clockCountDown;
@@ -738,6 +767,7 @@ void CPU::clock()
 				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
 		}
 	}
+#endif
 }
 
 void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)

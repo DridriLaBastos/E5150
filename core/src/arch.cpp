@@ -18,7 +18,7 @@ static void stop(const int signum)
 	INFO("Simulation stopped by 'signal {}'", signum);
 }
 
-E5150::Arch::Arch(): m_ram(), m_cpu(m_ram, m_ports), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_fdc(m_pic,m_ports)
+E5150::Arch::Arch(): m_ram(mAddressBus, mDataBus), m_cpu(m_ram,m_ports,mAddressBus,mDataBus), m_pic(m_ports, m_cpu), m_pit(m_ports, m_pic), m_ppi(m_ports),m_fdc(m_pic,m_ports)
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	#ifndef STOP_AT_END
@@ -88,7 +88,7 @@ void E5150::Arch::startSimulation()
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
 				currentClock += 1;
-				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+				/*#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
 				const bool instructionExecuted = m_cpu.decode();
 
 				if (instructionExecuted)
@@ -104,8 +104,17 @@ void E5150::Arch::startSimulation()
 				m_cpu.exec();
 				#else
 					m_cpu.clock();
+				#endif*/
+				m_cpu.clock();
+				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
+					if (E5150::Util::_stop)
+					{
+						//m_cpu.printRegisters();
+						//m_cpu.printFlags();
+						//m_cpu.printCurrentInstruction();
+						clockWait();
+					}
 				#endif
-
 				m_pit.clock();
 
 				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))

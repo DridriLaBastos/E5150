@@ -7,7 +7,7 @@ class BUS
 	public:
 		BUS(const unsigned int initialValue = 0)
 		{
-			computeMask();
+			mMask = computeMask();
 			setValue(initialValue);
 		}
 
@@ -16,11 +16,12 @@ class BUS
 		void operator= (const unsigned int newValue) { setValue(newValue); }
 	
 	private:
-		void computeMask() const
+		unsigned int computeMask() const
 		{
-			mMask = 0;
+			unsigned int mask = 0;
 			for (int i = 0; i < LINE_NUMBER; ++i)
-				mMask |= 1 << i;
+				mask |= 1 << i;
+			return mask;
 		}
 
 		void setValue (const unsigned int newValue)

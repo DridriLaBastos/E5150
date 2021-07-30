@@ -31,8 +31,8 @@ namespace E5150
 			PIT m_pit;
 			PPI m_ppi;
 			FDC m_fdc;
-			BUS<20> mLocalAddress;
-			BUS<8> mLocalData;
+			BUS<20> mAddressBus;
+			BUS<8> mDataBus;
 	};
 }
 

@@ -1,6 +1,7 @@
 #ifndef __RAM_HPP__
 #define __RAM_HPP__
 
+#include "bus.hpp"
 #include "util.hpp"
 
 struct MapInfo
@@ -14,8 +15,7 @@ struct MapInfo
 class RAM
 {
 	public:
-		RAM(void);
-		~RAM(void);
+		RAM(BUS<20>& addressBus, BUS<8>& dataBus);
 
 	public:
 		uint8_t read(const unsigned int address);
@@ -24,11 +24,19 @@ class RAM
 		void load(const std::string path, size_t pos);
 		void map(const MapInfo info);
 
+		void read (void);
+		void write (void);
+
 		friend class CPU;
 
 	private:
-		uint8_t* const m_ram;
+		std::unique_ptr<uint8_t> mRamPtr;
+		uint8_t* m_ram;
 		std::vector<MapInfo> m_mappedDevices;
+
+		BUS<20>& addressBus;
+		BUS<8>& dataBus;
+
 };
 
 #endif
