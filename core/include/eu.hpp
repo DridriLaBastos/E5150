@@ -2,7 +2,7 @@
 #define __EU_HPP__
 
 #include "util.hpp"
-
+#include "instructions.hpp"
 namespace E5150::I8086
 {
 	class EU
@@ -11,11 +11,13 @@ namespace E5150::I8086
 			EU(void);
 
 			bool clock(void);
+			unsigned int getEAComputationClockCount();
 		
 			unsigned int clockCountDown;
 			xed_decoded_inst_t decodedInst;
-			const xed_inst_t* instruction;
-			std::function<void(void)> mInstructionFunction;
+			std::function<unsigned int(void)> instructionGetClockCount;
+			std::function<void(void)> instructionExec;
+
 	};
 }
 
