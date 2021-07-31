@@ -1,6 +1,8 @@
 #ifndef __I8086_HPP__
 #define __I8086_HPP__
 
+#include "eu.hpp"
+#include "biu.hpp"
 #include "util.hpp"
 
 union reg_t
@@ -41,6 +43,7 @@ union reg_t
 //TODO: go throught all the instructions and implements 
 // - exceptions
 // - prefixes
+//TODO: Add a namespace here
 class CPU
 {
 	public:
@@ -153,11 +156,10 @@ class CPU
 		bool intr;
 		bool interrupt_enable;
 		unsigned int fault_count;
-		unsigned int BIUClockCountDown;
-		unsigned int EUClockCountDown;
+		E5150::I8086::BIU biu;
+		E5150::I8086::EU eu;
+
 		unsigned int instructionExecuted;
-		std::array<uint8_t, 5> instructionBufferQueue;
-		unsigned int instructionBufferQueuePos;
 };
 
 #endif

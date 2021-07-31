@@ -13,7 +13,9 @@ class BUS
 
 		operator unsigned int (void) { return mValue; }
 		operator const unsigned int (void) const { return mValue; }
-		void operator= (const unsigned int newValue) { setValue(newValue); }
+		template <typename DATA_TYPE>
+		void operator= (const DATA_TYPE& newValue)
+		{ if constexpr (sizeof(DATA_TYPE) * 8 <= LINE_NUMBER) { mValue = newValue; } else { setValue(newValue); } }
 	
 	private:
 		unsigned int computeMask() const
