@@ -1,6 +1,8 @@
 #include "eu.hpp"
 #include "arch.hpp"
 
+#include "instructions.hpp"
+
 using namespace E5150::I8086;
 
 EU::EU(): mClockCountDown(0) {}
@@ -102,6 +104,8 @@ static void printCurrentInstruction()
 #endif
 }
 
+
+
 void EU::clock()
 {
 	if (mClockCountDown > 0)
@@ -110,10 +114,12 @@ void EU::clock()
 		return;
 	}
 
-	xed_decoded_inst_zero_keep_mode(&cpu.decodedInst);
-	if (xed_decode(&cpu.decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos) == xed_error_enum_t::XED_ERROR_NONE)
+	xed_decoded_inst_zero_keep_mode(&decodedInst);
+
+	if (xed_decode(&decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos) == xed_error_enum_t::XED_ERROR_NONE)
 	{
 		printCurrentInstruction();
+		instruction = xed_decoded_inst_inst(&decodedInst);
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.decodedInst));
 		mClockCountDown = 7;
 	}

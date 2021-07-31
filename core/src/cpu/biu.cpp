@@ -8,7 +8,7 @@ BIU::BIU(): mClockCountDown(5) {}
 void BIU::clock()
 {
 	printf("%#x (%#x, %#x)\n", (unsigned)addressBus, cpu.cs, cpu.ip);
-	if (mClockCountDown> 0)
+	if (mClockCountDown > 0)
 	{
 		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - mClockCountDown, mClockCountDown);
 		mClockCountDown -= 1;
@@ -30,7 +30,7 @@ void BIU::clock()
 		putchar('\n');
 	}
 
-	mClockCountDown= 5;
+	mClockCountDown += 5;
 }
 
 void BIU::instructionBufferQueuePop(const unsigned int n)

@@ -604,8 +604,11 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 
 void CPU::clock()
 {
-	biu.clock();
-	eu.clock();
+	if (!hlt)
+	{
+		biu.clock();
+		eu.clock();
+	}
 #if 0
 	if (clockCountDown != 0)
 	{
