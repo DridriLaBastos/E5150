@@ -7,10 +7,10 @@ CPU::CPU() : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(tru
 {
 	std::cout << xed_get_copyright() << std::endl;
 
-	cs = 0xF000;
+	cs = 0;//0xF000;
 	ss = 0xEF0;
 	sp = 0xFF;
-	ip = 0xFFF0;
+	ip = 0;//0xFFF0;
 	flags = 0x02;
 	addressBus = genAddress(cs,ip);
 
@@ -247,228 +247,6 @@ static void printFlags(const CPU& _cpu)
 	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
 #endif
 }
-
-static bool execNonControlTransferInstruction(CPU& _cpu)
-{
-	bool hasExecutedInstruction = true;
-
-	//TODO: check if this switch needs to be optimized
-	switch (xed_decoded_inst_get_iclass(&cpu.decodedInst))
-	{
-	case XED_ICLASS_MOV:
-		MOV(cpu);
-		break;
-
-	case XED_ICLASS_PUSH:
-		PUSH(cpu);
-		break;
-
-	case XED_ICLASS_POP:
-		POP(cpu);
-		break;
-
-	case XED_ICLASS_ADD:
-		ADD(cpu);
-		break;
-
-	case XED_ICLASS_INC:
-		INC(cpu);
-		break;
-
-	case XED_ICLASS_SUB:
-		SUB(cpu);
-		break;
-
-	case XED_ICLASS_DEC:
-		DEC(cpu);
-		break;
-
-	case XED_ICLASS_NEG_LOCK:
-	case XED_ICLASS_NEG:
-		NEG(cpu);
-		break;
-
-	case XED_ICLASS_CMP:
-		CMP(cpu);
-		break;
-
-	case XED_ICLASS_MUL:
-		MUL(cpu);
-		break;
-
-	case XED_ICLASS_IMUL:
-		IMUL(cpu);
-		break;
-
-	case XED_ICLASS_DIV:
-		DIV(cpu);
-		break;
-
-	case XED_ICLASS_IDIV:
-		IDIV(cpu);
-		break;
-
-	case XED_ICLASS_XCHG:
-		XCHG(cpu);
-		break;
-
-	case XED_ICLASS_NOT:
-		NOT(cpu);
-		break;
-
-	case XED_ICLASS_IN:
-		IN(cpu);
-		break;
-
-	case XED_ICLASS_OUT:
-		OUT(cpu);
-		break;
-
-	case XED_ICLASS_XLAT:
-		XLAT(cpu);
-		break;
-
-	case XED_ICLASS_LEA:
-		LEA(cpu);
-		break;
-
-	case XED_ICLASS_LDS:
-		LDS(cpu);
-		break;
-
-	case XED_ICLASS_LES:
-		LES(cpu);
-		break;
-
-	case XED_ICLASS_LAHF:
-		LAHF(cpu);
-		break;
-
-	case XED_ICLASS_SAHF:
-		SAHF(cpu);
-		break;
-
-	case XED_ICLASS_PUSHF:
-		PUSHF(cpu);
-		break;
-
-	case XED_ICLASS_POPF:
-		POPF(cpu);
-		break;
-
-	case XED_ICLASS_CLC:
-		CLC(cpu);
-		break;
-
-	case XED_ICLASS_STC:
-		STC(cpu);
-		break;
-
-	case XED_ICLASS_CLI:
-		CLI(cpu);
-		break;
-
-	case XED_ICLASS_STI:
-		STI(cpu);
-		break;
-
-	case XED_ICLASS_CLD:
-		CLD(cpu);
-		break;
-
-	case XED_ICLASS_STD:
-		STD(cpu);
-		break;
-
-	case XED_ICLASS_HLT:
-		HLT(cpu);
-		break;
-	
-	case XED_ICLASS_NOP:
-		NOP(cpu);
-		break;
-	
-	default:
-		hasExecutedInstruction = false;
-	}
-
-	cpu.ip += xed_decoded_inst_get_length(&cpu.decodedInst);
-
-	return hasExecutedInstruction;
-}
-
-static void execControlTransferInstruction(CPU& _cpu)
-{
-	/* Control transfert */
-	//TODO: Implement Jcc instructions
-	switch (xed_decoded_inst_get_iclass(&cpu.decodedInst))
-	{
-	case XED_ICLASS_CALL_NEAR:
-		NEAR_CALL(cpu);
-		break;
-
-	case XED_ICLASS_CALL_FAR:
-		FAR_CALL(cpu);
-		break;
-
-	case XED_ICLASS_JMP:
-		NEAR_JMP(cpu);
-		break;
-
-	case XED_ICLASS_JMP_FAR:
-		FAR_JMP(cpu);
-		break;
-
-	case XED_ICLASS_RET_NEAR:
-		NEAR_RET(cpu);
-		break;
-
-	case XED_ICLASS_RET_FAR:
-		FAR_RET(cpu);
-		break;
-
-	case XED_ICLASS_JZ:
-		JZ(cpu);
-		break;
-
-	case XED_ICLASS_JL:
-		JL(cpu);
-		break;
-
-	case XED_ICLASS_JLE:
-		JLE(cpu);
-		break;
-
-	case XED_ICLASS_JNZ:
-		JNZ(cpu);
-		break;
-
-	case XED_ICLASS_JNL:
-		JNL(cpu);
-		break;
-
-	case XED_ICLASS_JNLE:
-		JNLE(cpu);
-		break;
-
-	case XED_ICLASS_LOOP:
-		LOOP(cpu);
-		break;
-
-	case XED_ICLASS_JCXZ:
-		JCXZ(cpu);
-		break;
-
-	case XED_ICLASS_INT:
-		INT(cpu);
-		break;
-
-	case XED_ICLASS_IRET:
-		IRET(cpu);
-		break;
-	}
-}
-
 bool CPU::isHalted (void) const { return hlt; }
 
 static bool cpuCanProcessClock (const CPU* _cpu)
@@ -497,8 +275,7 @@ void CPU::exec()
 		return;
 	}
 	
-	if (!execNonControlTransferInstruction())
-			execControlTransferInstruction();
+	
 
 	if (intr)
 	{
@@ -602,13 +379,11 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 	return 0;
 }
 
-void CPU::clock()
+bool CPU::clock()
 {
 	if (!hlt)
-	{
 		biu.clock();
-		eu.clock();
-	}
+	return eu.clock();
 #if 0
 	if (clockCountDown != 0)
 	{

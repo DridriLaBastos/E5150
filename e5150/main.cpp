@@ -8,14 +8,15 @@ int main (void)
 #endif
 	E5150::Arch arch;
 
-	#if 1
+	#if 0
 		//Loadin bochs BIOS
 		ram.load("/Users/adrien/dev/share/bochs/BIOS-bochs-legacy", 0xF0000);
 	#else
 		//Loading custom test code
-		ram.load("test/interrupts.bin",0);
-		ram.load("test/jmp.bin", 0xFFFF0);
-		ram.load("test/bios.bin",0xE0000);
+		//ram.load("test/interrupts.bin",0);
+		//ram.load("test/jmp.bin", 0xFFFF0);
+		//ram.load("test/bios.bin",0xE0000);
+		ram.load("test/test.bin",0);
 	#endif
 	std::cout << std::showbase;
 	arch.startSimulation();

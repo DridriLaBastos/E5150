@@ -1,11 +1,11 @@
-#include "8086.hpp"
+#include "arch.hpp"
 #include "instructions.hpp"
 
 void ADD(CPU& _cpu)
 {
-	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = ((iform >= 33) && (iform <= 38)) || ((iform >= 44) && (iform <= 46));
-	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
 
@@ -15,7 +15,7 @@ void ADD(CPU& _cpu)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name1);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name1);
 			value1 = cpu.readReg(reg);
 			cpu.write_reg(reg, value1);
 		} break;
@@ -35,12 +35,12 @@ void ADD(CPU& _cpu)
 	switch (op_name2)
 	{
 		case XED_OPERAND_IMM0:
-			value1 += xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
+			value1 += xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 			break;
 		
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			value1 += cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name2));
+			value1 += cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name2));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -55,9 +55,9 @@ void ADD(CPU& _cpu)
 
 void INC(CPU& _cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
 
-	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = (iform == XED_IFORM_INC_GPR8) || (iform == XED_IFORM_INC_MEMb) || (iform == XED_IFORM_INC_LOCK_MEMb);
 
 	unsigned int value1;
@@ -66,7 +66,7 @@ void INC(CPU& _cpu)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name);
 			value1 = cpu.readReg(reg) + 1;
 			cpu.write_reg(reg, value1);
 		} break;
@@ -88,10 +88,10 @@ void INC(CPU& _cpu)
 
 void SUB(CPU& _cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = 	((iform >= XED_IFORM_SUB_AL_IMMb) && (iform >= XED_IFORM_SUB_GPR8_MEMb)) ||
 					  	((iform >= XED_IFORM_SUB_MEMb_GPR8) && (iform <= XED_IFORM_SUB_MEMb_IMMb_82r5));
 
@@ -101,7 +101,7 @@ void SUB(CPU& _cpu)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name1);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name1);
 
 			value1 = cpu.readReg(reg);
 			cpu.write_reg(reg, value1);
@@ -119,12 +119,12 @@ void SUB(CPU& _cpu)
 	switch (op_name2)
 	{
 		case XED_OPERAND_IMM0:
-			value1 -= xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
+			value1 -= xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 			break;
 		
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			value1 -= cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name2));
+			value1 -= cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name2));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -139,8 +139,8 @@ void SUB(CPU& _cpu)
 
 void DEC(CPU& _cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
-	const xed_iform_enum_t   iform   = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_iform_enum_t   iform   = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = (iform == XED_IFORM_DEC_GPR8) || (iform == XED_IFORM_DEC_MEMb) || (XED_IFORM_DEC_LOCK_MEMb);
 
 	unsigned int value1;
@@ -149,7 +149,7 @@ void DEC(CPU& _cpu)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name);
 
 			value1 = cpu.readReg(reg) - 1;
 			cpu.write_reg(reg, value1);
@@ -172,8 +172,8 @@ void DEC(CPU& _cpu)
 
 void NEG(CPU& _cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = (iform == XED_IFORM_NEG_GPR8) || (iform == XED_IFORM_NEG_MEMb) || (iform == XED_IFORM_NEG_LOCK_MEMb);
 
 	unsigned int value1;
@@ -182,7 +182,7 @@ void NEG(CPU& _cpu)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.decodedInst, op_name);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name);
 
 			value1 = cpu.readReg(reg);
 			value1 *= -1;
@@ -213,10 +213,10 @@ void NEG(CPU& _cpu)
 
 void CMP(CPU& _cpu)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.decodedInst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = 	((iform >= XED_IFORM_CMP_AL_IMMb) && (iform <= XED_IFORM_CMP_GPR8_MEMb)) ||
 						((iform >= XED_IFORM_CMP_MEMb_GPR8) && (iform <= XED_IFORM_CMP_MEMb_IMMb_82r7));
 
@@ -225,7 +225,7 @@ void CMP(CPU& _cpu)
 	switch (op_name1)
 	{
 		case XED_OPERAND_REG0:
-			value1 += cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name1));
+			value1 += cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name1));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -238,12 +238,12 @@ void CMP(CPU& _cpu)
 	switch (op_name2)
 	{
 		case XED_OPERAND_IMM0:
-			value1 -= xed_decoded_inst_get_unsigned_immediate(&cpu.decodedInst);
+			value1 -= xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 			break;
 			
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			value1 -= cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name2));
+			value1 -= cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name2));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -258,8 +258,8 @@ void CMP(CPU& _cpu)
 
 void MUL(CPU& _cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = (iform == XED_IFORM_MUL_GPR8) || (iform == XED_IFORM_MUL_MEMb);
 
 	unsigned int value1 = 1;
@@ -267,7 +267,7 @@ void MUL(CPU& _cpu)
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			value1 *= cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
+			value1 *= cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -300,8 +300,8 @@ void MUL(CPU& _cpu)
 
 void IMUL(CPU& _cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = (iform == XED_IFORM_IMUL_GPR8) || (iform == XED_IFORM_IMUL_MEMb);
 
 	int value1 = 1;
@@ -309,7 +309,7 @@ void IMUL(CPU& _cpu)
 	switch(op_name)
 	{
 		case XED_OPERAND_REG0:
-			value1 *= (signed)cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
+			value1 *= (signed)cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -343,8 +343,8 @@ void IMUL(CPU& _cpu)
 //TODO: what happens when dividing by zero ? Restart ?
 void DIV(CPU& _cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = (iform == XED_IFORM_DIV_GPR8) || (iform == XED_IFORM_DIV_MEMb);
 
 	unsigned int value1;
@@ -355,7 +355,7 @@ void DIV(CPU& _cpu)
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			value2 = cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
+			value2 = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -383,8 +383,8 @@ void DIV(CPU& _cpu)
 //TODO: I am not sure about that !
 void IDIV(CPU& _cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.decodedInst), 0));
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.decodedInst);
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
 	const bool cond = (iform == XED_IFORM_IDIV_GPR8) || (iform == XED_IFORM_IDIV_MEMb);
 
 	int value1;
@@ -395,7 +395,7 @@ void IDIV(CPU& _cpu)
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			value2 = (signed)cpu.readReg(xed_decoded_inst_get_reg(&cpu.decodedInst, op_name));
+			value2 = (signed)cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_MEM0:

@@ -7,10 +7,10 @@ BIU::BIU(): mClockCountDown(5) {}
 
 void BIU::clock()
 {
-	printf("%#x (%#x, %#x)\n", (unsigned)addressBus, cpu.cs, cpu.ip);
+	//printf("%#x (%#x, %#x)\n", (unsigned)addressBus, cpu.cs, cpu.ip);
 	if (mClockCountDown > 0)
 	{
-		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - mClockCountDown, mClockCountDown);
+		//printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - mClockCountDown, mClockCountDown);
 		mClockCountDown -= 1;
 		return;
 	}
@@ -22,12 +22,12 @@ void BIU::clock()
 		cpu.ip += 1;
 		instructionBufferQueuePos += 1;
 		addressBus = cpu.genAddress(cpu.cs,cpu.ip);
-		printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", instructionBufferQueuePos);
+		/*printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", instructionBufferQueuePos);
 
 		printf("Instruction buffer: ");
 		for (uint8_t b: instructionBufferQueue)
 			printf("%#x ",b);
-		putchar('\n');
+		putchar('\n');*/
 	}
 
 	mClockCountDown += 5;

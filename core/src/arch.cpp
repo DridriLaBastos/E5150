@@ -121,7 +121,7 @@ void E5150::Arch::startSimulation()
 				#else
 					m_cpu.clock();
 				#endif*/
-				cpu.clock();
+				if (_cpu.clock())
 				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
 					if (E5150::Util::_stop)
 					{
@@ -131,12 +131,12 @@ void E5150::Arch::startSimulation()
 						clockWait();
 					}
 				#endif
-				pit.clock();
+				_pit.clock();
 
 				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
 				{
 					++fdcClock;
-					fdc.clock();
+					_fdc.clock();
 				}
 			}
 

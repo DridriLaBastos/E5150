@@ -42,16 +42,16 @@ void RAM::read()
 {
 	dataBus = m_ram[addressBus];
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_READ) || defined(SEE_ALL)
-	if (E5150::Util::CURRENT_DEBUG_LEVEL == DEBUG_LEVEL_MAX)
-		std::cout << std::hex << dataBus << " --> " << addressBus << std::dec << std::endl;
+	// if (E5150::Util::CURRENT_DEBUG_LEVEL == DEBUG_LEVEL_MAX)
+		// std::cout << std::hex << dataBus << " --> " << addressBus << std::dec << std::endl;
 #endif
 }
 void RAM::write()
 {
 	m_ram[addressBus] = dataBus;
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_WRITE) || defined(SEE_ALL)
-	if (E5150::Util::CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_MAX)
-		std::cout << std::hex << "0x" << addressBus << " <-- " << "0x" << dataBus << std::dec << std::endl;
+	// if (E5150::Util::CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_MAX)
+		// std::cout << std::hex << "0x" << addressBus << " <-- " << "0x" << dataBus << std::dec << std::endl;
 #endif
 }
 

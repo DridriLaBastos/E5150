@@ -49,7 +49,7 @@ class CPU
 	public:
 		CPU(void);
 
-		void clock (void);
+		bool clock (void);
 		bool decode(void);
 		void exec (void);
 

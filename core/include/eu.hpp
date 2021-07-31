@@ -10,10 +10,9 @@ namespace E5150::I8086
 		public:
 			EU(void);
 
-			void clock(void);
+			bool clock(void);
 		
-		private:
-			unsigned int mClockCountDown;
+			unsigned int clockCountDown;
 			xed_decoded_inst_t decodedInst;
 			const xed_inst_t* instruction;
 			std::function<void(void)> mInstructionFunction;
