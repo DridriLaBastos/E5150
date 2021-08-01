@@ -4,7 +4,7 @@
 void ADD()
 {
 	const unsigned int iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
-	const bool cond = ((iform >= 33) && (iform <= 38)) || ((iform >= 44) && (iform <= 46));
+	const bool byteSizeOperands = ((iform >= 33) && (iform <= 38)) || ((iform >= 44) && (iform <= 46));
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name2 = xed_operand_name(xed_inst_operand(inst, 1));
@@ -23,9 +23,9 @@ void ADD()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 = cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
+			value1 = byteSizeOperands ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 
-			if (cond)
+			if (byteSizeOperands)
 				cpu.biu.EURequestWriteByte(addr, value1);
 			else
 				cpu.biu.EURequestWriteWord(addr, value1);
@@ -46,11 +46,11 @@ void ADD()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 += cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
+			value1 += byteSizeOperands ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 		} break;
 	}
 
-	cpu.updateStatusFlags(value1, cond ? 1 : 2);
+	cpu.updateStatusFlags(value1, byteSizeOperands);
 }
 
 void INC()
