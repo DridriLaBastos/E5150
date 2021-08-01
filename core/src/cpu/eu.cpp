@@ -100,7 +100,6 @@ static void printCurrentInstruction()
 			++realOperandPos;
 		}
 	}
-		std::cout << std::endl;
 #endif
 }
 
@@ -365,10 +364,39 @@ static void fillInstructionsFunctionPtr(void)
 	}
 }
 
+void EU::push (const uint16_t data)
+{ cpu.sp -= 2; cpu.biu.EURequestWriteWord(cpu.genAddress(cpu.ss,cpu.sp), data); }
+
+uint16_t EU::pop (void)
+{
+	const uint16_t ret = cpu.biu.EURequestReadWord(cpu.genAddress(cpu.ss,cpu.sp)); cpu.sp += 2;
+	return ret;
+}
+
+void EU::farCall (const uint16_t seg, const uint16_t offset)
+{
+	push(cpu.cs);
+	push(cpu.ip);
+
+	newCS = seg;
+	newIP = offset;
+	newFetchAddress = true;
+}
+
+void EU::farRet (void)
+{
+	newIP = pop();
+	newCS = pop();
+	newFetchAddress = true;
+}
+
 bool EU::clock()
 {
 	if (clockCountDown > 0)
 	{
+		printf("Execution of ");
+		printCurrentInstruction();
+		printf(" %d clock%c left\n",clockCountDown,clockCountDown > 1 ? 's' : '\0');
 		clockCountDown -= 1;
 		return false;
 	}
@@ -382,10 +410,14 @@ bool EU::clock()
 		cpu.instructionExecuted += 1;
 	}*/
 
+	//The effect of the instructions all happen at the beginning of the clock cycle. Except for modifying CS and IP.
+	//Because the BIU use theme to fetch future instruction, I want them to not change values until the end of
+	//the execution of the instruction so that the BIU will continue to fetch the wrong data as it wil do in real hardware.
 	if (newFetchAddress)
 	{
 		cpu.cs = newCS;   cpu.ip = newIP;
 		cpu.biu.resetInstructionBufferQueue();
+		newFetchAddress = false;
 	}
 
 	xed_decoded_inst_zero_keep_mode(&decodedInst);

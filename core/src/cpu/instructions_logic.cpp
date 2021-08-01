@@ -1,4 +1,4 @@
-#include "8086.hpp"
+#include "arch.hpp"
 #include "instructions.hpp"
 
 void NOT()

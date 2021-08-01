@@ -108,11 +108,6 @@ class CPU
 
 		uint16_t readReg  (const xed_reg_enum_t reg) const;
 		void write_reg  (const xed_reg_enum_t reg, const unsigned int data);
-
-		uint16_t pop (void);
-		void push (const uint16_t data);
-		void far_call (const reg_t seg, const uint16_t offset);
-		void far_ret (void);
 		void interrupt (const bool isNMI = false);
 
 	public:
