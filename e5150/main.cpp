@@ -8,7 +8,7 @@ int main (void)
 #endif
 	E5150::Arch arch;
 
-	#if 0
+	#if 1
 		//Loadin bochs BIOS
 		ram.load("/Users/adrien/dev/share/bochs/BIOS-bochs-legacy", 0xF0000);
 	#else

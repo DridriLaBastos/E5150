@@ -13,7 +13,7 @@ static void printCurrentInstruction()
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
-	std::cout << std::hex << cpu.cs << ":" << cpu.ip << " (" << cpu.genAddress(cpu.cs,cpu.ip) << ")" << std::dec << ": ";
+	//std::cout << std::hex << cpu.cs << ":" << cpu.ip << " (" << cpu.genAddress(cpu.cs,cpu.ip) << ")" << std::dec << ": ";
 	//std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " : length = " << xed_decoded_inst_get_length(&cpu.eu.decodedInst) << std::endl;
 	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " ";
 	unsigned int realOperandPos = 0;
@@ -394,10 +394,10 @@ bool EU::clock()
 {
 	if (clockCountDown > 0)
 	{
-		printf("Execution of ");
+		/*printf("Execution of ");
 		printCurrentInstruction();
 		printf(" %d clock%c left\n",clockCountDown,clockCountDown > 1 ? 's' : '\0');
-		clockCountDown -= 1;
+		clockCountDown -= 1;*/
 		return false;
 	}
 	
@@ -410,12 +410,9 @@ bool EU::clock()
 		cpu.instructionExecuted += 1;
 	}*/
 
-	//The effect of the instructions all happen at the beginning of the clock cycle. Except for modifying CS and IP.
-	//Because the BIU use theme to fetch future instruction, I want them to not change values until the end of
-	//the execution of the instruction so that the BIU will continue to fetch the wrong data as it wil do in real hardware.
 	if (newFetchAddress)
 	{
-		cpu.cs = newCS;   cpu.ip = newIP;
+		cpu.biu.requestNewFetchAddress(newCS,newIP);
 		cpu.biu.resetInstructionBufferQueue();
 		newFetchAddress = false;
 	}
@@ -431,6 +428,7 @@ bool EU::clock()
 		fillInstructionsFunctionPtr();
 		instructionExec();
 		clockCountDown = instructionGetClockCount();
+
 	}
 
 	return true;
