@@ -3,35 +3,52 @@
 
 using namespace E5150::I8086;
 
-BIU::BIU(): mClockCountDown(5) {}
+static void instructionFetchClock(void);
 
-void BIU::clock()
+static void EUDataAccessClock(void)
 {
-	printf("%#x (%#x, %#x)\n", (unsigned)addressBus, cpu.cs, cpu.ip);
-	if (mClockCountDown > 0)
+	if (cpu.biu.EUDataAccessClockCountDown > 0)
 	{
-		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - mClockCountDown, mClockCountDown);
-		mClockCountDown -= 1;
+		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUDataAccessClockCountDown);
+		cpu.biu.EUDataAccessClockCountDown -= 1;
 		return;
 	}
+	
+	cpu.biu.clock = instructionFetchClock;
+}
 
-	if (instructionBufferQueuePos < 5)
+static void instructionFetchClock(void)
+{
+	static unsigned int clockCountDown = 5;
+	
+	if (clockCountDown > 0)
 	{
-		ram.read();
-		instructionBufferQueue[instructionBufferQueuePos] = dataBus;
+		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - clockCountDown, clockCountDown);
+		clockCountDown -= 1;
+		return;
+	}
+	
+	if (cpu.biu.instructionBufferQueuePos < 5)
+	{
+		const unsigned int address = cpu.genAddress(cpu.cs, cpu.ip);
+		cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = ram.read(address);
 		cpu.ip += 1;
-		instructionBufferQueuePos += 1;
-		addressBus = cpu.genAddress(cpu.cs,cpu.ip);
-		printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", instructionBufferQueuePos);
+		cpu.biu.instructionBufferQueuePos += 1;
+		printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
 		printf("Instruction buffer: ");
-		for (uint8_t b: instructionBufferQueue)
+		for (uint8_t b: cpu.biu.instructionBufferQueue)
 			printf("%#x ",b);
 		putchar('\n');
 	}
-
-	mClockCountDown += 5;
+	
+	if (cpu.biu.EUDataAccessClockCountDown > 0)
+		cpu.biu.clock = EUDataAccessClock;
+	
+	clockCountDown = 5;
 }
+
+BIU::BIU(): clock(instructionFetchClock), EUDataAccessClockCountDown(0) {}
 
 void BIU::instructionBufferQueuePop(const unsigned int n)
 {
@@ -40,12 +57,22 @@ void BIU::instructionBufferQueuePop(const unsigned int n)
 	instructionBufferQueuePos -= n;
 }
 
-uint8_t readByte (const unsigned int address);
-uint16_t readWord (const unsigned int address);
-void writeByte(const unsigned int address, const uint8_t data);
-void writeWord(const unsigned int address, const uint16_t data);
+uint8_t BIU::EURequestReadByte (const unsigned int address)
+{ EUDataAccessClockCountDown += 5; return ram.read(address); }
+uint16_t BIU::EURequestReadWord (const unsigned int address)
+{ return (EURequestReadWord(address+1) << 8) | EURequestINByte(address); }
 
-uint8_t inByte (const unsigned int address);
-uint16_t inWord (const unsigned int address);
-void outByte(const unsigned int address, const uint8_t data);
-void outWord(const unsigned int address, const uint16_t data);
+void BIU::EURequestWriteByte (const unsigned int address, const uint8_t data)
+{ EUDataAccessClockCountDown += 5; ram.write(address, data); }
+void BIU::EURequestWriteWord (const unsigned int address, const uint16_t data)
+{ EURequestWriteByte(address,data & 0xFF); EURequestWriteByte(address+1, data << 8); }
+
+//TODO: implement port with BIU
+uint8_t BIU::EURequestINByte (const unsigned int address)
+{ return 0; }
+uint16_t BIU::EURequestINWord (const unsigned int address)
+{ return 0; }
+void BIU::EURequestOUTByte (const unsigned int address, const uint8_t data)
+{}
+void BIU::EURequestOUTWord (const unsigned int address, const uint16_t data)
+{}

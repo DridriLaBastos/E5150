@@ -18,7 +18,7 @@ void CALL_NEAR()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			cpu.ip = cpu.readWord(cpu.genEA());
+			cpu.ip = cpu.biu.EURequestReadWord(cpu.genEA());
 			break;
 	}
 }
@@ -38,8 +38,8 @@ void CALL_FAR()
 		{
 			const unsigned far_addr_location = cpu.genEA();
 			
-			cpu.far_call(cpu.readWord(far_addr_location),
-					 cpu.readWord(far_addr_location + 2));
+			cpu.far_call(cpu.biu.EURequestReadWord(far_addr_location),
+					 cpu.biu.EURequestReadWord(far_addr_location + 2));
 			break;
 		}
 	}
@@ -52,7 +52,7 @@ void JMP_NEAR()
 	switch (op_name)
 	{
 		case XED_OPERAND_MEM0:
-			cpu.ip = cpu.readWord(cpu.genEA());
+			cpu.ip = cpu.biu.EURequestReadWord(cpu.genEA());
 			break;
 
 		case XED_OPERAND_REG0:
@@ -75,8 +75,8 @@ void JMP_FAR()
 		{
 			const unsigned far_addr_location = cpu.genEA();
 			
-			cpu.regs[CPU::CS] = cpu.readWord(far_addr_location);
-			cpu.ip = cpu.readWord(far_addr_location + 2);
+			cpu.regs[CPU::CS] = cpu.biu.EURequestReadWord(far_addr_location);
+			cpu.ip = cpu.biu.EURequestReadWord(far_addr_location + 2);
 			break;
 		}
 

@@ -18,15 +18,11 @@ class RAM
 		RAM(void);
 
 	public:
-		uint8_t read(const unsigned int address);
-
+		uint8_t read(const unsigned int address) const;
 		void write(const unsigned int address, const uint8_t data);
+	
 		void load(const std::string path, size_t pos);
 		void map(const MapInfo info);
-
-		void read (void);
-		void write (void);
-
 		friend class CPU;
 
 	private:

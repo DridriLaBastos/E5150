@@ -373,29 +373,29 @@ bool EU::clock()
 		return false;
 	}
 	
-	bool ret = false;
+	/*bool ret = false;
 	if (instructionExec != nullptr)
 	{
 		instructionExec();
 		instructionExec = nullptr;
 		ret = true;
 		cpu.instructionExecuted += 1;
-	}
+	}*/
 
 	xed_decoded_inst_zero_keep_mode(&decodedInst);
 	const xed_error_enum_t DECODE_STATUS = xed_decode(&decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);
 	printCurrentInstruction();
+
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
-		//TODO: implement this with the use of xed iform and lookup table and see if that can improve the speed
-		//instruction = xed_decoded_inst_inst(&decodedInst);
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
 
 		fillInstructionsFunctionPtr();
+		instructionExec();
 		clockCountDown = instructionGetClockCount();
 	}
 
-	return ret;
+	return true;
 }
 
 /**

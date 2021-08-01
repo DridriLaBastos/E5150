@@ -23,12 +23,12 @@ void ADD()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 = cond ? cpu.readByte(addr) : cpu.readWord(addr);
+			value1 = cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 
 			if (cond)
-				cpu.writeByte(addr, value1);
+				cpu.biu.EURequestWriteByte(addr, value1);
 			else
-				cpu.writeWord(addr, value1);
+				cpu.biu.EURequestWriteWord(addr, value1);
 		} break;
 	}
 
@@ -46,7 +46,7 @@ void ADD()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 += cond ? cpu.readByte(addr) : cpu.readWord(addr);
+			value1 += cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 		} break;
 	}
 
@@ -74,12 +74,12 @@ void INC()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 = (cond ? cpu.readByte(addr) : cpu.readWord(addr)) + 1;
+			value1 = (cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr)) + 1;
 
 			if (cond)
-				cpu.writeByte(addr, value1);
+				cpu.biu.EURequestWriteByte(addr, value1);
 			else
-				cpu.writeWord(addr, value1);
+				cpu.biu.EURequestWriteWord(addr, value1);
 		} break;
 	}
 
@@ -110,9 +110,9 @@ void SUB()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 = cond ? cpu.readByte(addr) : cpu.readWord(addr);
+			value1 = cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 
-			if (cond) cpu.writeByte(addr, value1); else cpu.writeWord(addr, value1);
+			if (cond) cpu.biu.EURequestWriteByte(addr, value1); else cpu.biu.EURequestWriteWord(addr, value1);
 		} break;
 	}
 
@@ -130,7 +130,7 @@ void SUB()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 -= cond ? cpu.readByte(addr) : cpu.readWord(addr);
+			value1 -= cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 		} break;
 	}
 
@@ -158,12 +158,12 @@ void DEC()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 = (cond ? cpu.readByte(addr) : cpu.readWord(addr)) - 1;
+			value1 = (cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr)) - 1;
 
 			if (cond)
-				cpu.writeByte(addr, value1);
+				cpu.biu.EURequestWriteByte(addr, value1);
 			else
-				cpu.writeWord(addr, value1);
+				cpu.biu.EURequestWriteWord(addr, value1);
 		} break;
 	}
 
@@ -193,13 +193,13 @@ void NEG()
 		{
 			const unsigned int addr = cpu.genEA();
 
-			value1 = cond ? cpu.readByte(addr) : cpu.readWord(addr);
+			value1 = cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 			value1 *= -1;
 
 			if (cond)
-				cpu.writeByte(addr, value1);
+				cpu.biu.EURequestWriteByte(addr, value1);
 			else
-				cpu.writeWord(addr, value1);
+				cpu.biu.EURequestWriteWord(addr, value1);
 		} break;
 	}
 
@@ -231,7 +231,7 @@ void CMP()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 += cond ? cpu.readByte(addr) : cpu.readWord(addr);
+			value1 += cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 		} break;
 	}
 
@@ -249,7 +249,7 @@ void CMP()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			value1 -= cond ? cpu.readByte(addr) : cpu.readWord(addr);
+			value1 -= cond ? cpu.biu.EURequestReadByte(addr) : cpu.biu.EURequestReadWord(addr);
 		} break;
 	}
 
@@ -271,7 +271,7 @@ void MUL()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA());
+			value1 *= cond ? cpu.biu.EURequestReadByte(cpu.genEA()) : cpu.biu.EURequestReadWord(cpu.genEA());
 			break;
 	}
 
@@ -313,7 +313,7 @@ void IMUL()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value1 *= (signed)(cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA()));
+			value1 *= (signed)(cond ? cpu.biu.EURequestReadByte(cpu.genEA()) : cpu.biu.EURequestReadWord(cpu.genEA()));
 			break;
 	}
 
@@ -359,7 +359,7 @@ void DIV()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA());
+			value2 = cond ? cpu.biu.EURequestReadByte(cpu.genEA()) : cpu.biu.EURequestReadWord(cpu.genEA());
 			break;
 	}
 
@@ -399,7 +399,7 @@ void IDIV()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			value2 = (signed)(cond ? cpu.readByte(cpu.genEA()) : cpu.readWord(cpu.genEA()));
+			value2 = (signed)(cond ? cpu.biu.EURequestReadByte(cpu.genEA()) : cpu.biu.EURequestReadWord(cpu.genEA()));
 			break;
 	}
 

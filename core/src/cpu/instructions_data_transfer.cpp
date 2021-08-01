@@ -25,7 +25,7 @@ void MOV()
 			break;
 
 		case XED_OPERAND_MEM0:
-			move_v = cpu.readWord(cpu.genEA());
+			move_v = cpu.biu.EURequestReadWord(cpu.genEA());
 			break;
 	}
 
@@ -42,9 +42,9 @@ void MOV()
 			const unsigned int write_addr = cpu.genEA();
 
 			if (xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 1)
-				cpu.writeByte(write_addr, (uint8_t)move_v);
+				cpu.biu.EURequestWriteByte(write_addr, (uint8_t)move_v);
 			else
-				cpu.writeWord(write_addr, move_v);
+				cpu.biu.EURequestWriteWord(write_addr, move_v);
 			
 			break;
 		}
@@ -64,7 +64,7 @@ void PUSH ()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int dataToPushAddr = cpu.genEA();
-			cpu.push(cpu.readWord(dataToPushAddr));
+			cpu.push(cpu.biu.EURequestReadWord(dataToPushAddr));
 		}
 		break;
 	}
@@ -124,13 +124,13 @@ void XCHG()
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int addr = cpu.genEA();
-			const unsigned int value2 = cpu.readWord(addr);
+			const unsigned int value2 = cpu.biu.EURequestReadWord(addr);
 			cpu.write_reg(register_xchg, value2);
 
 			if (xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 1)
-				cpu.writeByte(addr, value1);
+				cpu.biu.EURequestWriteByte(addr, value1);
 			else
-				cpu.writeWord(addr, value1);
+				cpu.biu.EURequestWriteWord(addr, value1);
 		}
 	}
 }
@@ -172,7 +172,7 @@ void OUT()
 }
 
 void XLAT ()
-{ cpu.ax = cpu.readByte(cpu.genAddress(cpu.ds, cpu.bx + cpu.ax)); }
+{ cpu.ax = cpu.biu.EURequestReadByte(cpu.genAddress(cpu.ds, cpu.bx + cpu.ax)); }
 
 void LEA()
 {
