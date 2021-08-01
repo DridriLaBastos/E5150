@@ -11,13 +11,13 @@ namespace E5150::I8086
 			EU(void);
 
 			bool clock(void);
-			unsigned int getEAComputationClockCount();
 		
 			unsigned int clockCountDown;
 			xed_decoded_inst_t decodedInst;
 			std::function<unsigned int(void)> instructionGetClockCount;
 			std::function<void(void)> instructionExec;
 
+			unsigned int getEAComputationClockCount();
 	};
 }
 

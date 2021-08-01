@@ -2,7 +2,7 @@
 #include "8086.hpp"
 #include "instructions.hpp"
 
-void MOV(CPU& _cpu)
+void MOV()
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 
@@ -51,7 +51,7 @@ void MOV(CPU& _cpu)
 	}
 }
 
-void PUSH (CPU& _cpu)
+void PUSH ()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
 
@@ -70,7 +70,7 @@ void PUSH (CPU& _cpu)
 	}
 }
 
-void POP (CPU& _cpu)
+void POP ()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
 
@@ -91,7 +91,7 @@ void POP (CPU& _cpu)
 	}
 }
 
-void XCHG(CPU& _cpu)
+void XCHG()
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -135,7 +135,7 @@ void XCHG(CPU& _cpu)
 	}
 }
 
-void IN(CPU& _cpu)
+void IN()
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -153,7 +153,7 @@ void IN(CPU& _cpu)
 		cpu.ax = ports.read(iaddr + 1);
 }
 
-void OUT(CPU& _cpu)
+void OUT()
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -171,10 +171,10 @@ void OUT(CPU& _cpu)
 		ports.write(oaddr + 1, cpu.ax);
 }
 
-void XLAT (CPU& _cpu)
+void XLAT ()
 { cpu.ax = cpu.readByte(cpu.genAddress(cpu.ds, cpu.bx + cpu.ax)); }
 
-void LEA(CPU& _cpu)
+void LEA()
 {
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 1));
@@ -182,24 +182,24 @@ void LEA(CPU& _cpu)
 	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name0), cpu.genEA());
 }
 
-void LDS(CPU& _cpu)
+void LDS()
 {
 	//TODO: Implement LDS
 }
 
-void LES(CPU& _cpu)
+void LES()
 {
 	//TODO: Implement LES
 }
 
-void LAHF (CPU& _cpu)
+void LAHF ()
 { cpu.ax = (cpu.flags & 0b11010101)|0b10; }
 
-void SAHF (CPU& _cpu)
+void SAHF ()
 { cpu.setFlags(cpu.ax & (0b11010101)); }
 
-void PUSHF (CPU& _cpu)
+void PUSHF ()
 { cpu.push(cpu.flags); }
 
-void POPF (CPU& _cpu)
+void POPF ()
 { cpu.flags = cpu.pop(); }

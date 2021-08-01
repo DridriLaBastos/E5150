@@ -12,6 +12,6 @@ namespace E5150
 	}
 
 	uint8_t PPI::read (const unsigned int addr)
-	{
+{ return 0;
 	}
 }

@@ -250,7 +250,7 @@ static void printFlags(const CPU& _cpu)
 bool CPU::isHalted (void) const { return hlt; }
 
 static bool cpuCanProcessClock (const CPU* _cpu)
-{ /*return ((cpu->m_clockCountDown == 0) && (!cpu->hlt));*/ }
+{ /*return ((cpu->m_clockCountDown == 0) && (!cpu->hlt));*/ return true; }
 
 bool CPU::decode()
 {/*
@@ -263,6 +263,7 @@ bool CPU::decode()
 
 	return canProcessClock;
 	*/
+	return true;
 }
 
 void CPU::exec()
