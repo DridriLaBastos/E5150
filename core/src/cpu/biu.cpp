@@ -23,7 +23,7 @@ static void instructionFetchClock(void)
 	
 	if (clockCountDown > 0)
 	{
-		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - clockCountDown, clockCountDown);
+		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
 		clockCountDown -= 1;
 		return;
 	}
@@ -56,6 +56,8 @@ void BIU::instructionBufferQueuePop(const unsigned int n)
 		instructionBufferQueue[i] = instructionBufferQueue[i+n];
 	instructionBufferQueuePos -= n;
 }
+
+void BIU::resetInstructionBufferQueue(){ instructionBufferQueuePos = 0; }
 
 uint8_t BIU::EURequestReadByte (const unsigned int address)
 { EUDataAccessClockCountDown += 5; return ram.read(address); }

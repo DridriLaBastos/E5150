@@ -19,6 +19,10 @@ namespace E5150::I8086
 
 			unsigned int getEAComputationClockCount();
 			const xed_inst_t* xedInst;
+
+			bool newFetchAddress;
+			uint16_t newCS;
+			uint16_t newIP;
 	};
 }
 

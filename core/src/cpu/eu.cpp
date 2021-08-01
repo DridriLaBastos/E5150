@@ -5,7 +5,7 @@
 
 using namespace E5150::I8086;
 
-EU::EU(): clockCountDown(0), instructionGetClockCount(nullptr), instructionExec(nullptr) {}
+EU::EU(): clockCountDown(0), instructionGetClockCount(nullptr), instructionExec(nullptr), newFetchAddress(false) {}
 
 static void printCurrentInstruction()
 {
@@ -381,6 +381,12 @@ bool EU::clock()
 		ret = true;
 		cpu.instructionExecuted += 1;
 	}*/
+
+	if (newFetchAddress)
+	{
+		cpu.cs = newCS;   cpu.ip = newIP;
+		cpu.biu.resetInstructionBufferQueue();
+	}
 
 	xed_decoded_inst_zero_keep_mode(&decodedInst);
 	const xed_error_enum_t DECODE_STATUS = xed_decode(&decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);

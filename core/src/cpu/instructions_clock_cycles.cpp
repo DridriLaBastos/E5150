@@ -8,6 +8,14 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
+///Return clock without effective addresse calculation time
+#define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)]
+#define ADD_EA_COMPUTATION_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.getEAComputationClockCount(); }
+#define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)
+#define ADD_EA_COMPUTATION_ON_IFORM_CONDITION(COND) GET_RAW_CLOCK_COUNT();\
+													GET_IFORM();\
+													ADD_EA_COMPUTATION_ON_CONDITION(COND)
+
 /**
 	All th timings for the instructions are taken from this site : https://zsmith.co/intel.php
 	The informations on xed iform format are available here : https://intelxed.github.io/ref-manual/group__IFORM.html
@@ -43,22 +51,74 @@ unsigned int getMOVCycles()
 		8,//XED_IFORM_MOV_SEG_MEMw
 	};
 
-	const unsigned int rawClockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)];
-	const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst);
+	GET_RAW_CLOCK_COUNT();
+	GET_IFORM();
 
 	if (iform == XED_IFORM_MOV_AL_MEMb || iform == XED_IFORM_MOV_MEMb_AL ||
 		iform == XED_IFORM_MOV_OrAX_MEMv || iform == XED_IFORM_MOV_MEMv_OrAX)
-		return rawClockCount;
+		return clockCount;
 	
-	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
-	const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 1));
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(inst, 0));
+	const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(inst, 1));
 	
-	return rawClockCount + ((op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0) ? cpu.eu.getEAComputationClockCount() : 0);
+	ADD_EA_COMPUTATION_ON_CONDITION(op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0);
+	return clockCount;
 }
 
-unsigned int getPUSHCycles (void) { return 7; }
-unsigned int getPOPCycles (void) { return 7; }
-unsigned int getXCHGCycles (void) { return 7; }
+unsigned int getPUSHCycles (void)
+{
+	static const uint8_t CLOCK_CYCLES [] =
+	{
+		14,//XED_IFORM_PUSH_CS
+		14,//XED_IFORM_PUSH_DS
+		0,//XED_IFORM_PUSH_ES
+		0,//XED_IFORM_PUSH_FS
+		15,//XED_IFORM_PUSH_GPRv_50
+		15,//XED_IFORM_PUSH_GPRv_FFr6
+		0,//XED_IFORM_PUSH_GS
+		0,//XED_IFORM_PUSH_IMMb
+		0,//XED_IFORM_PUSH_IMMz
+		16,//XED_IFORM_PUSH_MEMv
+		14//XED_IFORM_PUSH_SS
+	};
+	
+	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_PUSH_MEMv);
+	return clockCount;
+}
+
+unsigned int getPOPCycles (void)
+{
+	static const uint8_t CLOCK_CYCLES [] =
+	{
+		8,// XED_IFORM_POP_DS
+		8,// XED_IFORM_POP_ES
+		8,// XED_IFORM_POP_FS
+		8,// XED_IFORM_POP_GPRv_58
+		8,// XED_IFORM_POP_GPRv_8F
+		8,// XED_IFORM_POP_GS
+		17,// XED_IFORM_POP_MEMv
+		8// XED_IFORM_POP_SS
+	};
+	
+	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_POP_MEMv);
+	return clockCount;
+}
+
+unsigned int getXCHGCycles (void)
+{
+	static const uint8_t CLOCK_CYCLES [] =
+	{
+		4,// XED_IFORM_XCHG_GPR8_GPR8
+		4,// XED_IFORM_XCHG_GPRv_GPRv
+		3,// XED_IFORM_XCHG_GPRv_OrAX
+		17,// XED_IFORM_XCHG_MEMb_GPR8
+		17// XED_IFORM_XCHG_MEMv_GPRv
+	};
+	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_XCHG_MEMb_GPR8 || iform == XED_IFORM_XCHG_MEMv_GPRv);
+	return clockCount;
+}
+
 unsigned int getINCycles (void) { return 7; }
 unsigned int getOUTCycles (void) { return 7; }
 unsigned int getXLATCycles (void) { return 7; }
@@ -94,12 +154,12 @@ unsigned int getADDCycles()
 		17//XED_IFORM_ADD_MEMv_IMMb
 	};
 	
-	const unsigned int rawClockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)];
+	const unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)];
 	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
 	const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 1));
 	
-	return rawClockCount + ((op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0) ? cpu.eu.getEAComputationClockCount() : 0);
+	return clockCount + ((op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0) ? cpu.eu.getEAComputationClockCount() : 0);
 }
 
 unsigned int getINCCycles (void) { return 7; }
