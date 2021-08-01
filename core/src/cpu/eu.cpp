@@ -428,7 +428,7 @@ bool EU::clock()
 		fillInstructionsFunctionPtr();
 		instructionExec();
 		clockCountDown = instructionGetClockCount();
-
+		cpu.instructionExecuted += 1;
 	}
 
 	return true;
