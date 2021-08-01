@@ -121,7 +121,7 @@ void E5150::Arch::startSimulation()
 				#else
 					m_cpu.clock();
 				#endif*/
-				if (_cpu.clock())
+				_cpu.clock();
 				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
 					if (E5150::Util::_stop)
 					{

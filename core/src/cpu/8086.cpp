@@ -7,10 +7,10 @@ CPU::CPU() : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(tru
 {
 	std::cout << xed_get_copyright() << std::endl;
 
-	cs = 0;//0xF000;
+	cs = 0xF000;
 	ss = 0xEF0;
 	sp = 0xFF;
-	ip = 0;//0xFFF0;
+	ip = 0xFFF0;
 	flags = 0x02;
 	addressBus = genAddress(cs,ip);
 

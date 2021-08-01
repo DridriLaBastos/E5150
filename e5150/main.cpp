@@ -13,14 +13,13 @@ int main (void)
 		ram.load("/Users/adrien/dev/share/bochs/BIOS-bochs-legacy", 0xF0000);
 	#else
 		//Loading custom test code
-		//ram.load("test/interrupts.bin",0);
-		//ram.load("test/jmp.bin", 0xFFFF0);
-		//ram.load("test/bios.bin",0xE0000);
-		ram.load("test/test.bin",0);
+		ram.load("test/interrupts.bin",0);
+		ram.load("test/jmp.bin", 0xFFFF0);
+		ram.load("test/bios.bin",0xE0000);
+		//ram.load("test/test.bin",0);
 	#endif
 	std::cout << std::showbase;
 	arch.startSimulation();
 	std::cout << std::noshowbase;
 	return EXIT_SUCCESS;
 }
-

@@ -104,6 +104,13 @@ static void printCurrentInstruction()
 #endif
 }
 
+/**
+ \brief Fill the function executing the instruction and, if needed, the function to give the number of clock cycles needed by this instruction
+ 
+ When in release mode, the function of execution of the instruction also returns the number of clock cycles needed by the instruction. This is to speedup the time of the execution since it is computed inplace. It has the draw back that the effects of the instruction are applied at the beginning of the emulation of the instruction, then the clock cycle are waited.
+ 
+ In debug mode we want to apply the effect of the instruction after the clock cycles are elapsed. This increas the time of the emulation because we have to compute the clock cycles first, but we don't care since we are in debug mode. Plus it is more accurate to how real hardware works : the full modifications of the instructions are available at the end of it.
+ */
 static void fillInstructionsFunctionPtr(void)
 {
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
@@ -142,10 +149,6 @@ static void fillInstructionsFunctionPtr(void)
 		cpu.eu.instructionGetClockCount = getDECCycles;
 		cpu.eu.instructionExec			= DEC;
 		break;
-
-	/*case XED_ICLASS_NEG_LOCK:
-		cpu.eu.instructionGetClockCount = getNEG_LOCKCycles;
-		cpu.eu.instructionExec			= NEG_LOCK*/
 	
 	case XED_ICLASS_NEG:
 		cpu.eu.instructionGetClockCount = getNEGCycles;
@@ -376,14 +379,15 @@ bool EU::clock()
 		instructionExec();
 		instructionExec = nullptr;
 		ret = true;
+		cpu.instructionExecuted += 1;
 	}
 
 	xed_decoded_inst_zero_keep_mode(&decodedInst);
 	const xed_error_enum_t DECODE_STATUS = xed_decode(&decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);
-
+	printCurrentInstruction();
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
-		//TODO: implement this with the use of xed iform and lookub table and see if that can improve the speed
+		//TODO: implement this with the use of xed iform and lookup table and see if that can improve the speed
 		//instruction = xed_decoded_inst_inst(&decodedInst);
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
 
@@ -396,7 +400,7 @@ bool EU::clock()
 
 /**
  * This function compute the effective address for a memory operand and add the corresponding number of 
- * instructions cycles. The instruction cycles are picked up from https://zsmith.co/intel.php#ea:
+ * instructions cycles. The instruction cycles are picked up from https://zsmith.co/intel.php#ea :
  * 1.  disp: mod = 0b00 and rm = 0b110								+6
  * 2.  (BX,BP,SI,DI): mod = 0b00 and rm != 0b110 and rm = 0b1xx		+5
  * 3.  disp + (BX,BP,SI,DI): mod = 0b10 and rm = 0b1xx				+9
@@ -404,7 +408,7 @@ bool EU::clock()
  * 4.2 (BP+SI, bx+DI): mod = 0b00 and rm = 0b00x					+8
  * 5.1 disp + (BP+DI, bx+SI) +-> same as precedet with mod = 0b10	+11
  * 5.2 disp + (BP+SI, bx+DI) +										+12
- * 
+ *
  * word operands at odd addresses	+4
  * segment override					+2
  */

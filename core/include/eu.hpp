@@ -18,6 +18,7 @@ namespace E5150::I8086
 			std::function<void(void)> instructionExec;
 
 			unsigned int getEAComputationClockCount();
+			const xed_inst_t* xedInst;
 	};
 }
 

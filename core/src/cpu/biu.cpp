@@ -7,10 +7,10 @@ BIU::BIU(): mClockCountDown(5) {}
 
 void BIU::clock()
 {
-	//printf("%#x (%#x, %#x)\n", (unsigned)addressBus, cpu.cs, cpu.ip);
+	printf("%#x (%#x, %#x)\n", (unsigned)addressBus, cpu.cs, cpu.ip);
 	if (mClockCountDown > 0)
 	{
-		//printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - mClockCountDown, mClockCountDown);
+		printf("BIU: BUS CYCLE %d (clock count down: %d)\n", 6 - mClockCountDown, mClockCountDown);
 		mClockCountDown -= 1;
 		return;
 	}
@@ -22,12 +22,12 @@ void BIU::clock()
 		cpu.ip += 1;
 		instructionBufferQueuePos += 1;
 		addressBus = cpu.genAddress(cpu.cs,cpu.ip);
-		/*printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", instructionBufferQueuePos);
+		printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", instructionBufferQueuePos);
 
 		printf("Instruction buffer: ");
 		for (uint8_t b: instructionBufferQueue)
 			printf("%#x ",b);
-		putchar('\n');*/
+		putchar('\n');
 	}
 
 	mClockCountDown += 5;
@@ -40,16 +40,12 @@ void BIU::instructionBufferQueuePop(const unsigned int n)
 	instructionBufferQueuePos -= n;
 }
 
-void BIU::readFromRAM(const unsigned int address)
-{
-	addressBus = address;
-	ram.read();
-	mClockCountDown += 5;
-}
+uint8_t readByte (const unsigned int address);
+uint16_t readWord (const unsigned int address);
+void writeByte(const unsigned int address, const uint8_t data);
+void writeWord(const unsigned int address, const uint16_t data);
 
-void BIU::writeToRAM(const unsigned int address, const uint8_t data)
-{
-	addressBus = address;
-	dataBus = data;
-	mClockCountDown += 5;
-}
+uint8_t inByte (const unsigned int address);
+uint16_t inWord (const unsigned int address);
+void outByte(const unsigned int address, const uint8_t data);
+void outWord(const unsigned int address, const uint16_t data);

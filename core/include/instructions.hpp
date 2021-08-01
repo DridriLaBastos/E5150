@@ -34,15 +34,16 @@ void DIV  (void); unsigned int getDIVCycles (void);
 void IDIV (void); unsigned int getIDIVCycles (void);
 
 /* Control Transfer */
+
 void CALL_NEAR	(void); unsigned int getCALL_NEARCycles (void);
 void CALL_FAR	(void); unsigned int getCALL_FARCycles (void);
 void JMP_NEAR	(void); unsigned int getJMP_NEARCycles (void);
 void JMP_FAR	(void); unsigned int getJMP_FARCycles (void);
 void RET_NEAR	(void); unsigned int getRET_NEARCycles (void);
 void RET_FAR	(void); unsigned int getRET_FARCycles (void);
-void JZ			(void);/*  JZ/JE   */ unsigned int getJZCycles (void);
-void JL			(void);/*  JL/JNGE */ unsigned int getJLCycles (void);
-void JLE		(void);/* JLE/JNG  */ unsigned int getJLECycles (void);
+void JZ			(void); unsigned int getJZCycles (void);/*  JZ/JE   */
+void JL			(void); unsigned int getJLCycles (void);/*  JL/JNGE */
+void JLE		(void); unsigned int getJLECycles (void);/* JLE/JNG  */
 void JNZ		(void); unsigned int getJNZCycles (void);
 void JNL		(void); unsigned int getJNLCycles (void);
 void JNLE		(void); unsigned int getJNLECycles (void);
