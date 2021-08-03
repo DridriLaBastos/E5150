@@ -5,15 +5,37 @@ using namespace E5150::I8086;
 
 static void instructionFetchClock(void);
 
+static void BIUTreatNewFetchRequest(void)
+{
+	if (cpu.biu.newFetchAddressRequest)
+	{
+		cpu.cs = cpu.biu.newCS; cpu.ip = cpu.biu.newIP;
+		cpu.biu.newFetchAddressRequest = false;
+		cpu.biu.resetInstructionBufferQueue();
+	}
+}
+
 static void EUDataAccessClock(void)
 {
 	if (cpu.biu.EUDataAccessClockCountDown > 0)
 	{
-		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUDataAccessClockCountDown);
-		cpu.biu.EUDataAccessClockCountDown -= 1;
+		//printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUDataAccessClockCountDown);
 		return;
 	}
 	
+	BIUTreatNewFetchRequest();
+	cpu.biu.clock = instructionFetchClock;
+}
+
+static void waitPlaceInInstructionBufferQueueClock(void)
+{
+	if (cpu.biu.instructionBufferQueuePos >= 5)
+	{
+		//printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
+		return;
+	}
+
+	BIUTreatNewFetchRequest();
 	cpu.biu.clock = instructionFetchClock;
 }
 
@@ -23,7 +45,7 @@ static void instructionFetchClock(void)
 	
 	if (clockCountDown > 0)
 	{
-		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+		//printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
 		clockCountDown -= 1;
 		return;
 	}
@@ -34,23 +56,21 @@ static void instructionFetchClock(void)
 		cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = ram.read(address);
 		cpu.ip += 1;
 		cpu.biu.instructionBufferQueuePos += 1;
-		printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
+		/*printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
 		printf("Instruction buffer: ");
 		for (uint8_t b: cpu.biu.instructionBufferQueue)
 			printf("%#x ",b);
-		putchar('\n');
-	}
-
-	if (cpu.biu.newFetchAddressRequest)
-	{
-		cpu.cs = cpu.biu.newCS; cpu.ip = cpu.biu.newIP;
-		cpu.biu.newFetchAddressRequest = false;
-		cpu.biu.resetInstructionBufferQueue();
+		putchar('\n');*/
 	}
 	
 	if (cpu.biu.EUDataAccessClockCountDown > 0)
 		cpu.biu.clock = EUDataAccessClock;
+	
+	if (cpu.biu.instructionBufferQueuePos >= 5)
+		cpu.biu.clock = waitPlaceInInstructionBufferQueueClock;
+	
+	BIUTreatNewFetchRequest();
 	
 	clockCountDown = 5;
 }

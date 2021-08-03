@@ -12,4 +12,4 @@ void STI () { cpu.setFlags(CPU::INTF); }
 
 void HLT () { cpu.hlt = true; }
 
-void NOP() { cpu.eu.clockCountDown = 3; }
+void NOP() { }

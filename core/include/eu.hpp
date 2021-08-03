@@ -17,17 +17,13 @@ namespace E5150::I8086
 
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);
-		
-			unsigned int clockCountDown;
-			xed_decoded_inst_t decodedInst;
-			std::function<unsigned int(void)> instructionGetClockCount;
-			std::function<void(void)> instructionExec;
 
 			unsigned int getEAComputationClockCount();
 			unsigned int EAAddress;
-			const xed_inst_t* xedInst;
-
 			bool newFetchAddress;
+
+			xed_decoded_inst_t decodedInst;
+			const xed_inst_t* xedInst;
 			uint16_t newCS;
 			uint16_t newIP;
 

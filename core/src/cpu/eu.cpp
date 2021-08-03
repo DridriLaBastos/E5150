@@ -5,7 +5,7 @@
 
 using namespace E5150::I8086;
 
-EU::EU(): clockCountDown(0), instructionGetClockCount(nullptr), instructionExec(nullptr), newFetchAddress(false) {}
+EU::EU(): newFetchAddress(false) {}
 
 static void printCurrentInstruction()
 {
@@ -110,257 +110,208 @@ static void printCurrentInstruction()
  
  In debug mode we want to apply the effect of the instruction after the clock cycles are elapsed. This increas the time of the emulation because we have to compute the clock cycles first, but we don't care since we are in debug mode. Plus it is more accurate to how real hardware works : the full modifications of the instructions are available at the end of it.
  */
-static void fillInstructionsFunctionPtr(void)
+static unsigned int execInstructionAndGetClockCycles(void)
 {
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
 	case XED_ICLASS_MOV:
-		cpu.eu.instructionGetClockCount = getMOVCycles;
-		cpu.eu.instructionExec			= MOV;
-		break;
+		MOV();
+		return getMOVCycles();
 
 	case XED_ICLASS_PUSH:
-		cpu.eu.instructionGetClockCount = getPUSHCycles;
-		cpu.eu.instructionExec			= PUSH;
-		break;
+		PUSH();
+		return getPUSHCycles();
 
 	case XED_ICLASS_POP:
-		cpu.eu.instructionGetClockCount = getPOPCycles;
-		cpu.eu.instructionExec			= POP;
-		break;
+		POP();
+		return getPOPCycles();
 
 	case XED_ICLASS_ADD:
-		cpu.eu.instructionGetClockCount = getADDCycles;
-		cpu.eu.instructionExec			= ADD;
-		break;
+		ADD();
+		return getADDCycles();
 
 	case XED_ICLASS_INC:
-		cpu.eu.instructionGetClockCount = getINCCycles;
-		cpu.eu.instructionExec			= INC;
-		break;
+		INC();
+		return getINCCycles();
 
 	case XED_ICLASS_SUB:
-		cpu.eu.instructionGetClockCount = getSUBCycles;
-		cpu.eu.instructionExec			= SUB;
-		break;
+		SUB();
+		return getSUBCycles();
 
 	case XED_ICLASS_DEC:
-		cpu.eu.instructionGetClockCount = getDECCycles;
-		cpu.eu.instructionExec			= DEC;
-		break;
+		DEC();
+		return getDECCycles();
 	
 	case XED_ICLASS_NEG:
-		cpu.eu.instructionGetClockCount = getNEGCycles;
-		cpu.eu.instructionExec			= NEG;
-		break;
+		NEG();
+		return getNEGCycles();
 
 	case XED_ICLASS_CMP:
-		cpu.eu.instructionGetClockCount = getCMPCycles;
-		cpu.eu.instructionExec			= CMP;
-		break;
+		CMP();
+		return getCMPCycles();
 
 	case XED_ICLASS_MUL:
-		cpu.eu.instructionGetClockCount = getMULCycles;
-		cpu.eu.instructionExec			= MUL;
-		break;
+		MUL();
+		return getMULCycles();
 
 	case XED_ICLASS_IMUL:
-		cpu.eu.instructionGetClockCount = getIMULCycles;
-		cpu.eu.instructionExec			= IMUL;
-		break;
+		IMUL();
+		return getIMULCycles();
 
 	case XED_ICLASS_DIV:
-		cpu.eu.instructionGetClockCount = getDIVCycles;
-		cpu.eu.instructionExec			= DIV;
-		break;
+		DIV();
+		return getDIVCycles();
 
 	case XED_ICLASS_IDIV:
-		cpu.eu.instructionGetClockCount = getIDIVCycles;
-		cpu.eu.instructionExec			= IDIV;
-		break;
+		IDIV();
+		return getIDIVCycles();
 
 	case XED_ICLASS_XCHG:
-		cpu.eu.instructionGetClockCount = getXCHGCycles;
-		cpu.eu.instructionExec			= XCHG;
-		break;
+		XCHG();
+		return getXCHGCycles();
 
 	case XED_ICLASS_NOT:
-		cpu.eu.instructionGetClockCount = getNOTCycles;
-		cpu.eu.instructionExec			= NOT;
-		break;
+		NOT();
+		return getNOTCycles();
 
 	case XED_ICLASS_IN:
-		cpu.eu.instructionGetClockCount = getINCycles;
-		cpu.eu.instructionExec			= IN;
-		break;
+	IN();
+	return 	getINCycles();
 
 	case XED_ICLASS_OUT:
-		cpu.eu.instructionGetClockCount = getOUTCycles;
-		cpu.eu.instructionExec			= OUT;
-		break;
+		OUT();
+		return getOUTCycles();
 
 	case XED_ICLASS_XLAT:
-		cpu.eu.instructionGetClockCount = getXLATCycles;
-		cpu.eu.instructionExec			= XLAT;
-		break;
+		XLAT();
+		return getXLATCycles();
 
 	case XED_ICLASS_LEA:
-		cpu.eu.instructionGetClockCount = getLEACycles;
-		cpu.eu.instructionExec			= LEA;
-		break;
+		LEA();
+		return getLEACycles();
 
 	case XED_ICLASS_LDS:
-		cpu.eu.instructionGetClockCount = getLDSCycles;
-		cpu.eu.instructionExec			= LDS;
-		break;
+		LDS();
+		return getLDSCycles();
 
 	case XED_ICLASS_LES:
-		cpu.eu.instructionGetClockCount = getLESCycles;
-		cpu.eu.instructionExec			= LES;
-		break;
+		LES();
+		return getLESCycles();
 
 	case XED_ICLASS_LAHF:
-		cpu.eu.instructionGetClockCount = getLAHFCycles;
-		cpu.eu.instructionExec			= LAHF;
-		break;
+		LAHF();
+		return getLAHFCycles();
 
 	case XED_ICLASS_SAHF:
-		cpu.eu.instructionGetClockCount = getSAHFCycles;
-		cpu.eu.instructionExec			= SAHF;
-		break;
+		SAHF();
+		return getSAHFCycles();
 
 	case XED_ICLASS_PUSHF:
-		cpu.eu.instructionGetClockCount = getPUSHFCycles;
-		cpu.eu.instructionExec			= PUSHF;
-		break;
+		PUSHF();
+		return getPUSHFCycles();
 
 	case XED_ICLASS_POPF:
-		cpu.eu.instructionGetClockCount = getPOPFCycles;
-		cpu.eu.instructionExec			= POPF;
-		break;
+		POPF();
+		return getPOPFCycles();
 
 	case XED_ICLASS_CLC:
-		cpu.eu.instructionGetClockCount = getCLCCycles;
-		cpu.eu.instructionExec			= CLC;
-		break;
+		CLC();
+		return getCLCCycles();
 
 	case XED_ICLASS_STC:
-		cpu.eu.instructionGetClockCount = getSTCCycles;
-		cpu.eu.instructionExec			= STC;
-		break;
+		STC();
+		return getSTCCycles();
 
 	case XED_ICLASS_CLI:
-		cpu.eu.instructionGetClockCount = getCLICycles;
-		cpu.eu.instructionExec			= CLI;
-		break;
+		CLI();
+		return getCLICycles();
 
 	case XED_ICLASS_STI:
-		cpu.eu.instructionGetClockCount = getSTICycles;
-		cpu.eu.instructionExec			= STI;
-		break;
+		STI();
+		return getSTICycles();
 
 	case XED_ICLASS_CLD:
-		cpu.eu.instructionGetClockCount = getCLDCycles;
-		cpu.eu.instructionExec			= CLD;
-		break;
+		CLD();
+		return getCLDCycles();
 
 	case XED_ICLASS_STD:
-		cpu.eu.instructionGetClockCount = getSTDCycles;
-		cpu.eu.instructionExec			= STD;
-		break;
+		STD();
+		return getSTDCycles();
 
 	case XED_ICLASS_HLT:
-		cpu.eu.instructionGetClockCount = getHLTCycles;
-		cpu.eu.instructionExec			= HLT;
-		break;
+		HLT();
+		return getHLTCycles();
 	
 	case XED_ICLASS_NOP:
-		cpu.eu.instructionGetClockCount = getNOPCycles;
-		cpu.eu.instructionExec			= NOP;
-		break;
+		NOP();
+		return getNOPCycles();
 	
 	case XED_ICLASS_CALL_NEAR:
-		cpu.eu.instructionGetClockCount = getCALL_NEARCycles;
-		cpu.eu.instructionExec			= CALL_NEAR;
-		break;
+		CALL_NEAR();
+		return getCALL_NEARCycles();
 
 	case XED_ICLASS_CALL_FAR:
-		cpu.eu.instructionGetClockCount = getCALL_FARCycles;
-		cpu.eu.instructionExec			= CALL_FAR;
-		break;
+		CALL_FAR();
+		return getCALL_FARCycles();
 
 	case XED_ICLASS_JMP:
-		cpu.eu.instructionGetClockCount = getJMP_NEARCycles;
-		cpu.eu.instructionExec			= JMP_NEAR;
-		break;
+		JMP_NEAR();
+		return getJMP_NEARCycles();
 
 	case XED_ICLASS_JMP_FAR:
-		cpu.eu.instructionGetClockCount = getJMP_FARCycles;
-		cpu.eu.instructionExec			= JMP_FAR;
-		break;
+		JMP_FAR();
+		return getJMP_FARCycles();
 
 	case XED_ICLASS_RET_NEAR:
-		cpu.eu.instructionGetClockCount = getRET_NEARCycles;
-		cpu.eu.instructionExec			= RET_NEAR;
-		break;
+		RET_NEAR();
+		return getRET_NEARCycles();
 
 	case XED_ICLASS_RET_FAR:
-		cpu.eu.instructionGetClockCount = getRET_FARCycles;
-		cpu.eu.instructionExec			= RET_FAR;
-		break;
+		RET_FAR();
+		return getRET_FARCycles();
 
 	case XED_ICLASS_JZ:
-		cpu.eu.instructionGetClockCount = getJZCycles;
-		cpu.eu.instructionExec			= JZ;
-		break;
+		JZ();
+		return 	getJZCycles();
 
 	case XED_ICLASS_JL:
-		cpu.eu.instructionGetClockCount = getJLCycles;
-		cpu.eu.instructionExec			= JL;
-		break;
+		JL();
+		return 	getJLCycles();
 
 	case XED_ICLASS_JLE:
-		cpu.eu.instructionGetClockCount = getJLECycles;
-		cpu.eu.instructionExec			= JLE;
-		break;
+		JLE();
+		return getJLECycles();
 
 	case XED_ICLASS_JNZ:
-		cpu.eu.instructionGetClockCount = getJNZCycles;
-		cpu.eu.instructionExec			= JNZ;
-		break;
+		JNZ();
+		return getJNZCycles();
 
 	case XED_ICLASS_JNL:
-		cpu.eu.instructionGetClockCount = getJNLCycles;
-		cpu.eu.instructionExec			= JNL;
-		break;
+		JNL();
+		return getJNLCycles();
 
 	case XED_ICLASS_JNLE:
-		cpu.eu.instructionGetClockCount = getJNLECycles;
-		cpu.eu.instructionExec			= JNLE;
-		break;
+		JNLE();
+		return getJNLECycles();
 
 	case XED_ICLASS_LOOP:
-		cpu.eu.instructionGetClockCount = getLOOPCycles;
-		cpu.eu.instructionExec			= LOOP;
-		break;
+		LOOP();
+		return getLOOPCycles();
 
 	case XED_ICLASS_JCXZ:
-		cpu.eu.instructionGetClockCount = getJCXZCycles;
-		cpu.eu.instructionExec			= JCXZ;
-		break;
+		JCXZ();
+		return getJCXZCycles();
 
 	case XED_ICLASS_INT:
-		cpu.eu.instructionGetClockCount = getINTCycles;
-		cpu.eu.instructionExec			= INT;
-		break;
+		INT();
+		return getINTCycles();
 
 	case XED_ICLASS_IRET:
-		cpu.eu.instructionGetClockCount = getIRETCycles;
-		cpu.eu.instructionExec			= IRET;
-		break;
+		IRET();
+		return getIRETCycles();
 	
 	default:
-		break;
+		return 0;
 	}
 }
 
@@ -392,10 +343,11 @@ void EU::farRet (void)
 
 bool EU::clock()
 {
+	static unsigned int clockCountDown = 0;
 	if (clockCountDown > 0)
 	{
 		printCurrentInstruction();
-		printf(" clock left: %d\n",clockCountDown);
+		//printf(" clock left: %d\n",clockCountDown);
 		clockCountDown -= 1;
 		return false;
 	}
@@ -421,11 +373,10 @@ bool EU::clock()
 
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
+		//Does the happen at the begining or the end of the execution of the instruction ?
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
-		printCurrentInstruction(); printf("\n");
-		fillInstructionsFunctionPtr();
-		instructionExec();
-		clockCountDown = instructionGetClockCount();
+		printCurrentInstruction(); //printf("\n");
+		clockCountDown = execInstructionAndGetClockCycles();
 		cpu.instructionExecuted += 1;
 	}
 
