@@ -9,6 +9,7 @@
 #include "instructions.hpp"
 
 ///Return clock without effective addresse calculation time
+#define CLOCK_CYCLES(...) const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
 #define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)]
 #define ADD_EA_COMPUTATION_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.getEAComputationClockCount(); }
 #define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)
@@ -19,14 +20,14 @@
 /**
 	All th timings for the instructions are taken from this site : https://zsmith.co/intel.php
 	The informations on xed iform format are available here : https://intelxed.github.io/ref-manual/group__IFORM.html
+	TODO: For all instructions that have not the same timing on 86 and 88, search what timing to use
  */
 
 /* *** Data transfert *** */
 
 unsigned int getMOVCycles()
 {
-	static const uint8_t CLOCK_CYCLES [] =
-	{
+	CLOCK_CYCLES(
 		10,//XED_IFORM_MOV_AL_MEMb
 		2,//XED_IFORM_MOV_GPR8_GPR8_88
 		2,//XED_IFORM_MOV_GPR8_GPR8_8A
@@ -49,7 +50,7 @@ unsigned int getMOVCycles()
 		10,//XED_IFORM_MOV_OrAX_MEMv
 		2,//XED_IFORM_MOV_SEG_GPR16
 		8,//XED_IFORM_MOV_SEG_MEMw
-	};
+	);
 
 	GET_RAW_CLOCK_COUNT();
 	GET_IFORM();
@@ -68,8 +69,7 @@ unsigned int getMOVCycles()
 
 unsigned int getPUSHCycles (void)
 {
-	static const uint8_t CLOCK_CYCLES [] =
-	{
+	CLOCK_CYCLES(
 		14,//XED_IFORM_PUSH_CS
 		14,//XED_IFORM_PUSH_DS
 		0,//XED_IFORM_PUSH_ES
@@ -81,7 +81,7 @@ unsigned int getPUSHCycles (void)
 		0,//XED_IFORM_PUSH_IMMz
 		16,//XED_IFORM_PUSH_MEMv
 		14//XED_IFORM_PUSH_SS
-	};
+	);
 	
 	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_PUSH_MEMv);
 	return clockCount;
@@ -89,8 +89,7 @@ unsigned int getPUSHCycles (void)
 
 unsigned int getPOPCycles (void)
 {
-	static const uint8_t CLOCK_CYCLES [] =
-	{
+	CLOCK_CYCLES(
 		8,// XED_IFORM_POP_DS
 		8,// XED_IFORM_POP_ES
 		8,// XED_IFORM_POP_FS
@@ -99,7 +98,7 @@ unsigned int getPOPCycles (void)
 		8,// XED_IFORM_POP_GS
 		17,// XED_IFORM_POP_MEMv
 		8// XED_IFORM_POP_SS
-	};
+	);
 	
 	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_POP_MEMv);
 	return clockCount;
@@ -107,28 +106,50 @@ unsigned int getPOPCycles (void)
 
 unsigned int getXCHGCycles (void)
 {
-	static const uint8_t CLOCK_CYCLES [] =
-	{
+	CLOCK_CYCLES(
 		4,// XED_IFORM_XCHG_GPR8_GPR8
 		4,// XED_IFORM_XCHG_GPRv_GPRv
 		3,// XED_IFORM_XCHG_GPRv_OrAX
 		17,// XED_IFORM_XCHG_MEMb_GPR8
 		17// XED_IFORM_XCHG_MEMv_GPRv
-	};
+	);
 	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_XCHG_MEMb_GPR8 || iform == XED_IFORM_XCHG_MEMv_GPRv);
 	return clockCount;
 }
 
-unsigned int getINCycles (void) { return 7; }
-unsigned int getOUTCycles (void) { return 7; }
-unsigned int getXLATCycles (void) { return 7; }
-unsigned int getLEACycles (void) { return 7; }
-unsigned int getLDSCycles (void) { return 7; }
-unsigned int getLESCycles (void) { return 7; }
-unsigned int getLAHFCycles (void) { return 7; }
-unsigned int getSAHFCycles (void) { return 7; }
-unsigned int getPUSHFCycles (void) { return 7; }
-unsigned int getPOPFCycles (void) { return 7; }
+//not same timing
+unsigned int getINCycles (void)
+{
+	CLOCK_CYCLES(
+		12,// XED_IFORM_IN_AL_DX
+		14,// XED_IFORM_IN_AL_IMMb
+		12,// XED_IFORM_IN_OeAX_DX
+		14 // XED_IFORM_IN_OeAX_IMMb
+	);
+
+	GET_RAW_CLOCK_COUNT();
+	return clockCount;
+}
+
+//Not same timings
+unsigned int getOUTCycles (void)
+{
+	CLOCK_CYCLES(
+		12,// XED_IFORM_OUT_DX_AL
+		12,// XED_IFORM_OUT_DX_OeAX
+		14,// XED_IFORM_OUT_IMMb_AL
+		14 // XED_IFORM_OUT_IMMb_OeAX
+	);
+}
+
+unsigned int getXLATCycles (void) { return 11; }
+unsigned int getLEACycles (void) { return 2 + cpu.eu.getEAComputationClockCount(); }
+unsigned int getLDSCycles (void) { return 24 + cpu.eu.getEAComputationClockCount(); }
+unsigned int getLESCycles (void) { return 24 + cpu.eu.getEAComputationClockCount(); }
+unsigned int getLAHFCycles (void) { return 4; }
+unsigned int getSAHFCycles (void) { return 4; }
+unsigned int getPUSHFCycles (void) { return 14; }
+unsigned int getPOPFCycles (void) { return 12; }
 
 /* *** Data Transfert *** */
 
