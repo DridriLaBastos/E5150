@@ -23,7 +23,7 @@ static void instructionFetchClock(void)
 	
 	if (clockCountDown > 0)
 	{
-		//printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
 		clockCountDown -= 1;
 		return;
 	}
@@ -34,12 +34,12 @@ static void instructionFetchClock(void)
 		cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = ram.read(address);
 		cpu.ip += 1;
 		cpu.biu.instructionBufferQueuePos += 1;
-		/*printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
+		printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
 		printf("Instruction buffer: ");
 		for (uint8_t b: cpu.biu.instructionBufferQueue)
 			printf("%#x ",b);
-		putchar('\n');*/
+		putchar('\n');
 	}
 
 	if (cpu.biu.newFetchAddressRequest)

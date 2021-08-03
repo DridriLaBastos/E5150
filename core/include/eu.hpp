@@ -24,11 +24,13 @@ namespace E5150::I8086
 			std::function<void(void)> instructionExec;
 
 			unsigned int getEAComputationClockCount();
+			unsigned int EAAddress;
 			const xed_inst_t* xedInst;
 
 			bool newFetchAddress;
 			uint16_t newCS;
 			uint16_t newIP;
+
 	};
 }
 

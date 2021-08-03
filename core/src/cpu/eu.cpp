@@ -394,10 +394,9 @@ bool EU::clock()
 {
 	if (clockCountDown > 0)
 	{
-		/*printf("Execution of ");
 		printCurrentInstruction();
-		printf(" %d clock%c left\n",clockCountDown,clockCountDown > 1 ? 's' : '\0');
-		clockCountDown -= 1;*/
+		printf(" clock left: %d\n",clockCountDown);
+		clockCountDown -= 1;
 		return false;
 	}
 	
@@ -419,12 +418,11 @@ bool EU::clock()
 
 	xed_decoded_inst_zero_keep_mode(&decodedInst);
 	const xed_error_enum_t DECODE_STATUS = xed_decode(&decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);
-	printCurrentInstruction();
 
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
-
+		printCurrentInstruction(); printf("\n");
 		fillInstructionsFunctionPtr();
 		instructionExec();
 		clockCountDown = instructionGetClockCount();
@@ -482,7 +480,7 @@ unsigned int EU::getEAComputationClockCount()
 			clockNeeded += (rm & 0b10) ? 11 : 12;
 	}
 
-	//const unsigned int address = genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
+	cpu.eu.EAAddress = cpu.genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
 	
 	if (xed_operand_values_has_segment_prefix(&decodedInst))
 		clockNeeded += 2;

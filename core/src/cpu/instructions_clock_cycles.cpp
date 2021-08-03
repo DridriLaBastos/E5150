@@ -9,7 +9,7 @@
 #include "instructions.hpp"
 
 ///Return clock without effective addresse calculation time
-#define CLOCK_CYCLES(...) const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
+#define CLOCK_CYCLES(...) static const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
 #define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)]
 #define ADD_EA_COMPUTATION_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.getEAComputationClockCount(); }
 #define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)
@@ -18,9 +18,9 @@
 													ADD_EA_COMPUTATION_ON_CONDITION(COND)
 
 /**
-	All th timings for the instructions are taken from this site : https://zsmith.co/intel.php
+	All the timings for the instructions are taken from this site : http://aturing.umcs.maine.edu/~meadow/courses/cos335/80x86-Integer-Instruction-Set-Clocks.pdf
+	When operands include memory operations, +1 is added to the clock count because on the IBM 5150 all memory operation tool 5 clock cycles instead of 4
 	The informations on xed iform format are available here : https://intelxed.github.io/ref-manual/group__IFORM.html
-	TODO: For all instructions that have not the same timing on 86 and 88, search what timing to use
  */
 
 /* *** Data transfert *** */
@@ -28,28 +28,28 @@
 unsigned int getMOVCycles()
 {
 	CLOCK_CYCLES(
-		10,//XED_IFORM_MOV_AL_MEMb
+		11,//XED_IFORM_MOV_AL_MEMb
 		2,//XED_IFORM_MOV_GPR8_GPR8_88
 		2,//XED_IFORM_MOV_GPR8_GPR8_8A
 		4,//XED_IFORM_MOV_GPR8_IMMb_B0
 		4,//XED_IFORM_MOV_GPR8_IMMb_C6r0
-		8,//XED_IFORM_MOV_GPR8_MEMb
+		9,//XED_IFORM_MOV_GPR8_MEMb
 		2,//XED_IFORM_MOV_GPRv_GPRv_89
 		2,//XED_IFORM_MOV_GPRv_GPRv_8B
 		4,//XED_IFORM_MOV_GPRv_IMMv
 		4,//XED_IFORM_MOV_GPRv_IMMz
-		8,//XED_IFORM_MOV_GPRv_MEMv
-		2,//XED_IFORM_MOV_GPRv_SEG
-		10,//XED_IFORM_MOV_MEMb_AL
-		9,//XED_IFORM_MOV_MEMb_GPR8
-		10,//XED_IFORM_MOV_MEMb_IMMb
-		9,//XED_IFORM_MOV_MEMv_GPRv
-		10,//XED_IFORM_MOV_MEMv_IMMz (not present on 808x)
-		10,//XED_IFORM_MOV_MEMv_OrAX
-		9,//XED_IFORM_MOV_MEMw_SEG
-		10,//XED_IFORM_MOV_OrAX_MEMv
+		9,//XED_IFORM_MOV_GPRv_MEMv
+		3,//XED_IFORM_MOV_GPRv_SEG
+		11,//XED_IFORM_MOV_MEMb_AL
+		10,//XED_IFORM_MOV_MEMb_GPR8
+		11,//XED_IFORM_MOV_MEMb_IMMb
+		10,//XED_IFORM_MOV_MEMv_GPRv
+		11,//XED_IFORM_MOV_MEMv_IMMz (not present on 808x)
+		11,//XED_IFORM_MOV_MEMv_OrAX
+		10,//XED_IFORM_MOV_MEMw_SEG
+		11,//XED_IFORM_MOV_OrAX_MEMv
 		2,//XED_IFORM_MOV_SEG_GPR16
-		8,//XED_IFORM_MOV_SEG_MEMw
+		9,//XED_IFORM_MOV_SEG_MEMw
 	);
 
 	GET_RAW_CLOCK_COUNT();
@@ -79,7 +79,7 @@ unsigned int getPUSHCycles (void)
 		0,//XED_IFORM_PUSH_GS
 		0,//XED_IFORM_PUSH_IMMb
 		0,//XED_IFORM_PUSH_IMMz
-		16,//XED_IFORM_PUSH_MEMv
+		17,//XED_IFORM_PUSH_MEMv
 		14//XED_IFORM_PUSH_SS
 	);
 	
@@ -96,7 +96,7 @@ unsigned int getPOPCycles (void)
 		8,// XED_IFORM_POP_GPRv_58
 		8,// XED_IFORM_POP_GPRv_8F
 		8,// XED_IFORM_POP_GS
-		17,// XED_IFORM_POP_MEMv
+		18,// XED_IFORM_POP_MEMv
 		8// XED_IFORM_POP_SS
 	);
 	
@@ -110,14 +110,13 @@ unsigned int getXCHGCycles (void)
 		4,// XED_IFORM_XCHG_GPR8_GPR8
 		4,// XED_IFORM_XCHG_GPRv_GPRv
 		3,// XED_IFORM_XCHG_GPRv_OrAX
-		17,// XED_IFORM_XCHG_MEMb_GPR8
-		17// XED_IFORM_XCHG_MEMv_GPRv
+		18,// XED_IFORM_XCHG_MEMb_GPR8
+		18// XED_IFORM_XCHG_MEMv_GPRv
 	);
 	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_XCHG_MEMb_GPR8 || iform == XED_IFORM_XCHG_MEMv_GPRv);
 	return clockCount;
 }
 
-//not same timing
 unsigned int getINCycles (void)
 {
 	CLOCK_CYCLES(
@@ -131,7 +130,6 @@ unsigned int getINCycles (void)
 	return clockCount;
 }
 
-//Not same timings
 unsigned int getOUTCycles (void)
 {
 	CLOCK_CYCLES(
@@ -155,25 +153,24 @@ unsigned int getPOPFCycles (void) { return 12; }
 
 unsigned int getADDCycles()
 {
-	static const uint8_t CLOCK_CYCLES [] =
-	{
+	CLOCK_CYCLES(
 		4,//XED_IFORM_ADD_AL_IMMb
 		3,//XED_IFORM_ADD_GPR8_GPR8_00
 		3,//XED_IFORM_ADD_GPR8_GPR8_02
 		4,//XED_IFORM_ADD_GPR8_IMMb_80r0
 		4,//XED_IFORM_ADD_GPR8_IMMb_82r0
-		9,//XED_IFORM_ADD_GPR8_MEMb
+		14,//XED_IFORM_ADD_GPR8_MEMb
 		3,//XED_IFORM_ADD_GPRv_GPRv_01
 		3,//XED_IFORM_ADD_GPRv_GPRv_03
 		4,//XED_IFORM_ADD_GPRv_IMMb
 		4,//XED_IFORM_ADD_GPRv_IMMz (not present on 808x)
-		9,//XED_IFORM_ADD_GPRv_MEMv
-		16,//XED_IFORM_ADD_MEMb_GPR8
-		17,//XED_IFORM_ADD_MEMb_IMMb_80r0
-		17,//XED_IFORM_ADD_MEMb_IMMb_82r0
-		16,//XED_IFORM_ADD_MEMv_GPRv
-		17//XED_IFORM_ADD_MEMv_IMMb
-	};
+		14,//XED_IFORM_ADD_GPRv_MEMv
+		25,//XED_IFORM_ADD_MEMb_GPR8
+		24,//XED_IFORM_ADD_MEMb_IMMb_80r0
+		24,//XED_IFORM_ADD_MEMb_IMMb_82r0
+		25,//XED_IFORM_ADD_MEMv_GPRv
+		24//XED_IFORM_ADD_MEMv_IMMb
+	);
 	
 	const unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)];
 	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
