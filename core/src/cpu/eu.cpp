@@ -9,7 +9,6 @@ EU::EU(): newFetchAddress(false) {}
 
 static void printCurrentInstruction()
 {
-#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
@@ -100,211 +99,364 @@ static void printCurrentInstruction()
 			++realOperandPos;
 		}
 	}
-#endif
 }
 
+//TODO: How to handle REP, LOCK, WAIT and ESC
 static unsigned int execInstructionAndGetClockCycles(void)
 {
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
-	case XED_ICLASS_MOV:
-		MOV();
-		return getMOVCycles();
+		case XED_ICLASS_MOV:
+			MOV();
+			return getMOVCycles();
 
-	case XED_ICLASS_PUSH:
-		PUSH();
-		return getPUSHCycles();
+		case XED_ICLASS_PUSH:
+			PUSH();
+			return getPUSHCycles();
 
-	case XED_ICLASS_POP:
-		POP();
-		return getPOPCycles();
+		case XED_ICLASS_POP:
+			POP();
+			return getPOPCycles();
 
-	case XED_ICLASS_ADD:
-		ADD();
-		return getADDCycles();
+		case XED_ICLASS_XCHG:
+			XCHG();
+			return getXCHGCycles();
 
-	case XED_ICLASS_INC:
-		INC();
-		return getINCCycles();
+		case XED_ICLASS_IN:
+			IN();
+			return getINCycles();
 
-	case XED_ICLASS_SUB:
-		SUB();
-		return getSUBCycles();
+		case XED_ICLASS_OUT:
+			OUT();
+			return getOUTCycles();
 
-	case XED_ICLASS_DEC:
-		DEC();
-		return getDECCycles();
-	
-	case XED_ICLASS_NEG:
-		NEG();
-		return getNEGCycles();
+		case XED_ICLASS_XLAT:
+			XLAT();
+			return getXLATCycles();
 
-	case XED_ICLASS_CMP:
-		CMP();
-		return getCMPCycles();
+		case XED_ICLASS_LEA:
+			LEA();
+			return getLEACycles();
 
-	case XED_ICLASS_MUL:
-		MUL();
-		return getMULCycles();
+		case XED_ICLASS_LDS:
+			LDS();
+			return getLDSCycles();
 
-	case XED_ICLASS_IMUL:
-		IMUL();
-		return getIMULCycles();
+		case XED_ICLASS_LES:
+			LES();
+			return getLESCycles();
 
-	case XED_ICLASS_DIV:
-		DIV();
-		return getDIVCycles();
+		case XED_ICLASS_LAHF:
+			LAHF();
+			return getLAHFCycles();
 
-	case XED_ICLASS_IDIV:
-		IDIV();
-		return getIDIVCycles();
+		case XED_ICLASS_SAHF:
+			SAHF();
+			return getSAHFCycles();
 
-	case XED_ICLASS_XCHG:
-		XCHG();
-		return getXCHGCycles();
+		case XED_ICLASS_PUSHF:
+			PUSHF();
+			return getPUSHFCycles();
 
-	case XED_ICLASS_NOT:
-		NOT();
-		return getNOTCycles();
+		case XED_ICLASS_POPF:
+			POPF();
+			return getPOPFCycles();
 
-	case XED_ICLASS_IN:
-	IN();
-	return 	getINCycles();
+		case XED_ICLASS_ADD:
+			ADD();
+			return getADDCycles();
 
-	case XED_ICLASS_OUT:
-		OUT();
-		return getOUTCycles();
+		case XED_ICLASS_ADC:
+			ADC();
+			return getADCCycles();
 
-	case XED_ICLASS_XLAT:
-		XLAT();
-		return getXLATCycles();
+		case XED_ICLASS_INC:
+			INC();
+			return getINCCycles();
 
-	case XED_ICLASS_LEA:
-		LEA();
-		return getLEACycles();
+		case XED_ICLASS_AAA:
+			AAA();
+			return getAAACycles();
 
-	case XED_ICLASS_LDS:
-		LDS();
-		return getLDSCycles();
+		case XED_ICLASS_DAA:
+			DAA();
+			return getDAACycles();
 
-	case XED_ICLASS_LES:
-		LES();
-		return getLESCycles();
+		case XED_ICLASS_SUB:
+			SUB();
+			return getSUBCycles();
 
-	case XED_ICLASS_LAHF:
-		LAHF();
-		return getLAHFCycles();
+		case XED_ICLASS_SBB:
+			SBB();
+			return getSBBCycles();
 
-	case XED_ICLASS_SAHF:
-		SAHF();
-		return getSAHFCycles();
+		case XED_ICLASS_DEC:
+			DEC();
+			return getDECCycles();
 
-	case XED_ICLASS_PUSHF:
-		PUSHF();
-		return getPUSHFCycles();
+		case XED_ICLASS_NEG:
+			NEG();
+			return getNEGCycles();
 
-	case XED_ICLASS_POPF:
-		POPF();
-		return getPOPFCycles();
+		case XED_ICLASS_CMP:
+			CMP();
+			return getCMPCycles();
 
-	case XED_ICLASS_CLC:
-		CLC();
-		return getCLCCycles();
+		case XED_ICLASS_AAS:
+			AAS();
+			return getAASCycles();
 
-	case XED_ICLASS_STC:
-		STC();
-		return getSTCCycles();
+		case XED_ICLASS_DAS:
+			DAS();
+			return getDASCycles();
 
-	case XED_ICLASS_CLI:
-		CLI();
-		return getCLICycles();
+		case XED_ICLASS_MUL:
+			MUL();
+			return getMULCycles();
 
-	case XED_ICLASS_STI:
-		STI();
-		return getSTICycles();
+		case XED_ICLASS_IMUL:
+			IMUL();
+			return getIMULCycles();
 
-	case XED_ICLASS_CLD:
-		CLD();
-		return getCLDCycles();
+		case XED_ICLASS_DIV:
+			DIV();
+			return getDIVCycles();
 
-	case XED_ICLASS_STD:
-		STD();
-		return getSTDCycles();
+		case XED_ICLASS_IDIV:
+			IDIV();
+			return getIDIVCycles();
 
-	case XED_ICLASS_HLT:
-		HLT();
-		return getHLTCycles();
-	
-	case XED_ICLASS_NOP:
-		NOP();
-		return getNOPCycles();
-	
-	case XED_ICLASS_CALL_NEAR:
-		CALL_NEAR();
-		return getCALL_NEARCycles();
+		case XED_ICLASS_AAD:
+			AAD();
+			return getAADCycles();
 
-	case XED_ICLASS_CALL_FAR:
-		CALL_FAR();
-		return getCALL_FARCycles();
+		case XED_ICLASS_CBW:
+			CBW();
+			return getCBWCycles();
 
-	case XED_ICLASS_JMP:
-		JMP_NEAR();
-		return getJMP_NEARCycles();
+		case XED_ICLASS_CWD:
+			CWD();
+			return getCWDCycles();
 
-	case XED_ICLASS_JMP_FAR:
-		JMP_FAR();
-		return getJMP_FARCycles();
+		case XED_ICLASS_NOT:
+			NOT();
+			return getNOTCycles();
 
-	case XED_ICLASS_RET_NEAR:
-		RET_NEAR();
-		return getRET_NEARCycles();
+		case XED_ICLASS_SHL:
+			SHL();
+			return getSHLCycles();
 
-	case XED_ICLASS_RET_FAR:
-		RET_FAR();
-		return getRET_FARCycles();
+		case XED_ICLASS_SHR:
+			SHR();
+			return getSHRCycles();
 
-	case XED_ICLASS_JZ:
-		JZ();
-		return 	getJZCycles();
+		case XED_ICLASS_SAR:
+			SAR();
+			return getSARCycles();
 
-	case XED_ICLASS_JL:
-		JL();
-		return 	getJLCycles();
+		case XED_ICLASS_ROL:
+			ROL();
+			return getROLCycles();
 
-	case XED_ICLASS_JLE:
-		JLE();
-		return getJLECycles();
+		case XED_ICLASS_ROR:
+			ROR();
+			return getRORCycles();
 
-	case XED_ICLASS_JNZ:
-		JNZ();
-		return getJNZCycles();
+		case XED_ICLASS_RCL:
+			RCL();
+			return getRCLCycles();
 
-	case XED_ICLASS_JNL:
-		JNL();
-		return getJNLCycles();
+		case XED_ICLASS_RCR:
+			RCR();
+			return getRCRCycles();
 
-	case XED_ICLASS_JNLE:
-		JNLE();
-		return getJNLECycles();
+		case XED_ICLASS_AND:
+			AND();
+			return getANDCycles();
 
-	case XED_ICLASS_LOOP:
-		LOOP();
-		return getLOOPCycles();
+		case XED_ICLASS_TEST:
+			TEST();
+			return getTESTCycles();
 
-	case XED_ICLASS_JCXZ:
-		JCXZ();
-		return getJCXZCycles();
+		case XED_ICLASS_OR:
+			OR();
+			return getORCycles();
 
-	case XED_ICLASS_INT:
-		INT();
-		return getINTCycles();
+		case XED_ICLASS_XOR:
+			XOR();
+			return getXORCycles();
 
-	case XED_ICLASS_IRET:
-		IRET();
-		return getIRETCycles();
-	
+		case XED_ICLASS_MOVSB:
+		case XED_ICLASS_MOVSW:
+			MOVS();
+			return getMOVSCycles();
+
+		case XED_ICLASS_CMPSB:
+		case XED_ICLASS_CMPSW:
+			CMPS();
+			return getCMPSCycles();
+
+		case XED_ICLASS_SCASB:
+		case XED_ICLASS_SCASW:
+			SCAS();
+			return getSCASCycles();
+
+		case XED_ICLASS_LODSB:
+		case XED_ICLASS_LODSW:
+			LODS();
+			return getLODSCycles();
+
+		case XED_ICLASS_STOSB:
+		case XED_ICLASS_STOSW:
+			STOS();
+			return getSTOSCycles();
+
+		case XED_ICLASS_CALL_NEAR:
+			CALL_NEAR();
+			return getCALL_NEARCycles();
+
+		case XED_ICLASS_CALL_FAR:
+			CALL_FAR();
+			return getCALL_FARCycles();
+
+		case XED_ICLASS_JMP:
+			JMP_NEAR();
+			return getJMP_NEARCycles();
+
+		case XED_ICLASS_JMP_FAR:
+			JMP_FAR();
+			return getJMP_FARCycles();
+
+		case XED_ICLASS_RET_NEAR:
+			RET_NEAR();
+			return getRET_NEARCycles();
+
+		case XED_ICLASS_RET_FAR:
+			RET_FAR();
+			return getRET_FARCycles();
+
+		case XED_ICLASS_JZ:
+			JZ();
+			return getJZCycles();
+
+		case XED_ICLASS_JL:
+			JL();
+			return getJLCycles();
+
+		case XED_ICLASS_JLE:
+			JLE();
+			return getJLECycles();
+
+		case XED_ICLASS_JB:
+			JB();
+			return getJBCycles();
+
+		case XED_ICLASS_JBE:
+			JBE();
+			return getJBECycles();
+
+		case XED_ICLASS_JP:
+			JP();
+			return getJPCycles();
+
+		case XED_ICLASS_JO:
+			JO();
+			return getJOCycles();
+
+		case XED_ICLASS_JNZ:
+			JNZ();
+			return getJNZCycles();
+
+		case XED_ICLASS_JNL:
+			JNL();
+			return getJNLCycles();
+
+		case XED_ICLASS_JNLE:
+			JNLE();
+			return getJNLECycles();
+
+		case XED_ICLASS_JNB:
+			JNB();
+			return getJNBCycles();
+
+		case XED_ICLASS_JNBE:
+			JNBE();
+			return getJNBECycles();
+
+		case XED_ICLASS_JNP:
+			JNP();
+			return getJNPCycles();
+
+		case XED_ICLASS_JNS:
+			JNS();
+			return getJNSCycles();
+
+		case XED_ICLASS_LOOP:
+			LOOP();
+			return getLOOPCycles();
+		
+		case XED_ICLASS_LOOPE:// = LOOPZ
+			LOOPZ();
+			return getLOOPZCycles();
+
+		case XED_ICLASS_LOOPNE:// = LOOPNZ
+			LOOPNZ();
+			return getLOOPNZCycles();
+
+		case XED_ICLASS_JCXZ:
+			JCXZ();
+			return getJCXZCycles();
+
+		case XED_ICLASS_INT:
+			INT();
+			return getINTCycles();
+
+		case XED_ICLASS_INTO:
+			INTO();
+			return getINTOCycles();
+
+		case XED_ICLASS_IRET:
+			IRET();
+			return getIRETCycles();
+
+		case XED_ICLASS_CLC:
+			CLC();
+			return getCLCCycles();
+
+		case XED_ICLASS_CMC:
+			CMC();
+			return getCMCCycles();
+
+		case XED_ICLASS_STC:
+			STC();
+			return getSTCCycles();
+
+		case XED_ICLASS_CLD:
+			CLD();
+			return getCLDCycles();
+
+		case XED_ICLASS_STD:
+			STD();
+			return getSTDCycles();
+
+		case XED_ICLASS_CLI:
+			CLI();
+			return getCLICycles();
+
+		case XED_ICLASS_STI:
+			STI();
+			return getSTICycles();
+
+		case XED_ICLASS_HLT:
+			HLT();
+			return getHLTCycles();
+
+		case XED_ICLASS_NOP:
+			NOP();
+			return getNOPCycles();
+
 	default:
-		return 0;
+		return 1;
 	}
 }
 
@@ -366,9 +518,10 @@ bool EU::clock()
 
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
-		//Does the happen at the begining or the end of the execution of the instruction ?
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
-		printCurrentInstruction(); //printf("\n");
+		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
+			printCurrentInstruction(); //printf("\n");
+		#endif
 		clockCountDown = execInstructionAndGetClockCycles();
 		cpu.instructionExecuted += 1;
 	}

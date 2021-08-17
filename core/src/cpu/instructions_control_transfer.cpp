@@ -135,6 +135,11 @@ void JLE()
 	cpu.eu.newFetchAddress = true;
 }
 
+void JB(){}
+void JBE(){}
+void JP(){}
+void JO(){}
+
 void JNZ()
 {
 	if (!cpu.getFlagStatus(CPU::ZERRO))
@@ -159,6 +164,11 @@ void JNLE()
 	cpu.eu.newFetchAddress = true;
 }
 
+void JNB(){}
+void JNBE(){}
+void JNP(){}
+void JNS(){}
+
 void LOOP()
 {
 	if (cpu.regs[CPU::CX]-- != 0)
@@ -166,6 +176,9 @@ void LOOP()
 	cpu.eu.newCS = cpu.cs;
 	cpu.eu.newFetchAddress = true;
 }
+
+void LOOPZ(){}
+void LOOPNZ(){}
 
 void JCXZ()
 {
@@ -180,6 +193,8 @@ void INT()
 	cpu.intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 	cpu.interrupt(); //interrupt takes care of cpu.pushing flags and clearing IF
 }
+
+void INTO(){}
 
 void IRET ()
 {

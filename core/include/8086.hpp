@@ -100,6 +100,7 @@ class CPU
 		void testSF	(const unsigned int value);
 		void testOF	(const unsigned int value, const bool byte);
 		void setFlags	(const unsigned int flags);
+		void toggleFlags (const unsigned int flags);
 		void clearFlags	(const unsigned int flags);
 
 		bool getFlagStatus	(const FLAGS_T flag) const;

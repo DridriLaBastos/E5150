@@ -17,3 +17,15 @@ void NOT()
 			cpu.biu.EURequestWriteByte(addr+1, ~cpu.biu.EURequestReadByte(addr+1));
 	}
 }
+
+void SHL	(void){}
+void SHR	(void){}
+void SAR	(void){}
+void ROL	(void){}
+void ROR	(void){}
+void RCL	(void){}
+void RCR	(void){}
+void AND	(void){}
+void TEST	(void){}
+void OR		(void){}
+void XOR	(void){}

@@ -42,6 +42,9 @@ void CPU::interrupt (const bool isNMI)
 void CPU::setFlags (const unsigned int requestedFlags)
 { flags |= requestedFlags; }
 
+void CPU::toggleFlags (const unsigned int requestedFlags)
+{ flags ^= requestedFlags; }
+
 void CPU::clearFlags (const unsigned int requestedFlags)
 { flags &= (~requestedFlags); }
 

@@ -9,3 +9,4 @@
 #include "cpu/instructions_data_transfer.cpp"
 #include "cpu/instructions_control_transfer.cpp"
 #include "cpu/instructions_processor_control.cpp"
+#include "cpu/instructions_string_manipulation.cpp"

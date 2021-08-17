@@ -427,6 +427,7 @@ unsigned int getJNBECycles		(void) { return 7 + 0; }
 unsigned int getJNPCycles		(void) { return 7 + 0; }
 unsigned int getJNSCycles		(void) { return 7 + 0; }
 unsigned int getLOOPCycles		(void) { return 7 + 0; }
+unsigned int getLOOPZCycles		(void) { return 7 + 0; }
 unsigned int getLOOPNZCycles	(void) { return 7 + 0; }
 unsigned int getJCXZCycles		(void) { return 7 + 0; }
 unsigned int getINTCycles		(void) { return 7 + 0; }

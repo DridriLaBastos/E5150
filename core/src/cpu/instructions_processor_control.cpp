@@ -2,6 +2,7 @@
 #include "instructions.hpp"
 
 void CLC () { cpu.clearFlags(CPU::CARRY); }
+void CMC () { cpu.toggleFlags(CPU::CARRY); }
 void STC () { cpu.setFlags(CPU::CARRY); }
 
 void CLD () { cpu.clearFlags(CPU::DIR); }

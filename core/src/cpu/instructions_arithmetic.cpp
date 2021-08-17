@@ -53,6 +53,8 @@ void ADD()
 	cpu.updateStatusFlags(value1, byteSizeOperands);
 }
 
+void ADC() {}
+
 void INC()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
@@ -85,6 +87,9 @@ void INC()
 
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
+
+void AAA(){}
+void DAA(){}
 
 void SUB()
 {
@@ -136,6 +141,8 @@ void SUB()
 
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
+
+void SBB(){}
 
 void DEC()
 {
@@ -255,6 +262,9 @@ void CMP()
 
 	cpu.updateStatusFlags(value1, cond ? 1 : 2);
 }
+
+void AAS(){}
+void DAS(){}
 
 void MUL()
 {
@@ -419,3 +429,7 @@ void IDIV()
 		cpu.regs[CPU::DX].x = r;
 	}
 }
+
+void AAD(){}
+void CBW(){}
+void CWD(){}

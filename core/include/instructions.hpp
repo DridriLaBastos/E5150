@@ -89,6 +89,7 @@ void JNBE		(void); unsigned int getJNBECycles		(void);
 void JNP		(void); unsigned int getJNPCycles		(void);
 void JNS		(void); unsigned int getJNSCycles		(void);
 void LOOP		(void); unsigned int getLOOPCycles		(void);
+void LOOPZ		(void); unsigned int getLOOPZCycles		(void);
 void LOOPNZ		(void); unsigned int getLOOPNZCycles	(void);
 void JCXZ		(void); unsigned int getJCXZCycles		(void);
 void INT		(void); unsigned int getINTCycles		(void);
@@ -96,6 +97,7 @@ void INTO		(void); unsigned int getINTOCycles		(void);
 void IRET		(void); unsigned int getIRETCycles		(void);
 
 /* Processor Control */
+
 void CLC	(void); unsigned int getCLCCycles	(void);
 void CMC	(void); unsigned int getCMCCycles	(void);
 void STC	(void); unsigned int getSTCCycles	(void);

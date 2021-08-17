@@ -182,15 +182,8 @@ void LEA()
 	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name0), cpu.genEA());
 }
 
-void LDS()
-{
-	//TODO: Implement LDS
-}
-
-void LES()
-{
-	//TODO: Implement LES
-}
+void LDS(){}
+void LES(){}
 
 void LAHF ()
 { cpu.ax = (cpu.flags & 0b11010101)|0b10; }
