@@ -103,13 +103,6 @@ static void printCurrentInstruction()
 #endif
 }
 
-/**
- \brief Fill the function executing the instruction and, if needed, the function to give the number of clock cycles needed by this instruction
- 
- When in release mode, the function of execution of the instruction also returns the number of clock cycles needed by the instruction. This is to speedup the time of the execution since it is computed inplace. It has the draw back that the effects of the instruction are applied at the beginning of the emulation of the instruction, then the clock cycle are waited.
- 
- In debug mode we want to apply the effect of the instruction after the clock cycles are elapsed. This increas the time of the emulation because we have to compute the clock cycles first, but we don't care since we are in debug mode. Plus it is more accurate to how real hardware works : the full modifications of the instructions are available at the end of it.
- */
 static unsigned int execInstructionAndGetClockCycles(void)
 {
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))

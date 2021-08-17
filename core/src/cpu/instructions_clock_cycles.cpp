@@ -8,19 +8,30 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
-///Return clock without effective addresse calculation time
 #define CLOCK_CYCLES(...) static const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
 #define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)]
-#define ADD_EA_COMPUTATION_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.getEAComputationClockCount(); }
+#define ADD_EA_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.getEAComputationClockCount(); }
+
 #define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)
-#define ADD_EA_COMPUTATION_ON_IFORM_CONDITION(COND) GET_RAW_CLOCK_COUNT();\
-													GET_IFORM();\
-													ADD_EA_COMPUTATION_ON_CONDITION(COND)
+#define ADD_EA_ON_IFORM_CONDITION(COND) GET_RAW_CLOCK_COUNT();\
+										GET_IFORM();\
+										ADD_EA_ON_CONDITION(COND)
+
+#define ADD_EA_ON_MEM_OPERAND(ACCUMULATOR_IFORM_CONDITION) GET_RAW_CLOCK_COUNT();\
+								GET_IFORM();\
+								if (ACCUMULATOR_IFORM_CONDITION) { return clockCount; }\
+								cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);\
+								const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));\
+								const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 1));\
+								ADD_EA_ON_CONDITION (op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0)
 
 /**
 	All the timings for the instructions are taken from this site : http://aturing.umcs.maine.edu/~meadow/courses/cos335/80x86-Integer-Instruction-Set-Clocks.pdf
 	When operands include memory operations, +1 is added to the clock count because on the IBM 5150 all memory operation tool 5 clock cycles instead of 4
 	The informations on xed iform format are available here : https://intelxed.github.io/ref-manual/group__IFORM.html
+
+	"v" = 16, 32 or 64b
+	"z" = 16 or 32b
  */
 
 /* *** Data transfert *** */
@@ -44,7 +55,7 @@ unsigned int getMOVCycles()
 		10,//XED_IFORM_MOV_MEMb_GPR8
 		11,//XED_IFORM_MOV_MEMb_IMMb
 		10,//XED_IFORM_MOV_MEMv_GPRv
-		11,//XED_IFORM_MOV_MEMv_IMMz (not present on 808x)
+		11,//XED_IFORM_MOV_MEMv_IMMz
 		11,//XED_IFORM_MOV_MEMv_OrAX
 		10,//XED_IFORM_MOV_MEMw_SEG
 		11,//XED_IFORM_MOV_OrAX_MEMv
@@ -52,18 +63,8 @@ unsigned int getMOVCycles()
 		9,//XED_IFORM_MOV_SEG_MEMw
 	);
 
-	GET_RAW_CLOCK_COUNT();
-	GET_IFORM();
-
-	if (iform == XED_IFORM_MOV_AL_MEMb || iform == XED_IFORM_MOV_MEMb_AL ||
-		iform == XED_IFORM_MOV_OrAX_MEMv || iform == XED_IFORM_MOV_MEMv_OrAX)
-		return clockCount;
-	
-	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
-	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(inst, 0));
-	const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(inst, 1));
-	
-	ADD_EA_COMPUTATION_ON_CONDITION(op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0);
+	ADD_EA_ON_MEM_OPERAND(iform == XED_IFORM_MOV_AL_MEMb || iform == XED_IFORM_MOV_MEMb_AL ||
+		iform == XED_IFORM_MOV_OrAX_MEMv || iform == XED_IFORM_MOV_MEMv_OrAX);
 	return clockCount;
 }
 
@@ -83,7 +84,7 @@ unsigned int getPUSHCycles (void)
 		14//XED_IFORM_PUSH_SS
 	);
 	
-	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_PUSH_MEMv);
+	ADD_EA_ON_IFORM_CONDITION(iform == XED_IFORM_PUSH_MEMv);
 	return clockCount;
 }
 
@@ -100,7 +101,7 @@ unsigned int getPOPCycles (void)
 		8// XED_IFORM_POP_SS
 	);
 	
-	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_POP_MEMv);
+	ADD_EA_ON_IFORM_CONDITION(iform == XED_IFORM_POP_MEMv);
 	return clockCount;
 }
 
@@ -113,7 +114,7 @@ unsigned int getXCHGCycles (void)
 		18,// XED_IFORM_XCHG_MEMb_GPR8
 		18// XED_IFORM_XCHG_MEMv_GPRv
 	);
-	ADD_EA_COMPUTATION_ON_IFORM_CONDITION(iform == XED_IFORM_XCHG_MEMb_GPR8 || iform == XED_IFORM_XCHG_MEMv_GPRv);
+	ADD_EA_ON_IFORM_CONDITION(iform == XED_IFORM_XCHG_MEMb_GPR8 || iform == XED_IFORM_XCHG_MEMv_GPRv);
 	return clockCount;
 }
 
@@ -163,60 +164,286 @@ unsigned int getADDCycles()
 		3,//XED_IFORM_ADD_GPRv_GPRv_01
 		3,//XED_IFORM_ADD_GPRv_GPRv_03
 		4,//XED_IFORM_ADD_GPRv_IMMb
-		4,//XED_IFORM_ADD_GPRv_IMMz (not present on 808x)
+		4,//XED_IFORM_ADD_GPRv_IMMz
 		14,//XED_IFORM_ADD_GPRv_MEMv
-		25,//XED_IFORM_ADD_MEMb_GPR8
-		24,//XED_IFORM_ADD_MEMb_IMMb_80r0
-		24,//XED_IFORM_ADD_MEMb_IMMb_82r0
-		25,//XED_IFORM_ADD_MEMv_GPRv
-		24//XED_IFORM_ADD_MEMv_IMMb
+		24,//XED_IFORM_ADD_MEMb_GPR8
+		23,//XED_IFORM_ADD_MEMb_IMMb_80r0
+		23,//XED_IFORM_ADD_MEMb_IMMb_82r0
+		24,//XED_IFORM_ADD_MEMv_GPRv
+		23,//XED_IFORM_ADD_MEMv_IMMb
+		23,//XED_IFORM_ADD_MEMv_IMMz
+		4//XED_IFORM_ADD_OrAX_IMMz
 	);
 	
-	const unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)];
-	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
-	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
-	const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 1));
-	
-	return clockCount + ((op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0) ? cpu.eu.getEAComputationClockCount() : 0);
+	ADD_EA_ON_MEM_OPERAND(iform == XED_IFORM_ADD_AL_IMMb || iform == XED_IFORM_ADD_OrAX_IMMz);
+	return clockCount;
 }
 
-unsigned int getINCCycles (void) { return 7; }
-unsigned int getSUBCycles (void) { return 7; }
-unsigned int getDECCycles (void) { return 7; }
-unsigned int getNEGCycles (void) { return 7; }
-unsigned int getCMPCycles (void) { return 7; }
-unsigned int getMULCycles (void) { return 7; }
-unsigned int getIMULCycles (void) { return 7; }
-unsigned int getDIVCycles (void) { return 7; }
-unsigned int getIDIVCycles (void) { return 7; }
+unsigned int getADCCycles	(void)
+{
+	CLOCK_CYCLES(
+		4,//XED_IFORM_ADC_AL_IMMb
+		3,//XED_IFORM_ADC_GPR8_GPR8_10
+		3,//XED_IFORM_ADC_GPR8_GPR8_12
+		4,//XED_IFORM_ADC_GPR8_IMMb_80r2
+		4,//XED_IFORM_ADC_GPR8_IMMb_82r2
+		14,//XED_IFORM_ADC_GPR8_MEMb
+		3,//XED_IFORM_ADC_GPRv_GPRv_11
+		3,//XED_IFORM_ADC_GPRv_GPRv_13
+		4,//XED_IFORM_ADC_GPRv_IMMb
+		4,//XED_IFORM_ADC_GPRv_IMMz
+		14,//XED_IFORM_ADC_GPRv_MEMv
+		24,//XED_IFORM_ADC_MEMb_GPR8
+		23,//XED_IFORM_ADC_MEMb_IMMb_80r2
+		23,//XED_IFORM_ADC_MEMb_IMMb_82r2
+		24,//XED_IFORM_ADC_MEMv_GPRv
+		23,//XED_IFORM_ADC_MEMv_IMMb
+		23,//XED_IFORM_ADC_MEMv_IMMz
+		4,//XED_IFORM_ADC_OrAX_IMMz
+	);
 
-/* *** Control Transfert *** */
+	ADD_EA_ON_MEM_OPERAND(iform == XED_IFORM_ADC_AL_IMMb || iform == XED_IFORM_ADC_OrAX_IMMz);
+	return clockCount;
+}
 
-unsigned int getCALL_NEARCycles (void) { return 32; }
-unsigned int getCALL_FARCycles (void) { return 32; }
-unsigned int getJMP_NEARCycles (void) { return 32; }
-unsigned int getJMP_FARCycles (void) { return 32; }
-unsigned int getRET_NEARCycles (void) { return 32; }
-unsigned int getRET_FARCycles (void) { return 32; }
-unsigned int getJZCycles (void) { return 32; }
-unsigned int getJLCycles (void) { return 32; }
-unsigned int getJLECycles (void) { return 32; }
-unsigned int getJNZCycles (void) { return 32; }
-unsigned int getJNLCycles (void) { return 32; }
-unsigned int getJNLECycles (void) { return 32; }
-unsigned int getLOOPCycles (void) { return 32; }
-unsigned int getJCXZCycles (void) { return 32; }
-unsigned int getINTCycles (void) { return 32; }
-unsigned int getIRETCycles (void) { return 32; }
+unsigned int getINCCycles (void)
+{
+	CLOCK_CYCLES(
+		3,// XED_IFORM_INC_GPR8
+		3,// XED_IFORM_INC_GPRv_40
+		3,// XED_IFORM_INC_GPRv_FFr0
+		24,// XED_IFORM_INC_MEMb
+		24// XED_IFORM_INC_MEMv
+	);
 
-unsigned int getNOTCycles (void) { return 2; }
+	ADD_EA_ON_IFORM_CONDITION(iform >= XED_IFORM_INC_MEMb);
+	return clockCount;
+}
 
-/* *** CPU Control *** */
-unsigned int getCLCCycles (void) { return 3; }
-unsigned int getSTCCycles (void) { return 3; }
-unsigned int getCLDCycles (void) { return 3; }
-unsigned int getSTDCycles (void) { return 3; }
-unsigned int getCLICycles (void) { return 3; }
-unsigned int getSTICycles (void) { return 3; }
-unsigned int getHLTCycles (void) { return 3; }
-unsigned int getNOPCycles (void) { return 3; }
+unsigned int getAAACycles	(void) { return 8; }
+unsigned int getDAACycles	(void) { return 4; }
+
+unsigned int getSUBCycles	(void)
+{
+	CLOCK_CYCLES(
+		4,// XED_IFORM_SUB_AL_IMMb
+		3,// XED_IFORM_SUB_GPR8_GPR8_28
+		3,// XED_IFORM_SUB_GPR8_GPR8_2A
+		4,// XED_IFORM_SUB_GPR8_IMMb_80r5
+		4,// XED_IFORM_SUB_GPR8_IMMb_82r5
+		14,// XED_IFORM_SUB_GPR8_MEMb
+		3,// XED_IFORM_SUB_GPRv_GPRv_29
+		3,// XED_IFORM_SUB_GPRv_GPRv_2B
+		4,// XED_IFORM_SUB_GPRv_IMMb
+		4,// XED_IFORM_SUB_GPRv_IMMz
+		14,// XED_IFORM_SUB_GPRv_MEMv
+		24,// XED_IFORM_SUB_MEMb_GPR8
+		23,// XED_IFORM_SUB_MEMb_IMMb_80r5
+		23,// XED_IFORM_SUB_MEMb_IMMb_82r5
+		24,// XED_IFORM_SUB_MEMv_GPRv
+		23,// XED_IFORM_SUB_MEMv_IMMb
+		23,// XED_IFORM_SUB_MEMv_IMMz
+		4// XED_IFORM_SUB_OrAX_IMMz
+	);
+
+	ADD_EA_ON_MEM_OPERAND(iform == XED_IFORM_SUB_AL_IMMb || iform == XED_IFORM_SUB_OrAX_IMMz);
+	return clockCount;
+}
+
+unsigned int getSBBCycles	(void)
+{
+	CLOCK_CYCLES(
+		4,//XED_IFORM_SBB_AL_IMMb
+		3,//XED_IFORM_SBB_GPR8_GPR8_18
+		3,//XED_IFORM_SBB_GPR8_GPR8_1A
+		4,//XED_IFORM_SBB_GPR8_IMMb_80r3
+		4,//XED_IFORM_SBB_GPR8_IMMb_82r3
+		14,//XED_IFORM_SBB_GPR8_MEMb
+		3,//XED_IFORM_SBB_GPRv_GPRv_19
+		3,//XED_IFORM_SBB_GPRv_GPRv_1B
+		4,//XED_IFORM_SBB_GPRv_IMMb
+		4,//XED_IFORM_SBB_GPRv_IMMz
+		14,//XED_IFORM_SBB_GPRv_MEMv
+		24,//XED_IFORM_SBB_MEMb_GPR8
+		23,//XED_IFORM_SBB_MEMb_IMMb_80r3
+		23,//XED_IFORM_SBB_MEMb_IMMb_82r3
+		24,//XED_IFORM_SBB_MEMv_GPRv
+		23,//XED_IFORM_SBB_MEMv_IMMb
+		23,//XED_IFORM_SBB_MEMv_IMMz
+		4//XED_IFORM_SBB_OrAX_IMMz
+	);
+
+	ADD_EA_ON_MEM_OPERAND(iform == XED_IFORM_SBB_AL_IMMb || iform == XED_IFORM_SBB_OrAX_IMMz);
+	return clockCount;
+}
+
+unsigned int getDECCycles	(void)
+{
+	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
+
+	return op0 == XED_OPERAND_MEM0 ? (23 + cpu.eu.getEAComputationClockCount()) : 3;
+}
+
+unsigned int getNEGCycles	(void)
+{
+	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
+
+	return op0 == XED_OPERAND_MEM0 ? (24 + cpu.eu.getEAComputationClockCount()) : 3;
+}
+
+unsigned int getCMPCycles	(void)
+{
+	CLOCK_CYCLES(
+		4,// XED_IFORM_CMP_AL_IMMb
+		3,// XED_IFORM_CMP_GPR8_GPR8_38
+		3,// XED_IFORM_CMP_GPR8_GPR8_3A
+		4,// XED_IFORM_CMP_GPR8_IMMb_80r7
+		4,// XED_IFORM_CMP_GPR8_IMMb_82r7
+		14,// XED_IFORM_CMP_GPR8_MEMb
+		3,// XED_IFORM_CMP_GPRv_GPRv_39
+		3,// XED_IFORM_CMP_GPRv_GPRv_3B
+		4,// XED_IFORM_CMP_GPRv_IMMb
+		4,// XED_IFORM_CMP_GPRv_IMMz
+		14,// XED_IFORM_CMP_GPRv_MEMv
+		24,// XED_IFORM_CMP_MEMb_GPR8
+		23,// XED_IFORM_CMP_MEMb_IMMb_80r7
+		23,// XED_IFORM_CMP_MEMb_IMMb_82r7
+		24,// XED_IFORM_CMP_MEMv_GPRv
+		23,// XED_IFORM_CMP_MEMv_IMMb
+		23,// XED_IFORM_CMP_MEMv_IMMz
+		4// XED_IFORM_CMP_OrAX_IMMz
+	);
+
+	ADD_EA_ON_MEM_OPERAND(iform == XED_IFORM_CMP_AL_IMMb || iform == XED_IFORM_CMP_OrAX_IMMz);
+	return clockCount;
+}
+
+unsigned int getAASCycles	(void) { return 8; }
+unsigned int getDASCycles	(void) { return 4; }
+
+//TODO: find what defines the clock count for different iform of the instruction, for now the average is taken
+unsigned int getMULCycles	(void)
+{
+	CLOCK_CYCLES(
+		(70 + 77) / 2,// XED_IFORM_MUL_GPR8
+		(118 + 133) / 2,// XED_IFORM_MUL_GPRv
+		(76 + 83) / 2,// XED_IFORM_MUL_MEMb
+		(124 + 139) / 2// XED_IFORM_MUL_MEMv
+	);
+
+	ADD_EA_ON_IFORM_CONDITION(iform == XED_IFORM_MUL_MEMb || iform == XED_IFORM_MUL_MEMv);
+	return clockCount;
+}
+
+//TODO: find what defines the clock count for different iform of the instruction, for now the average is taken
+unsigned int getIMULCycles	(void)
+{
+	CLOCK_CYCLES(
+		(80 + 98) / 2,// XED_IFORM_IMUL_GPR8
+		(128 + 154) / 2,// XED_IFORM_IMUL_GPRv
+		(86 + 104) / 2,// XED_IFORM_IMUL_MEMb
+		(134 + 160) / 2// XED_IFORM_IMUL_MEMv
+	);
+
+	ADD_EA_ON_IFORM_CONDITION(iform == XED_IFORM_IMUL_MEMb || iform == XED_IFORM_IMUL_MEMv);
+	return clockCount;
+}
+
+unsigned int getDIVCycles	(void)
+{
+	CLOCK_CYCLES(
+		(80 + 90) / 2,// XED_IFORM_DIV_GPR8
+		(144 + 162) / 2,// XED_IFORM_DIV_GPRv
+		(86 + 96) / 2,// XED_IFORM_DIV_MEMb
+		(150 + 168) / 2// XED_IFORM_DIV_MEMv
+	);
+
+	ADD_EA_ON_IFORM_CONDITION(iform == XED_IFORM_DIV_MEMb || iform == XED_IFORM_DIV_MEMv);
+	return clockCount;
+}
+
+unsigned int getIDIVCycles	(void)
+{
+	CLOCK_CYCLES(
+		(101 + 112) / 2,// XED_IFORM_IDIV_GPR8
+		(165 + 184) / 2,// XED_IFORM_IDIV_GPRv
+		(107 + 118) / 2,// XED_IFORM_IDIV_MEMb
+		(171 + 190) / 2// XED_IFORM_IDIV_MEMv
+	);
+
+	ADD_EA_ON_IFORM_CONDITION(iform == XED_IFORM_IDIV_MEMb || iform == XED_IFORM_IDIV_MEMv);
+	return clockCount;
+}
+unsigned int getAADCycles	(void) { return 60; }
+unsigned int getCBWCycles	(void) { return 2; }
+unsigned int getCWDCycles	(void) { return 5; }
+
+/* Logic */
+
+unsigned int getNOTCycles	(void);
+unsigned int getSHLCycles	(void);
+unsigned int getSHRCycles	(void);
+unsigned int getSARCycles	(void);
+unsigned int getROLCycles	(void);
+unsigned int getRORCycles	(void);
+unsigned int getRCLCycles	(void);
+unsigned int getRCRCycles	(void);
+unsigned int getANDCycles	(void);
+unsigned int getTESTCycles	(void);
+unsigned int getORCycles	(void);
+unsigned int getXORCycles	(void);
+
+/* String Manipulation */
+
+unsigned int getREPCycles (void);
+unsigned int getMOVSCycles (void);
+unsigned int getCMPSCycles (void);
+unsigned int getSCASCycles (void);
+unsigned int getLODSCycles (void);
+unsigned int getSTOSCycles (void);
+
+/* Control Transfer */
+
+unsigned int getCALL_NEARCycles	(void);
+unsigned int getCALL_FARCycles	(void);
+unsigned int getJMP_NEARCycles	(void);
+unsigned int getJMP_FARCycles	(void);
+unsigned int getRET_NEARCycles	(void);
+unsigned int getRET_FARCycles	(void);
+unsigned int getJZCycles		(void);/* JE /JZ   */
+unsigned int getJLCycles		(void);/* JL /JNGE */
+unsigned int getJLECycles		(void);/* JLE/JNG  */
+unsigned int getJBCycles		(void);/* JB /JNAE */
+unsigned int getJBECycles		(void);/* JBE/JNA  */
+unsigned int getJPCycles		(void);/* JLE/JNG  */
+unsigned int getJOCycles		(void);/* JP /JPE  */
+unsigned int getJNZCycles		(void);
+unsigned int getJNLCycles		(void);
+unsigned int getJNLECycles		(void);
+unsigned int getJNBCycles		(void);
+unsigned int getJNBECycles		(void);
+unsigned int getJNPCycles		(void);
+unsigned int getJNSCycles		(void);
+unsigned int getLOOPCycles		(void);
+unsigned int getLOOPNZCycles	(void);
+unsigned int getJCXZCycles		(void);
+unsigned int getINTCycles		(void);
+unsigned int getINTOCycles		(void);
+unsigned int getIRETCycles		(void);
+
+/* Processor Control */
+
+unsigned int getCLCCycles	(void);
+unsigned int getCMCCycles	(void);
+unsigned int getSTCCycles	(void);
+unsigned int getCLDCycles	(void);
+unsigned int getSTDCycles	(void);
+unsigned int getCLICycles	(void);
+unsigned int getSTICycles	(void);
+unsigned int getHLTCycles	(void);
+unsigned int getWAITCycles	(void);
+unsigned int getLOCKCycles	(void);
+
+unsigned int getNOPCycles	(void);
