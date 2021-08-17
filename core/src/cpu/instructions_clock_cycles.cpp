@@ -382,68 +382,68 @@ unsigned int getCWDCycles	(void) { return 5; }
 
 /* Logic */
 
-unsigned int getNOTCycles	(void);
-unsigned int getSHLCycles	(void);
-unsigned int getSHRCycles	(void);
-unsigned int getSARCycles	(void);
-unsigned int getROLCycles	(void);
-unsigned int getRORCycles	(void);
-unsigned int getRCLCycles	(void);
-unsigned int getRCRCycles	(void);
-unsigned int getANDCycles	(void);
-unsigned int getTESTCycles	(void);
-unsigned int getORCycles	(void);
-unsigned int getXORCycles	(void);
+unsigned int getNOTCycles	(void) { return 7 + 0; }
+unsigned int getSHLCycles	(void) { return 7 + 0; }
+unsigned int getSHRCycles	(void) { return 7 + 0; }
+unsigned int getSARCycles	(void) { return 7 + 0; }
+unsigned int getROLCycles	(void) { return 7 + 0; }
+unsigned int getRORCycles	(void) { return 7 + 0; }
+unsigned int getRCLCycles	(void) { return 7 + 0; }
+unsigned int getRCRCycles	(void) { return 7 + 0; }
+unsigned int getANDCycles	(void) { return 7 + 0; }
+unsigned int getTESTCycles	(void) { return 7 + 0; }
+unsigned int getORCycles	(void) { return 7 + 0; }
+unsigned int getXORCycles	(void) { return 7 + 0; }
 
 /* String Manipulation */
 
-unsigned int getREPCycles (void);
-unsigned int getMOVSCycles (void);
-unsigned int getCMPSCycles (void);
-unsigned int getSCASCycles (void);
-unsigned int getLODSCycles (void);
-unsigned int getSTOSCycles (void);
+unsigned int getREPCycles (void) { return 7 + 0; }
+unsigned int getMOVSCycles (void) { return 7 + 0; }
+unsigned int getCMPSCycles (void) { return 7 + 0; }
+unsigned int getSCASCycles (void) { return 7 + 0; }
+unsigned int getLODSCycles (void) { return 7 + 0; }
+unsigned int getSTOSCycles (void) { return 7 + 0; }
 
 /* Control Transfer */
 
-unsigned int getCALL_NEARCycles	(void);
-unsigned int getCALL_FARCycles	(void);
-unsigned int getJMP_NEARCycles	(void);
-unsigned int getJMP_FARCycles	(void);
-unsigned int getRET_NEARCycles	(void);
-unsigned int getRET_FARCycles	(void);
-unsigned int getJZCycles		(void);/* JE /JZ   */
-unsigned int getJLCycles		(void);/* JL /JNGE */
-unsigned int getJLECycles		(void);/* JLE/JNG  */
-unsigned int getJBCycles		(void);/* JB /JNAE */
-unsigned int getJBECycles		(void);/* JBE/JNA  */
-unsigned int getJPCycles		(void);/* JLE/JNG  */
-unsigned int getJOCycles		(void);/* JP /JPE  */
-unsigned int getJNZCycles		(void);
-unsigned int getJNLCycles		(void);
-unsigned int getJNLECycles		(void);
-unsigned int getJNBCycles		(void);
-unsigned int getJNBECycles		(void);
-unsigned int getJNPCycles		(void);
-unsigned int getJNSCycles		(void);
-unsigned int getLOOPCycles		(void);
-unsigned int getLOOPNZCycles	(void);
-unsigned int getJCXZCycles		(void);
-unsigned int getINTCycles		(void);
-unsigned int getINTOCycles		(void);
-unsigned int getIRETCycles		(void);
+unsigned int getCALL_NEARCycles	(void) { return 7 + 0; }
+unsigned int getCALL_FARCycles	(void) { return 7 + 0; }
+unsigned int getJMP_NEARCycles	(void) { return 7 + 0; }
+unsigned int getJMP_FARCycles	(void) { return 7 + 0; }
+unsigned int getRET_NEARCycles	(void) { return 7 + 0; }
+unsigned int getRET_FARCycles	(void) { return 7 + 0; }
+unsigned int getJZCycles		(void) { return 7 + 0; }/* JE /JZ   */
+unsigned int getJLCycles		(void) { return 7 + 0; }/* JL /JNGE */
+unsigned int getJLECycles		(void) { return 7 + 0; }/* JLE/JNG  */
+unsigned int getJBCycles		(void) { return 7 + 0; }/* JB /JNAE */
+unsigned int getJBECycles		(void) { return 7 + 0; }/* JBE/JNA  */
+unsigned int getJPCycles		(void) { return 7 + 0; }/* JLE/JNG  */
+unsigned int getJOCycles		(void) { return 7 + 0; }/* JP /JPE  */
+unsigned int getJNZCycles		(void) { return 7 + 0; }
+unsigned int getJNLCycles		(void) { return 7 + 0; }
+unsigned int getJNLECycles		(void) { return 7 + 0; }
+unsigned int getJNBCycles		(void) { return 7 + 0; }
+unsigned int getJNBECycles		(void) { return 7 + 0; }
+unsigned int getJNPCycles		(void) { return 7 + 0; }
+unsigned int getJNSCycles		(void) { return 7 + 0; }
+unsigned int getLOOPCycles		(void) { return 7 + 0; }
+unsigned int getLOOPNZCycles	(void) { return 7 + 0; }
+unsigned int getJCXZCycles		(void) { return 7 + 0; }
+unsigned int getINTCycles		(void) { return 7 + 0; }
+unsigned int getINTOCycles		(void) { return 7 + 0; }
+unsigned int getIRETCycles		(void) { return 7 + 0; }
 
 /* Processor Control */
 
-unsigned int getCLCCycles	(void);
-unsigned int getCMCCycles	(void);
-unsigned int getSTCCycles	(void);
-unsigned int getCLDCycles	(void);
-unsigned int getSTDCycles	(void);
-unsigned int getCLICycles	(void);
-unsigned int getSTICycles	(void);
-unsigned int getHLTCycles	(void);
-unsigned int getWAITCycles	(void);
-unsigned int getLOCKCycles	(void);
+unsigned int getCLCCycles	(void) { return 7 + 0; }
+unsigned int getCMCCycles	(void) { return 7 + 0; }
+unsigned int getSTCCycles	(void) { return 7 + 0; }
+unsigned int getCLDCycles	(void) { return 7 + 0; }
+unsigned int getSTDCycles	(void) { return 7 + 0; }
+unsigned int getCLICycles	(void) { return 7 + 0; }
+unsigned int getSTICycles	(void) { return 7 + 0; }
+unsigned int getHLTCycles	(void) { return 7 + 0; }
+unsigned int getWAITCycles	(void) { return 7 + 0; }
+unsigned int getLOCKCycles	(void) { return 7 + 0; }
 
-unsigned int getNOPCycles	(void);
+unsigned int getNOPCycles	(void) { return 7 + 0; }
