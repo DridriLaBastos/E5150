@@ -139,6 +139,9 @@ unsigned int getOUTCycles (void)
 		14,// XED_IFORM_OUT_IMMb_AL
 		14 // XED_IFORM_OUT_IMMb_OeAX
 	);
+	
+	GET_RAW_CLOCK_COUNT();
+	return clockCount;
 }
 
 unsigned int getXLATCycles (void) { return 11; }

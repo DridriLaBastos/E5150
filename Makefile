@@ -18,7 +18,6 @@ ifeq ($(DEBUG),1)
 	CPPFLAGS := $(CPPFLAGS) -DDEBUG_BUILD
 endif
 
-
 export CXX
 export DEPFLAGS = -MM -MF
 export CPPFLAGS := $(CPPFLAGS) $(THIRD_PARTY_INCLUDE_FLAGS)

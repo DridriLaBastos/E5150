@@ -19,7 +19,9 @@ static void EUDataAccessClock(void)
 {
 	if (cpu.biu.EUDataAccessClockCountDown > 0)
 	{
-		//printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUDataAccessClockCountDown);
+		#ifdef DEBUG_BUILD
+			printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUDataAccessClockCountDown);
+		#endif
 		return;
 	}
 	
@@ -31,7 +33,9 @@ static void waitPlaceInInstructionBufferQueueClock(void)
 {
 	if (cpu.biu.instructionBufferQueuePos >= 5)
 	{
-		//printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
+		#ifdef DEBUG_BUILD
+			printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
+		#endif
 		return;
 	}
 
@@ -45,7 +49,9 @@ static void instructionFetchClock(void)
 	
 	if (clockCountDown > 0)
 	{
-		//printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+		#ifdef DEBUG_BUILD
+			printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+		#endif
 		clockCountDown -= 1;
 		return;
 	}
@@ -56,12 +62,15 @@ static void instructionFetchClock(void)
 		cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = ram.read(address);
 		cpu.ip += 1;
 		cpu.biu.instructionBufferQueuePos += 1;
-		/*printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
-		printf("Instruction buffer: ");
-		for (uint8_t b: cpu.biu.instructionBufferQueue)
-			printf("%#x ",b);
-		putchar('\n');*/
+		#ifdef DEBUG_BUILD
+			printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
+
+			printf("Instruction buffer: ");
+			for (uint8_t b: cpu.biu.instructionBufferQueue)
+				printf("%#x ",b);
+			putchar('\n');
+		#endif
 	}
 	
 	if (cpu.biu.EUDataAccessClockCountDown > 0)
@@ -82,9 +91,15 @@ void BIU::requestNewFetchAddress (const uint16_t requestedCS, const uint16_t req
 
 void BIU::instructionBufferQueuePop(const unsigned int n)
 {
+	#ifdef DEBUG_BUILD
+		printf("BIU: Poping %d octet from instruction buffer - size %d -> ",n,instructionBufferQueuePos);
+	#endif
 	for (size_t i = 0; i+n < 5; i++)
 		instructionBufferQueue[i] = instructionBufferQueue[i+n];
 	instructionBufferQueuePos -= n;
+	#ifdef DEBUG_BUILD
+		printf("%d\n",instructionBufferQueuePos);
+	#endif
 }
 
 void BIU::resetInstructionBufferQueue(){ instructionBufferQueuePos = 0; }

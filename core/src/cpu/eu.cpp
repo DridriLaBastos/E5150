@@ -491,8 +491,10 @@ bool EU::clock()
 	static unsigned int clockCountDown = 0;
 	if (clockCountDown > 0)
 	{
-		printCurrentInstruction();
-		//printf(" clock left: %d\n",clockCountDown);
+		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
+			printCurrentInstruction();
+			printf(" clock left: %d\n",clockCountDown);
+		#endif
 		clockCountDown -= 1;
 		return false;
 	}
@@ -518,11 +520,11 @@ bool EU::clock()
 
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
-		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
 		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-			printCurrentInstruction(); //printf("\n");
+			printCurrentInstruction(); printf("\n");
 		#endif
 		clockCountDown = execInstructionAndGetClockCycles();
+		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&decodedInst));
 		cpu.instructionExecuted += 1;
 	}
 
