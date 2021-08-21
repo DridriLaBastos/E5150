@@ -22,6 +22,7 @@ static void EUDataAccessClock(void)
 		#ifdef DEBUG_BUILD
 			printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUDataAccessClockCountDown);
 		#endif
+		cpu.biu.EUDataAccessClockCountDown -= 1;
 		return;
 	}
 	
@@ -91,15 +92,9 @@ void BIU::requestNewFetchAddress (const uint16_t requestedCS, const uint16_t req
 
 void BIU::instructionBufferQueuePop(const unsigned int n)
 {
-	#ifdef DEBUG_BUILD
-		printf("BIU: Poping %d octet from instruction buffer - size %d -> ",n,instructionBufferQueuePos);
-	#endif
 	for (size_t i = 0; i+n < 5; i++)
 		instructionBufferQueue[i] = instructionBufferQueue[i+n];
 	instructionBufferQueuePos -= n;
-	#ifdef DEBUG_BUILD
-		printf("%d\n",instructionBufferQueuePos);
-	#endif
 }
 
 void BIU::resetInstructionBufferQueue(){ instructionBufferQueuePos = 0; }
@@ -107,7 +102,7 @@ void BIU::resetInstructionBufferQueue(){ instructionBufferQueuePos = 0; }
 uint8_t BIU::EURequestReadByte (const unsigned int address)
 { EUDataAccessClockCountDown += 5; return ram.read(address); }
 uint16_t BIU::EURequestReadWord (const unsigned int address)
-{ return (EURequestReadWord(address+1) << 8) | EURequestINByte(address); }
+{ return (EURequestReadByte(address+1) << 8) | EURequestReadByte(address); }
 
 void BIU::EURequestWriteByte (const unsigned int address, const uint8_t data)
 { EUDataAccessClockCountDown += 5; ram.write(address, data); }

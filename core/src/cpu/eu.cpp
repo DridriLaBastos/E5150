@@ -521,7 +521,7 @@ bool EU::clock()
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
 		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-			printCurrentInstruction(); printf("\n");
+			printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecuted);
 		#endif
 		clockCountDown = execInstructionAndGetClockCycles();
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&decodedInst));
