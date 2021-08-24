@@ -1,7 +1,7 @@
 PRODUCT = epc.out
 
 ASSRC = $(wildcard test/*.s)
-ASOBJ = $(ASSRC:.s=.bin)
+ASOBJ = $(ASSRC:.s=.bin) test/ibm_bios.bin
 
 CXXOBJ = main.o
 
@@ -17,6 +17,9 @@ $(PRODUCT): $(CXXOBJ) $(PROJECT_DIR)/core/libcore.a
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@
+
+test/ibm_bios.bin:
+	curl https://ibm.retropc.se/bios/BIOS_5150_24APR81_U33.BIN -o $@
 
 run:
 	./$(PRODUCT)

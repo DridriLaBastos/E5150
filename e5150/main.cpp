@@ -10,7 +10,7 @@ int main (void)
 
 	#if 1
 		//Loadin bochs BIOS
-		ram.load("/Users/adrien/dev/share/bochs/BIOS-bochs-legacy", 0xF0000);
+		ram.load("test/ibm_bios.bin", 0xFE000);
 	#else
 		//Loading custom test code
 		ram.load("test/interrupts.bin",0);
