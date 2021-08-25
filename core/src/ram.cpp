@@ -12,7 +12,7 @@ uint8_t RAM::read(const unsigned int address) const
 	const uint8_t data = m_ram[address];
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_READ) || defined(SEE_ALL)
 	if (E5150::Util::CURRENT_DEBUG_LEVEL == DEBUG_LEVEL_MAX)
-		std::cout << std::hex << (unsigned int)data << " --> " << address << std::dec << std::endl;
+		printf("%#4x --> %#5x\n", data, address);
 #endif
 	return data;
 }
@@ -21,7 +21,7 @@ void RAM::write(const unsigned int address, const uint8_t data)
 	m_ram[address] = data;
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_WRITE) || defined(SEE_ALL)
 	if (E5150::Util::CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_MAX)
-		std::cout << std::hex << "0x" << address << " <-- " << "0x" << (unsigned int)data << std::dec << std::endl;
+		printf("%#5x <-- %#4x\n", address, data);
 #endif
 }
 

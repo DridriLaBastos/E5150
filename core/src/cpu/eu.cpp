@@ -493,16 +493,16 @@ static void printCurrentInstruction(void)
 static void printRegisters(void)
 {
 #if defined(SEE_REGS) ||  defined(SEE_ALL)
-	printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
-	printf("AX: %#6.4x   bx: %#6.4x   CX: %#6.4x   DX: %#6.4x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
-	printf("SI: %#6.4x   DI: %#6.4x   BP: %#6.4x   SP: %#6.4x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
+	printf("CS: %#6x   DS: %#6x   ES: %#6x   SS: %#6x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
+	printf("AX: %#6x   bx: %#6x   CX: %#6x   DX: %#6x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
+	printf("SI: %#6x   DI: %#6x   BP: %#6x   SP: %#6x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
 #endif
 }
 
 static void printFlags(void)
 {
 #if defined(SEE_FLAGS) || defined(SEE_ALL)
-	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
+	printf("%s  %s  %s  %s  %s  %s  %s  %s  %s\n",(cpu.flags & CPU::OVER) ? "OF" : "of", (cpu.flags & CPU::DIR) ? "DF" : "df", (cpu.flags & CPU::INTF) ? "IF" : "if", (cpu.flags & CPU::TRAP) ? "TF" : "tf", (cpu.flags & CPU::SIGN) ? "SF" : "sf", (cpu.flags & CPU::ZERRO) ? "ZF" : "zf", (cpu.flags & CPU::A_CARRY) ? "AF" : "af", (cpu.flags & CPU::PARRITY) ? "PF" : "pf", (cpu.flags & CPU::CARRY) ? "CF" : "cf");
 #endif
 }
 
@@ -532,14 +532,12 @@ bool EU::clock()
 
 	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
 	{
-		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-			printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecuted);
-		#endif
 		clockCountDown = execInstructionAndGetClockCycles();
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&decodedInst));
 		cpu.instructionExecuted += 1;
 
 		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
+			printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecuted);
 			printRegisters();
 			printFlags();
 		#endif

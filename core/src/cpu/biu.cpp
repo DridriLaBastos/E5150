@@ -14,23 +14,23 @@ static void BIUWaitEndOfControlTransfertInstructionClock(void)
 	{
 		BUS_CYCLE_CLOCK_LEFT -= 1;
 
-		#ifdef DEBUG_BUILD
+		/*#ifdef DEBUG_BUILD
 			printf("BIU: ENDING BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
-		#endif
+		#endif*/
 	}
 
-	#ifdef DEBUG_BUILD
+	/*#ifdef DEBUG_BUILD
 		printf("BIU: WAITING END OF CONTROL TRANSFERT INSTRUCTION\n");
-	#endif
+	#endif*/
 }
 
 static void EUDataAccessClock(void)
 {
 	if (cpu.biu.EUDataAccessClockCountDown > 0)
 	{
-		#ifdef DEBUG_BUILD
+		/*#ifdef DEBUG_BUILD
 			printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUDataAccessClockCountDown);
-		#endif
+		#endif*/
 		cpu.biu.EUDataAccessClockCountDown -= 1;
 		return;
 	}
@@ -42,9 +42,9 @@ static void waitPlaceInInstructionBufferQueueClock(void)
 {
 	if (cpu.biu.instructionBufferQueuePos >= 5)
 	{
-		#ifdef DEBUG_BUILD
+		/*#ifdef DEBUG_BUILD
 			printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
-		#endif
+		#endif*/
 		return;
 	}
 
@@ -56,9 +56,9 @@ static void instructionFetchClock(void)
 	if (BUS_CYCLE_CLOCK_LEFT > 1)
 	{
 		BUS_CYCLE_CLOCK_LEFT -= 1;
-		#ifdef DEBUG_BUILD
+		/*#ifdef DEBUG_BUILD
 			printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
-		#endif
+		#endif*/
 		return;
 	}
 	
@@ -69,14 +69,14 @@ static void instructionFetchClock(void)
 		cpu.ip += 1;
 		cpu.biu.instructionBufferQueuePos += 1;
 
-		#ifdef DEBUG_BUILD
+		/*#ifdef DEBUG_BUILD
 			printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
 			printf("Instruction buffer: ");
 			for (uint8_t b: cpu.biu.instructionBufferQueue)
 				printf("%#x ",b);
 			putchar('\n');
-		#endif
+		#endif*/
 	}
 	
 	if (cpu.biu.instructionBufferQueuePos >= 5)
