@@ -39,11 +39,11 @@ static void printCurrentInstruction()
 			switch (op_name)
 			{
 			case XED_OPERAND_RELBR:
-				std::cout << xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+				std::cout << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF);
 				break;
 
 			case XED_OPERAND_PTR:
-				std::cout << xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+				std::cout << std::hex << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
 				foundPtr = true;
 				break;
 
@@ -55,10 +55,10 @@ static void printCurrentInstruction()
 
 			case XED_OPERAND_IMM0:
 			case XED_OPERAND_IMM1:
-				std::cout << std::hex << xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst) << std::dec;
+				std::cout << std::hex << (xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
 				break;
 
-			//Displaying memory operand woth format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
+			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
 			case XED_OPERAND_MEM0:
 			{
 				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&cpu.eu.decodedInst, 0);
@@ -167,8 +167,8 @@ static unsigned int execInstructionAndGetClockCycles(void)
 			return getADDCycles();
 
 		case XED_ICLASS_ADC:
-			ADC();
-			return getADCCycles();
+			ADD(true);
+			return getADDCycles();
 
 		case XED_ICLASS_INC:
 			INC();
@@ -187,8 +187,8 @@ static unsigned int execInstructionAndGetClockCycles(void)
 			return getSUBCycles();
 
 		case XED_ICLASS_SBB:
-			SBB();
-			return getSBBCycles();
+			SUB(true);
+			return getSUBCycles();
 
 		case XED_ICLASS_DEC:
 			DEC();
@@ -215,7 +215,7 @@ static unsigned int execInstructionAndGetClockCycles(void)
 			return getMULCycles();
 
 		case XED_ICLASS_IMUL:
-			IMUL();
+			MUL(true);
 			return getIMULCycles();
 
 		case XED_ICLASS_DIV:
@@ -223,7 +223,7 @@ static unsigned int execInstructionAndGetClockCycles(void)
 			return getDIVCycles();
 
 		case XED_ICLASS_IDIV:
-			IDIV();
+			DIV(true);
 			return getIDIVCycles();
 
 		case XED_ICLASS_AAD:
@@ -496,29 +496,32 @@ bool EU::clock()
 			printf(" clock left: %d\n",clockCountDown);
 		#endif
 		clockCountDown -= 1;
-		return false;
 	}
 
-	if (newFetchAddress)
+	if (clockCountDown == 0)
 	{
-		cpu.biu.endControlTransferInstruction(newCS,newIP);
-		newFetchAddress = false;
+		if (newFetchAddress)
+		{
+			cpu.biu.endControlTransferInstruction(newCS,newIP);
+			newFetchAddress = false;
+		}
+
+		xed_decoded_inst_zero_keep_mode(&decodedInst);
+		const xed_error_enum_t DECODE_STATUS = xed_decode(&decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);
+
+		if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
+		{
+			clockCountDown = execInstructionAndGetClockCycles();
+			cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&decodedInst));
+			cpu.instructionExecuted += 1;
+			#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
+				printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecuted);
+			#endif
+			return true;
+		}
 	}
 
-	xed_decoded_inst_zero_keep_mode(&decodedInst);
-	const xed_error_enum_t DECODE_STATUS = xed_decode(&decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);
-
-	if (DECODE_STATUS == xed_error_enum_t::XED_ERROR_NONE)
-	{
-		clockCountDown = execInstructionAndGetClockCycles();
-		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&decodedInst));
-		cpu.instructionExecuted += 1;
-		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-			printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecuted);
-		#endif
-	}
-
-	return true;
+	return false;
 }
 
 /**

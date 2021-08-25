@@ -39,6 +39,10 @@ void CPU::interrupt (const bool isNMI)
 	hlt = false;
 }
 
+//Clear the value of the flag, then update the value according to the bool status (fales = 0, true = 1) using only bitwise operators to speedup the operation
+void CPU::updateFlag(const CPU::FLAGS_T& flag, const bool value)
+{ flags = (flags & ~flag) | ((unsigned)value << flag); }
+
 void CPU::setFlags (const unsigned int requestedFlags)
 { flags |= requestedFlags; }
 
@@ -109,82 +113,39 @@ unsigned int CPU::genEA()
 
 void CPU::testCF (const unsigned int value, const bool byte)
 {
-	if (byte)
-	{
-		if (value > (uint8_t)0xFF || ((signed)value < (int8_t)0x80))
-			setFlags(CARRY);
-		else
-			clearFlags(CARRY);
-	}
-	else
-	{
-		if (value > (uint8_t)0xFFFF || ((signed)value < (int8_t)0x8000))
-			setFlags(CARRY);
-		else
-			clearFlags(CARRY);
-	}
+	const bool newFlagValue = byte ? (value > (uint8_t)0x00FF || ((signed)value < (int8_t)0x0080)) : 
+									 (value > (uint8_t)0xFFFF || ((signed)value < (int8_t)0x8000));
+	updateFlag(CARRY,newFlagValue);
 }
 
-void CPU::testPF (const unsigned int value)
+void CPU::testPF (unsigned int value)
 {
-	unsigned int test = 1 << 7;
 	unsigned int count = 0;
 
-	while (test)
+	while (value)
 	{
-		if (test & value)
+		if (value & 0b1)
 			++count;
-		
-		test >>= 1;
+		value >>= 1;
 	}
 
-	if (count & 1)
-		setFlags(PARRITY);
-	else
-		clearFlags(PARRITY);
+	updateFlag(PARRITY, count & 1);
 }
 
+//TODO: need to be tested
 void CPU::testAF (const unsigned int value)
-{
-	//TODO: need to be tested
-	if (value > (~0b111))
-		setFlags(A_CARRY);
-	else
-		clearFlags(A_CARRY);
-}
+{ updateFlag(A_CARRY, value > (~0b111)); }
 
 void CPU::testZF (const unsigned int value)
-{
-	if (value == 0)
-		setFlags(ZERRO);
-	else
-		clearFlags(ZERRO);
-}
+{ updateFlag(ZERRO,value == 0); }
 
 void CPU::testSF (const unsigned int value)
-{
-	if (value & 0x8000)//bit 15 set
-		setFlags(SIGN);
-	else
-		clearFlags(SIGN);
-}
+{ updateFlag(SIGN, value & 0x8000); }
 
 void CPU::testOF (const unsigned int value, const bool byte)
 {
-	if (byte)
-	{
-		if (value & (~0xFF))
-			setFlags(OVER);
-		else
-			clearFlags(OVER);
-	}
-	else
-	{
-		if (value & (~0xFFFF))
-			setFlags(OVER);
-		else
-			clearFlags(OVER);
-	}
+	const bool newFlagValue = byte ? (value & (~0xFF)) : (value & (~0xFFFF));
+	updateFlag(OVER,newFlagValue);
 }
 
 void CPU::updateStatusFlags (const unsigned int value, const bool byte)

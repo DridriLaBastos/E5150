@@ -102,6 +102,7 @@ class CPU
 		void setFlags	(const unsigned int flags);
 		void toggleFlags (const unsigned int flags);
 		void clearFlags	(const unsigned int flags);
+		void updateFlag (const FLAGS_T& flag, const bool value);
 
 		bool getFlagStatus	(const FLAGS_T flag) const;
 
