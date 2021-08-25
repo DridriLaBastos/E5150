@@ -3,16 +3,25 @@
 
 using namespace E5150::I8086;
 
+static constexpr unsigned int BUS_CYCLE_CLOCK = 5;
+static unsigned int BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
+
 static void instructionFetchClock(void);
 
-static void BIUTreatNewFetchRequest(void)
+static void BIUWaitEndOfControlTransfertInstructionClock(void)
 {
-	if (cpu.biu.newFetchAddressRequest)
+	if (BUS_CYCLE_CLOCK_LEFT > 0)
 	{
-		cpu.cs = cpu.biu.newCS; cpu.ip = cpu.biu.newIP;
-		cpu.biu.newFetchAddressRequest = false;
-		cpu.biu.resetInstructionBufferQueue();
+		BUS_CYCLE_CLOCK_LEFT -= 1;
+
+		#ifdef DEBUG_BUILD
+			printf("BIU: ENDING BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+		#endif
 	}
+
+	#ifdef DEBUG_BUILD
+		printf("BIU: WAITING END OF CONTROL TRANSFERT INSTRUCTION\n");
+	#endif
 }
 
 static void EUDataAccessClock(void)
@@ -25,8 +34,7 @@ static void EUDataAccessClock(void)
 		cpu.biu.EUDataAccessClockCountDown -= 1;
 		return;
 	}
-	
-	BIUTreatNewFetchRequest();
+
 	cpu.biu.clock = instructionFetchClock;
 }
 
@@ -40,20 +48,17 @@ static void waitPlaceInInstructionBufferQueueClock(void)
 		return;
 	}
 
-	BIUTreatNewFetchRequest();
 	cpu.biu.clock = instructionFetchClock;
 }
 
 static void instructionFetchClock(void)
 {
-	static unsigned int clockCountDown = 5;
-	
-	if (clockCountDown > 0)
+	if (BUS_CYCLE_CLOCK_LEFT > 1)
 	{
+		BUS_CYCLE_CLOCK_LEFT -= 1;
 		#ifdef DEBUG_BUILD
-			printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", 6 - clockCountDown, clockCountDown,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+			printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
 		#endif
-		clockCountDown -= 1;
 		return;
 	}
 	
@@ -74,21 +79,38 @@ static void instructionFetchClock(void)
 		#endif
 	}
 	
-	if (cpu.biu.EUDataAccessClockCountDown > 0)
-		cpu.biu.clock = EUDataAccessClock;
-	
 	if (cpu.biu.instructionBufferQueuePos >= 5)
 		cpu.biu.clock = waitPlaceInInstructionBufferQueueClock;
 	
-	BIUTreatNewFetchRequest();
+	if (cpu.biu.EUDataAccessClockCountDown > 0)
+		cpu.biu.clock = EUDataAccessClock;
 	
-	clockCountDown = 5;
+	BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
 }
 
-BIU::BIU(): clock(instructionFetchClock), EUDataAccessClockCountDown(0),newFetchAddressRequest(false) {}
+BIU::BIU(): clock(instructionFetchClock), EUDataAccessClockCountDown(0) {}
 
-void BIU::requestNewFetchAddress (const uint16_t requestedCS, const uint16_t requestedIP)
-{ newCS = requestedCS; newIP = requestedIP; newFetchAddressRequest = true; }
+void BIU::endControlTransferInstruction (const uint16_t newCS, const uint16_t newIP)
+{
+	cpu.cs = newCS;
+	cpu.ip = newIP;
+	clock = instructionFetchClock;
+	BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
+}
+
+void BIU::startControlTransferInstruction()
+{
+	clock = BIUWaitEndOfControlTransfertInstructionClock;
+
+	/**
+	 * BIU.instructionFetchClock always starts a new bus cycle.
+	 * The decoding of the instruction is done in EU.clock, called after BIU.instructionFetchClock
+	 * 
+	 * If a control transfert instruction is detected and BIU.instructionFetchClock started a new bus cycle, we want to cancel this bus cycle because in real hardware the BIU and EU runs concurrently and the control transfert instruction will be detected before the new bus cycle is launched
+	 */
+	if (BUS_CYCLE_CLOCK_LEFT == BUS_CYCLE_CLOCK)
+		BUS_CYCLE_CLOCK_LEFT = 0;
+}
 
 void BIU::instructionBufferQueuePop(const unsigned int n)
 {

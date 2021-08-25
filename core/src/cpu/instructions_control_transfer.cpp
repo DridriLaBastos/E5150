@@ -29,6 +29,7 @@ void CALL_NEAR()
 void CALL_FAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{
@@ -50,6 +51,7 @@ void CALL_FAR()
 void JMP_NEAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{
@@ -73,6 +75,7 @@ void JMP_NEAR()
 void JMP_FAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{
@@ -95,6 +98,7 @@ void JMP_FAR()
 
 void RET_NEAR()
 {
+	cpu.biu.startControlTransferInstruction();
 	cpu.eu.newIP = cpu.eu.pop();
 	cpu.eu.newCS = cpu.cs;
 	cpu.eu.newFetchAddress = true;
@@ -105,6 +109,7 @@ void RET_NEAR()
 
 void RET_FAR()
 {
+	cpu.biu.startControlTransferInstruction();
 	cpu.eu.farRet();
 
 	if (xed_decoded_inst_get_length(&cpu.eu.decodedInst) > 1)
@@ -113,6 +118,7 @@ void RET_FAR()
 
 void JZ()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (cpu.getFlagStatus(CPU::ZERRO))
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -121,6 +127,7 @@ void JZ()
 
 void JL()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -129,6 +136,7 @@ void JL()
 
 void JLE()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)))
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -142,6 +150,7 @@ void JO(){}
 
 void JNZ()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (!cpu.getFlagStatus(CPU::ZERRO))
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -150,6 +159,7 @@ void JNZ()
 
 void JNL()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -158,6 +168,7 @@ void JNL()
 
 void JNLE()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (!(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))))
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -171,6 +182,7 @@ void JNS(){}
 
 void LOOP()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (cpu.regs[CPU::CX]-- != 0)
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -182,6 +194,7 @@ void LOOPNZ(){}
 
 void JCXZ()
 {
+	cpu.biu.startControlTransferInstruction();
 	if (cpu.regs[CPU::CX].x == 0)
 		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 	cpu.eu.newCS = cpu.cs;
@@ -190,6 +203,7 @@ void JCXZ()
 
 void INT()
 {
+	cpu.biu.startControlTransferInstruction();
 	cpu.intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 	cpu.interrupt(); //interrupt takes care of cpu.pushing flags and clearing IF
 }
@@ -198,6 +212,7 @@ void INTO(){}
 
 void IRET ()
 {
+	cpu.biu.startControlTransferInstruction();
 	cpu.eu.farRet();
 	cpu.flags = cpu.eu.pop();
 }

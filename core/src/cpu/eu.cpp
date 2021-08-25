@@ -498,20 +498,10 @@ bool EU::clock()
 		clockCountDown -= 1;
 		return false;
 	}
-	
-	/*bool ret = false;
-	if (instructionExec != nullptr)
-	{
-		instructionExec();
-		instructionExec = nullptr;
-		ret = true;
-		cpu.instructionExecuted += 1;
-	}*/
 
 	if (newFetchAddress)
 	{
-		cpu.biu.requestNewFetchAddress(newCS,newIP);
-		cpu.biu.resetInstructionBufferQueue();
+		cpu.biu.endControlTransferInstruction(newCS,newIP);
 		newFetchAddress = false;
 	}
 

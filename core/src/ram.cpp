@@ -35,7 +35,7 @@ void RAM::load (const std::string path, size_t pos)
 	}
 	else
 	{
-		while (!stream.eof())
+		while (!stream.eof() && pos < 0x100000)
 		{
 			const uint8_t tmp = stream.get();
 			m_ram[pos++] = tmp;
