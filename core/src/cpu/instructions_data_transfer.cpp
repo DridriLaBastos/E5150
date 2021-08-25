@@ -185,11 +185,13 @@ void LEA()
 void LDS(){}
 void LES(){}
 
+static const unsigned int statusFlagsMask = CPU::SIGN | CPU::ZERRO | CPU::A_CARRY | CPU::PARRITY | CPU::CARRY;
+
 void LAHF ()
-{ cpu.ax = (cpu.flags & 0b11010101)|0b10; }
+{ cpu.ah = (cpu.flags & statusFlagsMask) | 0b10; }
 
 void SAHF ()
-{ cpu.setFlags(cpu.ax & (0b11010101)); }
+{ cpu.flags = (cpu.ah & statusFlagsMask) | 0b10; }
 
 void PUSHF ()
 { cpu.eu.push(cpu.flags); }
