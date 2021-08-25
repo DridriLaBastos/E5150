@@ -7,14 +7,14 @@ THIRD_PARTY_INCLUDE_FLAGS = -I$(SPDLOG_INCLUDE) -I$(CORE_THIRDPARTY_INCLUDE)
 DEBUG = 1
 RELEASE = 0
 
-ifeq ($(RELEASE),1)
+ifneq ($(RELEASE),0)
 	CXX := $(CXX) --std=c++17 -O3 -flto
 	DEBUG = 0
 else
 	CXX := $(CXX) --std=c++17 -O0 -g
 endif
 
-ifeq ($(DEBUG),1)
+ifneq ($(DEBUG),0)
 	CPPFLAGS := $(CPPFLAGS) -DDEBUG_BUILD
 endif
 
