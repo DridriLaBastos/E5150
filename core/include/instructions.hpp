@@ -81,6 +81,7 @@ void JB			(void); unsigned int getJBCycles		(void);/* JB /JNAE */
 void JBE		(void); unsigned int getJBECycles		(void);/* JBE/JNA  */
 void JP			(void); unsigned int getJPCycles		(void);/* JLE/JNG  */
 void JO			(void); unsigned int getJOCycles		(void);/* JP /JPE  */
+void JS			(void); unsigned int getJSCycles		(void);
 void JNZ		(void); unsigned int getJNZCycles		(void);
 void JNL		(void); unsigned int getJNLCycles		(void);
 void JNLE		(void); unsigned int getJNLECycles		(void);

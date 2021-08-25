@@ -1,11 +1,17 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
+#define JMP_SHORT_ON_CONDITION(COND) if(COND){\
+										cpu.biu.startControlTransferInstruction();\
+										cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);\
+										cpu.eu.newCS = cpu.cs;\
+										cpu.eu.newFetchAddress = true;}
+
 void CALL_NEAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
-	
 	cpu.eu.push(cpu.ip);
+	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{   
@@ -116,90 +122,27 @@ void RET_FAR()
 		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 }
 
-void JZ()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (cpu.getFlagStatus(CPU::ZERRO))
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
+void JZ()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO)); }
+void JL()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)); }
+void JLE() { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))); }
+void JB()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY)); }
+void JBE() { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO)); }
+void JP()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::PARRITY)); }
+void JO()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::OVER)); }
+void JS()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN)); }
+void JNZ() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO)); }
+void JNL() { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)); }
+void JNLE() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))); }
+void JNB() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::CARRY)); }
+void JNBE() { JMP_SHORT_ON_CONDITION(!(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO))); }
+void JNP() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::PARRITY)); }
+void JNS() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::SIGN)); }
 
-void JL()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
+void LOOP()   { JMP_SHORT_ON_CONDITION(cpu.cx-- != 0); }
+void LOOPZ()  { JMP_SHORT_ON_CONDITION((cpu.cx-- != 0) && cpu.getFlagStatus(CPU::ZERRO)); }
+void LOOPNZ() { JMP_SHORT_ON_CONDITION((cpu.cx-- != 0) && !cpu.getFlagStatus(CPU::ZERRO)); }
 
-void JLE()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)))
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
-
-void JB(){}
-void JBE(){}
-void JP(){}
-void JO(){}
-
-void JNZ()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (!cpu.getFlagStatus(CPU::ZERRO))
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
-
-void JNL()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
-
-void JNLE()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (!(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))))
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
-
-void JNB(){}
-void JNBE(){}
-void JNP(){}
-void JNS(){}
-
-void LOOP()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (cpu.regs[CPU::CX]-- != 0)
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
-
-void LOOPZ(){}
-void LOOPNZ(){}
-
-void JCXZ()
-{
-	cpu.biu.startControlTransferInstruction();
-	if (cpu.regs[CPU::CX].x == 0)
-		cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
-}
+void JCXZ() { JMP_SHORT_ON_CONDITION(cpu.cx == 0); }
 
 void INT()
 {

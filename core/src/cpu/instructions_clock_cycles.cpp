@@ -422,6 +422,7 @@ unsigned int getJBCycles		(void) { return 7 + 0; }/* JB /JNAE */
 unsigned int getJBECycles		(void) { return 7 + 0; }/* JBE/JNA  */
 unsigned int getJPCycles		(void) { return 7 + 0; }/* JLE/JNG  */
 unsigned int getJOCycles		(void) { return 7 + 0; }/* JP /JPE  */
+unsigned int getJSCycles		(void) { return 7 + 0; }
 unsigned int getJNZCycles		(void) { return 7 + 0; }
 unsigned int getJNLCycles		(void) { return 7 + 0; }
 unsigned int getJNLECycles		(void) { return 7 + 0; }
