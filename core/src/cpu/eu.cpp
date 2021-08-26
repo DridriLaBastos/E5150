@@ -10,6 +10,9 @@ EU::EU(): newFetchAddress(false) {}
 //TODO: How to handle REP, LOCK, WAIT and ESC
 static unsigned int execInstructionAndGetClockCycles(void)
 {
+	//At the end of the instructions that access memory there is w bit = 0 for byte operand and 1 one for word operands.
+	//If this bit = 0 there is 1 memory access and if it = 1, 2 memory access
+	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * ((cpu.biu.instructionBufferQueue[0] & 0b1) + 1);
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
 		case XED_ICLASS_MOV:
