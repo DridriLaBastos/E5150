@@ -11,10 +11,10 @@ void NOT()
 	else
 	{
 		const unsigned int addr = cpu.genEA();
-		cpu.biu.EURequestWriteByte(addr, ~cpu.biu.EURequestReadByte(addr));
+		cpu.biu.writeByte(addr, ~cpu.biu.readByte(addr));
 
 		if (xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 2)
-			cpu.biu.EURequestWriteByte(addr+1, ~cpu.biu.EURequestReadByte(addr+1));
+			cpu.biu.writeByte(addr+1, ~cpu.biu.readByte(addr+1));
 	}
 }
 

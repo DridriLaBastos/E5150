@@ -124,7 +124,7 @@ void E5150::Arch::startSimulation()
 				#endif*/
 				const bool instructionExecuted = _cpu.clock();
 				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-					if (E5150::Util::_stop && instructionExecuted)
+					if (E5150::Util::_stop)
 						clockWait();
 				#endif
 				_pit.clock();
@@ -159,14 +159,14 @@ void E5150::Arch::startSimulation()
 				std::cout << "blocks: " << blockCount << "/" << BASE_CLOCK/CLOCK_PER_BLOCKS << " "
 					<< timeForAllBlocks.asMicroseconds()/blockCount  << "us (" << timeForAllBlocks.asMilliseconds()/blockCount
 					<< "ms) / block - real time: " << realTimeForBlock.asMicroseconds() << "us (" << realTimeForBlock.asMilliseconds() << "ms)\n";
-				std::cout << "instructions executed: " << (float)cpu.instructionExecuted/1e6 << "M" << '\n' << std::endl;
+				std::cout << "instructions executed: " << (float)cpu.instructionExecutedCount/1e6 << "M" << '\n' << std::endl;
 				timeForAllBlocks = sf::Time::Zero;
 				clock.restart();
 			#endif
 				blockCount = 0;
 				currentClock = 0;
 				fdcClock = 0;
-				cpu.instructionExecuted = 0;
+				cpu.instructionExecutedCount = 0;
 			}
 		}
 	}

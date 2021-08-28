@@ -3,7 +3,7 @@
 #include "instructions.hpp"
 
 CPU::CPU() : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
-							instructionExecuted(0)
+							instructionExecutedCount(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -35,7 +35,7 @@ void CPU::interrupt (const bool isNMI)
 	const unsigned int interruptVector = isNMI ? 2 : intr_v;
 	cpu.eu.push(flags);
 	clearFlags(INTF);
-	cpu.eu.farCall(cpu.biu.EURequestReadWord(genAddress(0, 4 * interruptVector + 2)), cpu.biu.EURequestReadWord(genAddress(0, 4 * interruptVector)));
+	cpu.eu.farCall(cpu.biu.readWord(genAddress(0, 4 * interruptVector + 2)), cpu.biu.readWord(genAddress(0, 4 * interruptVector)));
 	hlt = false;
 }
 
@@ -192,38 +192,6 @@ bool CPU::decode()
 	return true;
 }
 
-void CPU::exec()
-{
-#if 0
-	if (!cpuCanProcessClock(this))
-	{
-		if (m_clockCountDown != 0)
-			--m_clockCountDown;
-		return;
-	}
-	
-	
-
-	if (intr)
-	{
-		intr = false;
-
-		if (nmi)
-		{
-			interrupt(true);
-			nmi = false;
-		}
-		else
-		{
-			if (getFlagStatus(INTF))
-				interrupt();
-			else
-				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
-		}
-	}
-#endif
-}
-
 unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
 { return (base << 4) + offset; }
 
@@ -308,9 +276,10 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 
 bool CPU::clock()
 {
+	const bool instructionExecuted = cpu.eu.clock();
 	if (!hlt)
-		biu.clock();
-	return eu.clock();
+		cpu.biu.clock();
+	return instructionExecuted;
 #if 0
 	if (clockCountDown != 0)
 	{

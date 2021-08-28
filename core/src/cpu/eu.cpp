@@ -12,7 +12,10 @@ static unsigned int execInstructionAndGetClockCycles(void)
 {
 	//At the end of the instructions that access memory there is w bit = 0 for byte operand and 1 one for word operands.
 	//If this bit = 0 there is 1 memory access and if it = 1, 2 memory access
-	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * ((cpu.biu.instructionBufferQueue[0] & 0b1) + 1);
+	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu.eu.decodedInst);
+	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * ((cpu.biu.instructionBufferQueue[nPrefix] & 0b1) + 1);
+	printf("Computed by EU : Memory byte access : %d\n",memoryByteAccess);
+	cpu.biu.requestMemoryByte(memoryByteAccess);
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
 		case XED_ICLASS_MOV:
@@ -374,11 +377,11 @@ static unsigned int execInstructionAndGetClockCycles(void)
 }
 
 void EU::push (const uint16_t data)
-{ cpu.sp -= 2; cpu.biu.EURequestWriteWord(cpu.genAddress(cpu.ss,cpu.sp), data); }
+{ cpu.sp -= 2; cpu.biu.writeWord(cpu.genAddress(cpu.ss,cpu.sp), data); }
 
 uint16_t EU::pop (void)
 {
-	const uint16_t ret = cpu.biu.EURequestReadWord(cpu.genAddress(cpu.ss,cpu.sp)); cpu.sp += 2;
+	const uint16_t ret = cpu.biu.readWord(cpu.genAddress(cpu.ss,cpu.sp)); cpu.sp += 2;
 	return ret;
 }
 
@@ -415,7 +418,7 @@ static void printCurrentInstruction(void)
 		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
 		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
 
-		if (op_vis == XED_OPVIS_EXPLICIT)
+		if (true/*op_vis == XED_OPVIS_EXPLICIT*/)
 		{
 			if (foundPtr)
 			{
@@ -537,10 +540,10 @@ bool EU::clock()
 	{
 		clockCountDown = execInstructionAndGetClockCycles();
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&decodedInst));
-		cpu.instructionExecuted += 1;
+		cpu.instructionExecutedCount += 1;
 
 		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-			printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecuted);
+			printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecutedCount);
 			printRegisters();
 			printFlags();
 		#endif
