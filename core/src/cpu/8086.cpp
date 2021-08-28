@@ -111,10 +111,10 @@ unsigned int CPU::genEA()
 	return address;
 }
 
-void CPU::testCF (const unsigned int value, const bool byte)
+void CPU::testCF (const unsigned int value, const bool wordSize)
 {
-	const bool newFlagValue = byte ? (value > (uint8_t)0x00FF || ((signed)value < (int8_t)0x0080)) : 
-									 (value > (uint8_t)0xFFFF || ((signed)value < (int8_t)0x8000));
+	const bool newFlagValue = wordSize ? (value > (uint8_t)0xFFFF || ((signed)value < (int8_t)0x8000)): 
+										 (value > (uint8_t)0x00FF || ((signed)value < (int8_t)0x0080));
 	updateFlag(CARRY,newFlagValue);
 }
 
@@ -142,20 +142,20 @@ void CPU::testZF (const unsigned int value)
 void CPU::testSF (const unsigned int value)
 { updateFlag(SIGN, value & 0x8000); }
 
-void CPU::testOF (const unsigned int value, const bool byte)
+void CPU::testOF (const unsigned int value, const bool wordSize)
 {
-	const bool newFlagValue = byte ? (value & (~0xFF)) : (value & (~0xFFFF));
+	const bool newFlagValue = wordSize ? (value & (~0xFFFF)) : (value & (~0xFF));
 	updateFlag(OVER,newFlagValue);
 }
 
-void CPU::updateStatusFlags (const unsigned int value, const bool byte)
+void CPU::updateStatusFlags (const unsigned int value, const bool wordSize)
 {
-	testCF(value, byte);
+	testCF(value, wordSize);
 	testPF(value);
 	testAF(value);
 	testZF(value);
 	testSF(value);
-	testOF(value, byte);
+	testOF(value, wordSize);
 }
 
 static void printRegisters(const CPU& _cpu)

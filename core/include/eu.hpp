@@ -26,6 +26,7 @@ namespace E5150::I8086
 			const xed_inst_t* xedInst;
 			uint16_t newCS;
 			uint16_t newIP;
+			bool operandSizeWord;
 	};
 }
 

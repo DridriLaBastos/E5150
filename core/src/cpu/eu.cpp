@@ -13,7 +13,8 @@ static unsigned int execInstructionAndGetClockCycles(void)
 	//At the end of the instructions that access memory there is w bit = 0 for byte operand and 1 one for word operands.
 	//If this bit = 0 there is 1 memory access and if it = 1, 2 memory access
 	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu.eu.decodedInst);
-	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * ((cpu.biu.instructionBufferQueue[nPrefix] & 0b1) + 1);
+	cpu.eu.operandSizeWord = cpu.biu.instructionBufferQueue[nPrefix] & 0b1;
+	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * (cpu.eu.operandSizeWord + 1);
 	printf("Computed by EU : Memory byte access : %d\n",memoryByteAccess);
 	cpu.biu.requestMemoryByte(memoryByteAccess);
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
