@@ -8,9 +8,11 @@ namespace E5150::I8086
 	class EU
 	{
 		public:
+			union InstructionExtraData_t
+			{ bool isSigned; bool withCarry; };
+		public:
 			EU(void);
 
-			bool clock(void);
 
 			uint16_t pop (void);
 			void push (const uint16_t data);
@@ -20,13 +22,14 @@ namespace E5150::I8086
 
 			unsigned int getEAComputationClockCount();
 			unsigned int EAAddress;
-			bool newFetchAddress;
 
 			xed_decoded_inst_t decodedInst;
 			const xed_inst_t* xedInst;
-			uint16_t newCS;
-			uint16_t newIP;
 			bool operandSizeWord;
+			bool (*clock)(void);
+			bool (*nextClockFunction)(void);
+			void (*instructionFunction)(void);
+			InstructionExtraData_t instructionExtraData;
 	};
 }
 

@@ -2,40 +2,36 @@
 #include "instructions.hpp"
 
 #define JMP_SHORT_ON_CONDITION(COND) if(COND){\
-										cpu.biu.startControlTransferInstruction();\
-										cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);\
-										cpu.eu.newCS = cpu.cs;\
-										cpu.eu.newFetchAddress = true;}
+										cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);\
+										cpu.cs = cpu.cs;}\
+										cpu.biu.endControlTransferInstruction();
 
 void CALL_NEAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
 	cpu.eu.push(cpu.ip);
-	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{   
 		case XED_OPERAND_REG0:
-			cpu.eu.newIP = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
+			cpu.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_RELBR:
-			cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+			cpu.ip = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 			break;
 		
 		case XED_OPERAND_MEM0:
-			cpu.eu.newIP = cpu.biu.readWord(cpu.genEA());
+			cpu.ip = cpu.biu.readWord(cpu.genEA());
 			break;
 	}
 
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
+	cpu.biu.endControlTransferInstruction();
 }
 
 void CALL_FAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
-	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{
@@ -52,36 +48,35 @@ void CALL_FAR()
 			break;
 		}
 	}
+
+	cpu.biu.endControlTransferInstruction();
 }
 
 void JMP_NEAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
-	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{
 		case XED_OPERAND_MEM0:
-			cpu.eu.newIP = cpu.biu.readWord(cpu.genEA());
+			cpu.ip = cpu.biu.readWord(cpu.genEA());
 			break;
 
 		case XED_OPERAND_REG0:
-			cpu.eu.newIP = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
+			cpu.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 			break;
 
 		case XED_OPERAND_RELBR:
-			cpu.eu.newIP = cpu.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+			cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 			break;
 	}
 
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
+	cpu.biu.endControlTransferInstruction();
 }
 
 void JMP_FAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
-	cpu.biu.startControlTransferInstruction();
 
 	switch (op_name)
 	{
@@ -89,37 +84,39 @@ void JMP_FAR()
 		{
 			const unsigned far_addr_location = cpu.genEA();
 			
-			cpu.eu.newCS = cpu.biu.readWord(far_addr_location);
-			cpu.eu.newIP = cpu.biu.readWord(far_addr_location + 2);
+			cpu.cs = cpu.biu.readWord(far_addr_location);
+			cpu.ip = cpu.biu.readWord(far_addr_location + 2);
 			break;
 		}
 
 		case XED_OPERAND_PTR:
-			cpu.eu.newCS = xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
-			cpu.eu.newIP = xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+			cpu.cs = xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
+			cpu.ip = xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 			break;
 	}
-	cpu.eu.newFetchAddress = true;
+
+	cpu.biu.endControlTransferInstruction();
 }
 
 void RET_NEAR()
 {
-	cpu.biu.startControlTransferInstruction();
-	cpu.eu.newIP = cpu.eu.pop();
-	cpu.eu.newCS = cpu.cs;
-	cpu.eu.newFetchAddress = true;
+	cpu.ip = cpu.eu.pop();
+	cpu.cs = cpu.cs;
 
 	if (xed_decoded_inst_get_length(&cpu.eu.decodedInst) > 1)
 		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
+	
+	cpu.biu.endControlTransferInstruction();
 }
 
 void RET_FAR()
 {
-	cpu.biu.startControlTransferInstruction();
 	cpu.eu.farRet();
 
 	if (xed_decoded_inst_get_length(&cpu.eu.decodedInst) > 1)
 		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
+	
+	cpu.biu.endControlTransferInstruction();
 }
 
 void JZ()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO)); }
@@ -146,16 +143,16 @@ void JCXZ() { JMP_SHORT_ON_CONDITION(cpu.cx == 0); }
 
 void INT()
 {
-	cpu.biu.startControlTransferInstruction();
 	cpu.intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 	cpu.interrupt(); //interrupt takes care of cpu.pushing flags and clearing IF
+	cpu.biu.endControlTransferInstruction();
 }
 
 void INTO(){}
 
 void IRET ()
 {
-	cpu.biu.startControlTransferInstruction();
 	cpu.eu.farRet();
 	cpu.flags = cpu.eu.pop();
+	cpu.biu.endControlTransferInstruction();
 }

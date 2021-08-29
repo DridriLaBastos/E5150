@@ -87,9 +87,9 @@ static unsigned int oneOperandInstruction(
 	return result;
 }
 
-void ADD(const bool withCarry)
+void ADD()
 {
-	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand, const bool withCarry) { return destOperand + srcOperand + withCarry;},withCarry);
+	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand, const bool withCarry) { return destOperand + srcOperand + withCarry;},cpu.eu.instructionExtraData.withCarry);
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
@@ -136,9 +136,9 @@ void DAA()
 		cpu.clearFlags(CPU::CARRY);
 }
 
-void SUB(const bool withCarry)
+void SUB(void)
 {
-	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand, const bool extra) { return destOperand - (srcOperand + extra); },withCarry);
+	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand, const bool extra) { return destOperand - (srcOperand + extra); },cpu.eu.instructionExtraData.withCarry);
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
@@ -196,9 +196,9 @@ void DAS()
 	}
 }
 
-void MUL(const bool isSigned)
+void MUL()
 {
-	unsigned int result = oneOperandInstruction([](const unsigned int destOperand, const bool isSigned) { return  (isSigned) ? (int)destOperand : destOperand;},isSigned);
+	unsigned int result = oneOperandInstruction([](const unsigned int destOperand, const bool isSigned) { return  (isSigned) ? (int)destOperand : destOperand;},cpu.eu.instructionExtraData.isSigned);
 	
 	unsigned int half = 0; //upper half in unsigned mode, lower half in signed mode
 
@@ -207,16 +207,16 @@ void MUL(const bool isSigned)
 		result *= cpu.ax;
 		cpu.ax = result;
 		cpu.dx = result >> 16;
-		half = isSigned ? (int)cpu.ax : cpu.dx;
+		half = cpu.eu.instructionExtraData.isSigned ? (int)cpu.ax : cpu.dx;
 	}
 	else
 	{
 		result *= cpu.al;
 		cpu.ax = result;
-		half = isSigned ? (int)cpu.al : cpu.ah;
+		half = cpu.eu.instructionExtraData.isSigned ? (int)cpu.al : cpu.ah;
 	}
 
-	const bool clearFlagsCondition = isSigned ? (half == result) : (half == 0);
+	const bool clearFlagsCondition = cpu.eu.instructionExtraData.isSigned ? (half == result) : (half == 0);
 
 	if (clearFlagsCondition) { cpu.clearFlags(CPU::OVER | CPU::CARRY); }
 	else { cpu.setFlags(CPU::OVER | CPU::CARRY); }
@@ -224,9 +224,9 @@ void MUL(const bool isSigned)
 
 //TODO: what happens when dividing by zero ? Restart ?
 //TODO: continue working on the signed division
-void DIV(const bool isSigned)
+void DIV()
 {
-	const unsigned int src = oneOperandInstruction([](const unsigned int destOperand, const bool isSigned) { return  (isSigned) ? (int)destOperand : destOperand;},isSigned);
+	const unsigned int src = oneOperandInstruction([](const unsigned int destOperand, const bool isSigned) { return  (isSigned) ? (int)destOperand : destOperand;},cpu.eu.instructionExtraData.isSigned);
 	unsigned int result;
 
 	if (cpu.eu.operandSizeWord)

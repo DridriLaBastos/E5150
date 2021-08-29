@@ -276,9 +276,12 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 
 bool CPU::clock()
 {
-	const bool instructionExecuted = cpu.eu.clock();
 	if (!hlt)
 		cpu.biu.clock();
+	const bool instructionExecuted = cpu.eu.clock();
+
+	cpu.biu.clock = cpu.biu.nextClockFunction;
+	cpu.eu.clock = cpu.eu.nextClockFunction;
 	return instructionExecuted;
 #if 0
 	if (clockCountDown != 0)

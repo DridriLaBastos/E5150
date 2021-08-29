@@ -22,21 +22,21 @@ void POPF	(void); unsigned int getPOPFCycles	(void);
 
 /* Arithmetic */
 
-void ADD	(const bool withCarry = false); unsigned int getADDCycles	(void);
+void ADD	(void); unsigned int getADDCycles	(void);
 //void ADC(void); unsigned int getADCCycles	(void);
 void INC	(void); unsigned int getINCCycles	(void);
 void AAA	(void); unsigned int getAAACycles	(void);
 void DAA	(void); unsigned int getDAACycles	(void);
-void SUB	(const bool withCarry = false); unsigned int getSUBCycles	(void);
+void SUB	(void); unsigned int getSUBCycles	(void);
 //void SBB(void);unsigned int getSBBCycles	(void);
 void DEC	(void); unsigned int getDECCycles	(void);
 void NEG	(void); unsigned int getNEGCycles	(void);
 void CMP	(void); unsigned int getCMPCycles	(void);
 void AAS	(void); unsigned int getAASCycles	(void);
 void DAS	(void); unsigned int getDASCycles	(void);
-void MUL	(const bool isSigned = false); unsigned int getMULCycles	(void);
+void MUL	(void); unsigned int getMULCycles	(void);
 /*void IMUL	(void);*/unsigned int getIMULCycles	(void);
-void DIV	(const bool isSigned = false); unsigned int getDIVCycles	(void);
+void DIV	(void); unsigned int getDIVCycles	(void);
 /*void IDIV	(void);*/unsigned int getIDIVCycles	(void);
 void AAD	(void); unsigned int getAADCycles	(void);
 void CBW	(void); unsigned int getCBWCycles	(void);
