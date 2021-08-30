@@ -10,6 +10,7 @@ static unsigned int INSTRUCTION_CLOCK_LEFT = 0;
 
 static void printCurrentInstruction(void)
 {
+	#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
@@ -100,6 +101,7 @@ static void printCurrentInstruction(void)
 			++realOperandPos;
 		}
 	}
+	#endif
 }
 
 static void printRegisters(void)
@@ -120,7 +122,9 @@ static void printFlags(void)
 
 static bool EUExecInstructionClock(void)
 {
-	//printCurrentInstruction();   printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
+	#ifdef SEE_CURRENT_INST
+		printCurrentInstruction();   printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
+	#endif
 	if (INSTRUCTION_CLOCK_LEFT == 0)
 	{
 		cpu.eu.instructionFunction();
@@ -548,7 +552,9 @@ static bool EUWaitSuccessfullDecodeClock(void)
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
 		cpu.instructionExecutedCount += 1;
 		cpu.eu.nextClockFunction = EUExecInstructionClock;
-		//printCurrentInstruction();   printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
+		#ifdef SEE_CURRENT_INST
+			printCurrentInstruction();
+		#endif
 	}
 
 	return false;

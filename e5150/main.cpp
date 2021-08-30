@@ -8,7 +8,7 @@ int main (void)
 #endif
 	E5150::Arch arch;
 
-	#if 0
+	#if 1
 		//Loadin bochs BIOS
 		ram.load("test/ibm_bios.bin", 0xFE000);
 		//ram.load("test/test", 0xFFFF0);

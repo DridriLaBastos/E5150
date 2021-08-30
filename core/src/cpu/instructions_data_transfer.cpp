@@ -182,8 +182,21 @@ void LEA()
 	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name0), cpu.genEA());
 }
 
-void LDS(){}
-void LES(){}
+void LDS()
+{
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const unsigned int addr = cpu.genEA();
+	cpu.ds = cpu.biu.readWord(addr);
+	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name),cpu.biu.readWord(addr+2));
+}
+
+void LES()
+{
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const unsigned int addr = cpu.genEA();
+	cpu.es = cpu.biu.readWord(addr);
+	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name),cpu.biu.readWord(addr+2));
+}
 
 static const unsigned int statusFlagsMask = CPU::SIGN | CPU::ZERRO | CPU::A_CARRY | CPU::PARRITY | CPU::CARRY;
 
