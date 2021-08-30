@@ -4,7 +4,7 @@
 //TODO: Investigate how to do it with variadic template
 template <bool OVERWRITE_DEST = true>
 static unsigned int twoOperandsInstruction(
-	unsigned int (*instructionAction)(const unsigned int destOperand, const unsigned int srcOperand, const bool x), const bool extra)
+	unsigned int (*instructionAction)(const unsigned int destOperand, const unsigned int srcOperand))
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(inst,0));
@@ -36,7 +36,7 @@ static unsigned int twoOperandsInstruction(
 	{
 		case XED_OPERAND_REG0:
 			destOperand = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0));
-			result = instructionAction(destOperand,srcOperand,extra);
+			result = instructionAction(destOperand,srcOperand);
 			if constexpr (OVERWRITE_DEST)
 				cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0),result);
 			break;
@@ -46,14 +46,14 @@ static unsigned int twoOperandsInstruction(
 			const unsigned int addr = cpu.genEA();
 			destOperand = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
 			if constexpr (OVERWRITE_DEST)
-				result = instructionAction(destOperand,srcOperand,extra);
+				result = instructionAction(destOperand,srcOperand);
 		} break;
 	}
 	return result;
 }
 
 static unsigned int oneOperandInstruction(
-	unsigned int (*instructionAction)(const unsigned int destOperand, const bool x), const bool extra)
+	unsigned int (*instructionAction)(const unsigned int destOperand))
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
 	unsigned int result;
@@ -63,7 +63,7 @@ static unsigned int oneOperandInstruction(
 		case XED_OPERAND_REG0:
 		{
 			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name);
-			result = instructionAction(cpu.readReg(reg),extra);
+			result = instructionAction(cpu.readReg(reg));
 			cpu.write_reg(reg, result);
 		} break;
 
@@ -73,12 +73,12 @@ static unsigned int oneOperandInstruction(
 
 			if (cpu.eu.operandSizeWord)
 			{
-				result = instructionAction(cpu.biu.readWord(addr),extra);
+				result = instructionAction(cpu.biu.readWord(addr));
 				cpu.biu.writeWord(result,addr);
 			}
 			else
 			{
-				result = instructionAction(cpu.biu.readByte(addr),extra);
+				result = instructionAction(cpu.biu.readByte(addr));
 				cpu.biu.writeByte(result,addr);
 			}
 		} break;
@@ -89,13 +89,13 @@ static unsigned int oneOperandInstruction(
 
 void ADD()
 {
-	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand, const bool withCarry) { return destOperand + srcOperand + withCarry;},cpu.eu.instructionExtraData.withCarry);
+	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand + srcOperand + cpu.eu.instructionExtraData.withCarry;});
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
 void INC()
 {
-	const unsigned int result = oneOperandInstruction([](const unsigned int operand,bool){ return operand+1; },false);
+	const unsigned int result = oneOperandInstruction([](const unsigned int operand){ return operand+1; });
 	cpu.updateStatusFlags(result, cpu.eu.operandSizeWord);
 }
 
@@ -138,25 +138,25 @@ void DAA()
 
 void SUB(void)
 {
-	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand, const bool extra) { return destOperand - (srcOperand + extra); },cpu.eu.instructionExtraData.withCarry);
+	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand - (srcOperand + cpu.eu.instructionExtraData.withCarry); });
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
 void DEC()
 {
-	const unsigned int result = oneOperandInstruction([](const unsigned int destOperand, const bool) { return destOperand - 1; },false);
+	const unsigned int result = oneOperandInstruction([](const unsigned int destOperand) { return destOperand - 1; });
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
 void NEG()
 {
-	const unsigned int result = oneOperandInstruction([](const unsigned int destOperand, const bool) { return - destOperand; },false);
+	const unsigned int result = oneOperandInstruction([](const unsigned int destOperand) { return - destOperand; });
 	cpu.updateStatusFlags(result, cpu.eu.operandSizeWord);
 }
 
 void CMP()
 {
-	const unsigned int result = twoOperandsInstruction<false>([](const unsigned int destOperand, const unsigned int srcOperand, const bool) { return destOperand - srcOperand; },false);
+	const unsigned int result = twoOperandsInstruction<false>([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand - srcOperand; });
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
@@ -198,7 +198,7 @@ void DAS()
 
 void MUL()
 {
-	unsigned int result = oneOperandInstruction([](const unsigned int destOperand, const bool isSigned) { return  (isSigned) ? (int)destOperand : destOperand;},cpu.eu.instructionExtraData.isSigned);
+	unsigned int result = oneOperandInstruction([](const unsigned int destOperand) { return  (cpu.eu.instructionExtraData.isSigned) ? (int)destOperand : destOperand;});
 	
 	unsigned int half = 0; //upper half in unsigned mode, lower half in signed mode
 
@@ -226,7 +226,7 @@ void MUL()
 //TODO: continue working on the signed division
 void DIV()
 {
-	const unsigned int src = oneOperandInstruction([](const unsigned int destOperand, const bool isSigned) { return  (isSigned) ? (int)destOperand : destOperand;},cpu.eu.instructionExtraData.isSigned);
+	const unsigned int src = oneOperandInstruction([](const unsigned int destOperand) { return  (cpu.eu.instructionExtraData.isSigned) ? (int)destOperand : destOperand;});
 	unsigned int result;
 
 	if (cpu.eu.operandSizeWord)
