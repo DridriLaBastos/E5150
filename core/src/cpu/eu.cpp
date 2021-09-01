@@ -148,6 +148,8 @@ static unsigned int prepareInstructionExecution(void)
 	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * (cpu.eu.operandSizeWord + 1);
 	//printf("Computed by EU : Memory byte access : %d\n",memoryByteAccess);
 	cpu.biu.requestMemoryByte(memoryByteAccess);
+	for (uint8_t& b : cpu.eu.instructionExtraData.Shift_RotateFlags)
+		b = 0;
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
 		case XED_ICLASS_MOV:

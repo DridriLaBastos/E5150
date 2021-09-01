@@ -41,7 +41,10 @@ void CPU::interrupt (const bool isNMI)
 
 //Clear the value of the flag, then update the value according to the bool status (fales = 0, true = 1) using only bitwise operators to speedup the operation
 void CPU::updateFlag(const CPU::FLAGS_T& flag, const bool value)
-{ flags = (flags & ~flag) | ((unsigned)value << flag); }
+{
+	const unsigned int mask = (~0) * value;
+	flags = (flags & ~flag) | (flag & mask);
+}
 
 void CPU::setFlags (const unsigned int requestedFlags)
 { flags |= requestedFlags; }

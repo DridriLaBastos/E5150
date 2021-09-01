@@ -104,27 +104,9 @@ void E5150::Arch::startSimulation()
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
 				currentClock += 1;
-				/*#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-				const bool instructionExecuted = m_cpu.decode();
-
-				if (instructionExecuted)
-				{
-					if (E5150::Util::_stop)
-					{
-						if
-						m_cpu.printRegisters();
-						m_cpu.printFlags();
-						m_cpu.printCurrentInstruction();
-						clockWait();
-					}
-				}
-				m_cpu.exec();
-				#else
-					m_cpu.clock();
-				#endif*/
 				const bool instructionExecuted = _cpu.clock();
 				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-					if (E5150::Util::_stop)
+					if (E5150::Util::_stop && instructionExecuted)
 						clockWait();
 				#endif
 				_pit.clock();

@@ -3,7 +3,7 @@
 
 //TODO: Investigate how to do it with variadic template
 template <bool OVERWRITE_DEST = true>
-static unsigned int twoOperandsInstruction(
+static unsigned int Arithmetic_twoOperandsInstruction(
 	unsigned int (*instructionAction)(const unsigned int destOperand, const unsigned int srcOperand))
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
@@ -45,8 +45,14 @@ static unsigned int twoOperandsInstruction(
 		{
 			const unsigned int addr = cpu.genEA();
 			destOperand = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
+			result = instructionAction(destOperand,srcOperand);
 			if constexpr (OVERWRITE_DEST)
-				result = instructionAction(destOperand,srcOperand);
+			{
+				if (cpu.eu.operandSizeWord)
+					cpu.biu.writeWord(addr, result);
+				else
+					cpu.biu.writeByte(addr, result);
+			}
 		} break;
 	}
 	return result;
@@ -89,7 +95,7 @@ static unsigned int oneOperandInstruction(
 
 void ADD()
 {
-	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand + srcOperand + cpu.eu.instructionExtraData.withCarry;});
+	const unsigned int result = Arithmetic_twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand + srcOperand + cpu.eu.instructionExtraData.withCarry;});
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
@@ -138,7 +144,7 @@ void DAA()
 
 void SUB(void)
 {
-	const unsigned int result = twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand - (srcOperand + cpu.eu.instructionExtraData.withCarry); });
+	const unsigned int result = Arithmetic_twoOperandsInstruction([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand - (srcOperand + cpu.eu.instructionExtraData.withCarry); });
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 
@@ -156,7 +162,7 @@ void NEG()
 
 void CMP()
 {
-	const unsigned int result = twoOperandsInstruction<false>([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand - srcOperand; });
+	const unsigned int result = Arithmetic_twoOperandsInstruction<false>([](const unsigned int destOperand, const unsigned int srcOperand) { return destOperand - srcOperand; });
 	cpu.updateStatusFlags(result,cpu.eu.operandSizeWord);
 }
 

@@ -1,7 +1,8 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
-static unsigned int twoOperandsInstruction (unsigned int (*instructionFunction)(unsigned int destOperand, unsigned int srcOperand))
+template <bool SAVE_RESULT = true>
+static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunction)(unsigned int destOperand, unsigned int srcOperand))
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(inst, 0));
@@ -21,9 +22,9 @@ static unsigned int twoOperandsInstruction (unsigned int (*instructionFunction)(
 			srcValue = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name1));
 			break;
 
-		// case XED_OPERAND_MEM0:
-		// 	srcValue = cpu.eu.operandSizeWord ? cpu.biu.readWord(cpu.genEA()) : cpu.readByte(cpu.genEA());
-		// 	break;
+		case XED_OPERAND_MEM0:
+		 	srcValue = cpu.eu.operandSizeWord ? cpu.biu.readWord(cpu.genEA()) : cpu.biu.readByte(cpu.genEA());
+		 	break;
 
 	}
 
@@ -32,7 +33,8 @@ static unsigned int twoOperandsInstruction (unsigned int (*instructionFunction)(
 		case XED_OPERAND_REG0:
 			destValue = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0));
 			destValue = instructionFunction(destValue,srcValue);
-			cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0),destValue);
+			if constexpr (SAVE_RESULT)
+				cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0),destValue);
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -40,11 +42,14 @@ static unsigned int twoOperandsInstruction (unsigned int (*instructionFunction)(
 			const unsigned int addr = cpu.genEA();
 			destValue = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
 			destValue = instructionFunction(destValue,srcValue);
-			if (cpu.eu.operandSizeWord)
-				cpu.biu.writeWord(addr,destValue);
-			else
-				cpu.biu.writeByte(addr,destValue);
-			break;
+			if constexpr (SAVE_RESULT)
+			{
+				if (cpu.eu.operandSizeWord)
+					cpu.biu.writeWord(addr,destValue);
+				else
+					cpu.biu.writeByte(addr,destValue);
+				break;
+			}
 		}
 	}
 	return destValue;
@@ -69,32 +74,31 @@ void NOT()
 
 void SHIFT	(void)
 {
-	const unsigned int result = twoOperandsInstruction([](const unsigned int destValue, const unsigned int shiftCount)
+	const unsigned int result = Logic_twoOperandsInstruction([](unsigned int destValue, unsigned int shiftCount)
 	{
+		if (shiftCount == 0)
+			return destValue;
 		const unsigned int operandMSBMask = cpu.eu.operandSizeWord ? 0x8000 : 0x80;
-		const bool instructionIsSAL_SHL = cpu.eu.instructionExtraData.directionIsLeft();
+		const bool directionIsLeft = cpu.eu.instructionExtraData.directionIsLeft();
 		const bool instructionIsSAR = cpu.eu.instructionExtraData.instructionIsArithmetic();
 		
-		unsigned int tempDest = instructionIsSAR ? (int)destValue : destValue;
-		const unsigned int carryFlagValueMask = instructionIsSAL_SHL ? tempDest & operandMSBMask : tempDest & 0b1;
-
-		for (int i = 0; i < shiftCount; ++i)
-		{
-			cpu.updateFlag(CPU::CARRY, tempDest & carryFlagValueMask);
-			tempDest = instructionIsSAL_SHL ? tempDest * 2 : tempDest / 2; 
-		}
+		unsigned int tempDest = destValue;
+		const unsigned int carryFlagValueMask = directionIsLeft ? (operandMSBMask >> (shiftCount - 1)) : (1 << (shiftCount - 1));
+		
+		cpu.updateFlag(CPU::CARRY, tempDest & carryFlagValueMask);
+		tempDest = directionIsLeft ? (tempDest << shiftCount) : (tempDest >> shiftCount);
 
 		if (shiftCount == 1)
 		{
-			if (instructionIsSAL_SHL)
+			if (directionIsLeft)
 				cpu.updateFlag(CPU::OVER,(tempDest & operandMSBMask) ^ cpu.getFlagStatus(CPU::CARRY));
 			else
-				cpu.updateFlag(CPU::OVER,instructionIsSAR ? false : tempDest & operandMSBMask);
+				cpu.updateFlag(CPU::OVER,instructionIsSAR ? false : (tempDest & operandMSBMask));
 		}
 		else if (shiftCount > 1)
-			cpu.updateFlag(CPU::OVER,instructionIsSAR ? false : (destValue & operandMSBMask));
+			cpu.updateFlag(CPU::OVER,instructionIsSAR ? false : (tempDest & operandMSBMask));
 
-		return tempDest;
+		return tempDest & (operandMSBMask - 1);
 	});
 
 	cpu.testSF(result);   cpu.testZF(result);   cpu.testPF(result);
@@ -102,8 +106,12 @@ void SHIFT	(void)
 
 void ROTATE(void)
 {
-	const unsigned int result = twoOperandsInstruction([](unsigned int value, unsigned int rotateCount)
+	const unsigned int result = Logic_twoOperandsInstruction([](unsigned int value, unsigned int rotateCount)
 	{
+		//TODO: test with rotateCount == 0
+		if (rotateCount == 0)
+			return value;
+
 		unsigned int tempResult = value;
 		if (cpu.eu.instructionExtraData.rotationWithCarry())
 		{
@@ -160,7 +168,38 @@ void ROTATE(void)
 // void ROR	(void){}
 // void RCL	(void){}
 // void RCR	(void){}
-void AND	(void){}
-void TEST	(void){}
-void OR		(void){}
-void XOR	(void){}
+
+void AND	(void)
+{
+	const unsigned int result = Logic_twoOperandsInstruction([](unsigned int a, unsigned int b)
+	{ return a & b; });
+	
+	cpu.clearFlags(CPU::OVER | CPU::CARRY);
+	cpu.testSF(result);   cpu.testZF(result);   cpu.testPF(result);
+}
+
+void TEST	(void)
+{
+	const unsigned int result = Logic_twoOperandsInstruction<false>([](unsigned int a, unsigned int b)
+	{ return a & b; });
+
+	cpu.clearFlags(CPU::OVER | CPU::CARRY);
+	cpu.testSF(result);   cpu.testZF(result);   cpu.testPF(result);
+}
+
+void OR		(void)
+{
+	const unsigned int result = Logic_twoOperandsInstruction([](unsigned int destValue, unsigned int srcValue){ return destValue | srcValue; });
+
+	cpu.clearFlags(CPU::OVER | CPU::CARRY);
+	cpu.testSF(result);   cpu.testZF(result);   cpu.testPF(result);
+}
+
+void XOR	(void)
+{
+	const unsigned int result = Logic_twoOperandsInstruction([](unsigned int destValue, unsigned int srcValue)
+	{ return destValue ^ srcValue; });
+
+	cpu.clearFlags(CPU::OVER | CPU::CARRY);
+	cpu.testSF(result);   cpu.testZF(result);   cpu.testPF(result);
+}
