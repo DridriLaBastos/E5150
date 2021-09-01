@@ -295,32 +295,38 @@ static unsigned int prepareInstructionExecution(void)
 			return getNOTCycles();
 
 		case XED_ICLASS_SHL:
-			cpu.eu.instructionFunction = SHL;
-			return getSHLCycles();
+			cpu.eu.instructionExtraData.setDirectionIsLeft();
+			cpu.eu.instructionFunction = SHIFT;
+			return getSHIFT_ROTATECycles();
 
 		case XED_ICLASS_SHR:
-			cpu.eu.instructionFunction = SHR;
-			return getSHRCycles();
+			cpu.eu.instructionFunction = SHIFT;
+			return getSHIFT_ROTATECycles();
 
 		case XED_ICLASS_SAR:
-			cpu.eu.instructionFunction = SAR;
-			return getSARCycles();
+			cpu.eu.instructionExtraData.setInstructionIsArithmetic();
+			cpu.eu.instructionFunction = SHIFT;
+			return getSHIFT_ROTATECycles();
 
 		case XED_ICLASS_ROL:
-			cpu.eu.instructionFunction = ROL;
-			return getROLCycles();
+			cpu.eu.instructionExtraData.setDirectionIsLeft();
+			cpu.eu.instructionFunction = ROTATE;
+			return getSHIFT_ROTATECycles();
 
 		case XED_ICLASS_ROR:
-			cpu.eu.instructionFunction = ROR;
-			return getRORCycles();
+			cpu.eu.instructionFunction = ROTATE;
+			return getSHIFT_ROTATECycles();
 
 		case XED_ICLASS_RCL:
-			cpu.eu.instructionFunction = RCL;
-			return getRCLCycles();
+			cpu.eu.instructionExtraData.setRotationWithCarry();
+			cpu.eu.instructionExtraData.setDirectionIsLeft();
+			cpu.eu.instructionFunction = ROTATE;
+			return getSHIFT_ROTATECycles();
 
 		case XED_ICLASS_RCR:
-			cpu.eu.instructionFunction = RCR;
-			return getRCRCycles();
+			cpu.eu.instructionExtraData.setRotationWithCarry();
+			cpu.eu.instructionFunction = ROTATE;
+			return getSHIFT_ROTATECycles();
 
 		case XED_ICLASS_AND:
 			cpu.eu.instructionFunction = AND;

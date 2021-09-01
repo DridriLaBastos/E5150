@@ -9,7 +9,20 @@ namespace E5150::I8086
 	{
 		public:
 			union InstructionExtraData_t
-			{ bool isSigned; bool withCarry; };
+			{
+				bool isSigned;
+				bool withCarry;
+				uint8_t Shift_RotateFlags[sizeof(bool)];
+
+				void setDirectionIsLeft(void) { Shift_RotateFlags[0] |= 0b1; }
+				bool directionIsLeft(void) const { return Shift_RotateFlags[0] & 0b1; }
+
+				void setInstructionIsArithmetic(void) { Shift_RotateFlags[0] |= 0b10; }
+				bool instructionIsArithmetic(void) const { return Shift_RotateFlags[0] & 0b10; }
+
+				void setRotationWithCarry(void) { Shift_RotateFlags[0] |= 0b100; }
+				bool rotationWithCarry(void) const { return Shift_RotateFlags[0] & 0b100; }
+			};
 		public:
 			EU(void);
 

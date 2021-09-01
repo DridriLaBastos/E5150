@@ -386,13 +386,14 @@ unsigned int getCWDCycles	(void) { return 5; }
 /* Logic */
 
 unsigned int getNOTCycles	(void) { return 7 + 0; }
-unsigned int getSHLCycles	(void) { return 7 + 0; }
-unsigned int getSHRCycles	(void) { return 7 + 0; }
-unsigned int getSARCycles	(void) { return 7 + 0; }
-unsigned int getROLCycles	(void) { return 7 + 0; }
-unsigned int getRORCycles	(void) { return 7 + 0; }
-unsigned int getRCLCycles	(void) { return 7 + 0; }
-unsigned int getRCRCycles	(void) { return 7 + 0; }
+unsigned int getSHIFT_ROTATECycles (void) { return 7 + 0; }
+// unsigned int getSHLCycles	(void) { return 7 + 0; }
+// unsigned int getSHRCycles	(void) { return 7 + 0; }
+// unsigned int getSARCycles	(void) { return 7 + 0; }
+// unsigned int getROLCycles	(void) { return 7 + 0; }
+// unsigned int getRORCycles	(void) { return 7 + 0; }
+// unsigned int getRCLCycles	(void) { return 7 + 0; }
+// unsigned int getRCRCycles	(void) { return 7 + 0; }
 unsigned int getANDCycles	(void) { return 7 + 0; }
 unsigned int getTESTCycles	(void) { return 7 + 0; }
 unsigned int getORCycles	(void) { return 7 + 0; }

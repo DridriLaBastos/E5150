@@ -45,12 +45,14 @@ void CWD	(void); unsigned int getCWDCycles	(void);
 /* Logic */
 
 void NOT	(void); unsigned int getNOTCycles	(void);
-void SHL	(void); unsigned int getSHLCycles	(void);
-void SHR	(void); unsigned int getSHRCycles	(void);
-void SAR	(void); unsigned int getSARCycles	(void);
-void ROL	(void); unsigned int getROLCycles	(void);
-void ROR	(void); unsigned int getRORCycles	(void);
-void RCL	(void); unsigned int getRCLCycles	(void);
+void SHIFT	(void); unsigned int getSHIFT_ROTATECycles	(void);
+void ROTATE	(void); //Same number of cycles than SHIFT
+// void SHL	(void); unsigned int getSHLCycles	(void);
+// void SHR	(void); unsigned int getSHRCycles	(void);
+// void SAR	(void); unsigned int getSARCycles	(void);
+// void ROL	(void); unsigned int getROLCycles	(void);
+// void ROR	(void); unsigned int getRORCycles	(void);
+// void RCL	(void); unsigned int getRCLCycles	(void);
 void RCR	(void); unsigned int getRCRCycles	(void);
 void AND	(void); unsigned int getANDCycles	(void);
 void TEST	(void); unsigned int getTESTCycles	(void);

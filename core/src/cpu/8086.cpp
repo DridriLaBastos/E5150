@@ -140,7 +140,7 @@ void CPU::testZF (const unsigned int value)
 { updateFlag(ZERRO,value == 0); }
 
 void CPU::testSF (const unsigned int value)
-{ updateFlag(SIGN, value & 0x8000); }
+{ updateFlag(SIGN, value & (1 << (sizeof(unsigned int) - 1))); }
 
 void CPU::testOF (const unsigned int value, const bool wordSize)
 {
