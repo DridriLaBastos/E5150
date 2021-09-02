@@ -101,6 +101,8 @@ static void printCurrentInstruction(void)
 			++realOperandPos;
 		}
 	}
+
+	printf(" (%d)",cpu.instructionExecutedCount);
 	#endif
 }
 
@@ -593,44 +595,6 @@ void EU::farRet (void)
 	cpu.ip = pop();
 	cpu.cs = pop();
 }
-
-/*bool EU::clock()
-{
-	static unsigned int clockCountDown = 0;
-
-	
-
-	if (clockCountDown > 0)
-	{
-		#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-			printCurrentInstruction();
-			printf(" clock left: %d\n",clockCountDown);
-		#endif
-		clockCountDown -= 1;
-	}
-
-	if (clockCountDown > 0)
-		return false;
-
-	if (newFetchAddress)
-	{
-		cpu.biu.endControlTransferInstruction(cpu.cs,cpu.ip);
-		newFetchAddress = false;
-	}
-
-	#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
-	if (cpu.instructionExecutedCount != 0)
-	{
-		printCurrentInstruction(); printf(" (%d)\n",cpu.instructionExecutedCount);
-		printRegisters();
-		printFlags();
-	}
-	#endif
-
-	
-
-	return instructionDecoded;
-}*/
 
 /**
  * This function compute the effective address for a memory operand and add the corresponding number of 

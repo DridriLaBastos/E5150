@@ -9,6 +9,7 @@ namespace E5150::I8086
 	{
 		public:
 			BIU(void);
+			void updateClockFunction(void);
 			void instructionBufferQueuePop(const unsigned int n);
 			void resetInstructionBufferQueue(void);
 			void startControlTransferInstruction (void);
@@ -27,16 +28,17 @@ namespace E5150::I8086
 
 			void requestMemoryByte(const unsigned int nBytes) noexcept;
 			
-			uint8_t EURequestINByte (const unsigned int address);
-			uint16_t EURequestINWord (const unsigned int address);
-			void EURequestOUTByte (const unsigned int address, const uint8_t data);
-			void EURequestOUTWord (const unsigned int address, const uint16_t data);
+			uint8_t inByte (const unsigned int address);
+			uint16_t inWord (const unsigned int address);
+			void outByte (const unsigned int address, const uint8_t data);
+			void outWord (const unsigned int address, const uint16_t data);
 		
 			void(*clock)(void);
 			void(*nextClockFunction)(void);
 			std::array<uint8_t, 5> instructionBufferQueue;
 			unsigned int instructionBufferQueuePos;
 			unsigned int EUMemoryAccessClockCountDown;
+			bool EUExecutesControlTransfertInstruction;
 	};
 }
 

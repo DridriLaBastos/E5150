@@ -178,23 +178,6 @@ static void printFlags(const CPU& _cpu)
 }
 bool CPU::isHalted (void) const { return hlt; }
 
-static bool cpuCanProcessClock (const CPU* _cpu)
-{ /*return ((cpu->m_clockCountDown == 0) && (!cpu->hlt));*/ return true; }
-
-bool CPU::decode()
-{/*
-	const bool canProcessClock = cpuCanProcessClock(this);
-	if (canProcessClock)
-	{
-		xed_decoded_inst_zero_keep_mode(&m_decoded_inst);
-		xed_decode(&m_decoded_inst, m_ram.m_ram + gen_address(m_regs[CS],m_ip),16);
-	}
-
-	return canProcessClock;
-	*/
-	return true;
-}
-
 unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
 { return (base << 4) + offset; }
 
@@ -283,7 +266,7 @@ bool CPU::clock()
 		cpu.biu.clock();
 	const bool instructionExecuted = cpu.eu.clock();
 
-	cpu.biu.clock = cpu.biu.nextClockFunction;
+	cpu.biu.updateClockFunction();
 	cpu.eu.clock = cpu.eu.nextClockFunction;
 	return instructionExecuted;
 #if 0

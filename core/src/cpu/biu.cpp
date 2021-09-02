@@ -31,13 +31,11 @@ static void BIUDataAccessClock(void)
 		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUMemoryAccessClockCountDown);
 	#endif
 	cpu.biu.EUMemoryAccessClockCountDown -= 1;
-
-	if (cpu.biu.EUMemoryAccessClockCountDown == 0)
-		cpu.biu.nextClockFunction = BIUInstructionFetchClock;
 }
 
 static void BIUWaitPlaceInInstrutionBufferQueueClock(void)
 {
+	printf("REACHED WAIT %d\n",cpu.biu.instructionBufferQueuePos);
 	if (cpu.biu.instructionBufferQueuePos >= 5)
 	{
 		#ifdef DEBUG_BUILD
@@ -45,8 +43,6 @@ static void BIUWaitPlaceInInstrutionBufferQueueClock(void)
 		#endif
 		return;
 	}
-
-	cpu.biu.clock = BIUInstructionFetchClock;
 }
 
 static void BIUInstructionFetchClock(void)
@@ -70,12 +66,6 @@ static void BIUInstructionFetchClock(void)
 			#endif
 			BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
 		}
-
-		if (cpu.biu.instructionBufferQueuePos >= 5)
-			cpu.biu.nextClockFunction = BIUDataAccessClock;
-		
-		if (cpu.biu.EUMemoryAccessClockCountDown > 0)
-			cpu.biu.nextClockFunction = BIUWaitPlaceInInstrutionBufferQueueClock;
 	}
 
 	BUS_CYCLE_CLOCK_LEFT -= 1;
@@ -84,18 +74,32 @@ static void BIUInstructionFetchClock(void)
 	#endif
 }
 
-BIU::BIU(): clock(BIUInstructionFetchClock), nextClockFunction(BIUInstructionFetchClock), EUMemoryAccessClockCountDown(0) {}
+BIU::BIU(): clock(BIUInstructionFetchClock), nextClockFunction(BIUInstructionFetchClock), EUMemoryAccessClockCountDown(0),EUExecutesControlTransfertInstruction(false) {}
+
+void BIU::updateClockFunction()
+{
+	clock = BIUInstructionFetchClock;
+
+	if (cpu.biu.instructionBufferQueuePos >= 5)
+		clock = BIUWaitPlaceInInstrutionBufferQueueClock;
+	
+	if (cpu.biu.EUExecutesControlTransfertInstruction)
+		clock = BIUWaitEndOfControlTransfertInstructionClock;
+
+	if (cpu.biu.EUMemoryAccessClockCountDown > 0)
+		clock = BIUDataAccessClock;
+}
 
 void BIU::endControlTransferInstruction ()
 {
 	resetInstructionBufferQueue();
 	BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
-	nextClockFunction = BIUInstructionFetchClock;
+	cpu.biu.EUExecutesControlTransfertInstruction = false;
 }
 
 void BIU::startControlTransferInstruction()
 {
-	nextClockFunction = BIUWaitEndOfControlTransfertInstructionClock;
+	cpu.biu.EUExecutesControlTransfertInstruction = true;
 
 	/**
 	 * BIU.BIUInstructionFetchClock always starts a new bus cycle.
@@ -123,22 +127,14 @@ uint16_t BIU::readWord (const unsigned int address) const { return (readByte(add
 void BIU::writeByte (const unsigned int address, const uint8_t byte) const { ram.write(address, byte); }
 void BIU::writeWord (const unsigned int address, const uint16_t word) const { writeByte(address,(uint8_t)word); writeByte(address+1,word >> 8); }
 
-/*uint8_t BIU::EURequestReadByte (const unsigned int address)
-{ EUMemoryAccessClockCountDown += 5; return ram.read(address); }
-uint16_t BIU::EURequestReadWord (const unsigned int address)
-{ return (EURequestReadByte(address+1) << 8) | EURequestReadByte(address); }
+//TODO: Get the clock access count per components
+//TODO: Use the data bus to get the value or only keep it for undefined values ?
+uint8_t BIU::inByte (const unsigned int address)
+{ return ports.read(address); }
+uint16_t BIU::inWord (const unsigned int address)
+{ return (inByte(address + 1) << 8) | inByte(address); }
 
-void BIU::EURequestWriteByte (const unsigned int address, const uint8_t data)
-{ EUMemoryAccessClockCountDown += 5; ram.write(address, data); }
-void BIU::EURequestWriteWord (const unsigned int address, const uint16_t data)
-{ EURequestWriteByte(address,data & 0xFF); EURequestWriteByte(address+1, data << 8); }*/
-
-//TODO: implement port with BIU
-uint8_t BIU::EURequestINByte (const unsigned int address)
-{ return 0; }
-uint16_t BIU::EURequestINWord (const unsigned int address)
-{ return 0; }
-void BIU::EURequestOUTByte (const unsigned int address, const uint8_t data)
-{}
-void BIU::EURequestOUTWord (const unsigned int address, const uint16_t data)
-{}
+void BIU::outByte (const unsigned int address, const uint8_t data)
+{ ports.write(address,data); }
+void BIU::outWord (const unsigned int address, const uint16_t data)
+{ outByte(address,data);   outByte(address,data >> 8); }
