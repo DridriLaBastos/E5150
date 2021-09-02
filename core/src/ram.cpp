@@ -10,6 +10,7 @@ RAM::RAM(): mRamPtr(new uint8_t[0x100000]), m_mappedDevices()
 uint8_t RAM::read(const unsigned int address) const
 {
 	const uint8_t data = m_ram[address];
+	dataBus = data;
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_READ) || defined(SEE_ALL)
 	if (E5150::Util::CURRENT_DEBUG_LEVEL == DEBUG_LEVEL_MAX)
 		printf("%#4x --> %#5x\n", data, address);
@@ -19,6 +20,7 @@ uint8_t RAM::read(const unsigned int address) const
 void RAM::write(const unsigned int address, const uint8_t data)
 {
 	m_ram[address] = data;
+	dataBus = data;
 #if defined(SEE_RAM_RW) || defined(SEE_RAM_WRITE) || defined(SEE_ALL)
 	if (E5150::Util::CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_MAX)
 		printf("%#5x <-- %#4x\n", address, data);

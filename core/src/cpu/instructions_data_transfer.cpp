@@ -147,10 +147,10 @@ void IN()
 	else 
 		iaddr = cpu.dx;
 
-	cpu.ax = ports.read(iaddr);
-
-	if (xed_decoded_inst_get_reg(&cpu.eu.decodedInst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
-		cpu.ax = ports.read(iaddr + 1);
+	if (cpu.eu.operandSizeWord)
+		cpu.ax = cpu.biu.inWord(iaddr);
+	else
+		cpu.al = cpu.biu.inByte(iaddr);
 }
 
 void OUT()
@@ -164,11 +164,11 @@ void OUT()
 		oaddr = (uint16_t)xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 	else
 		oaddr = cpu.dx;
-		
-	ports.write(oaddr, cpu.ax);
-
-	if (xed_decoded_inst_get_reg(&cpu.eu.decodedInst, xed_operand_name(xed_inst_operand(inst, 1))) == XED_REG_AX)
-		ports.write(oaddr + 1, cpu.ax);
+	
+	if (cpu.eu.operandSizeWord)
+		cpu.biu.outWord(oaddr,cpu.ax);
+	else
+		cpu.biu.outByte(oaddr,cpu.al);
 }
 
 void XLAT ()
