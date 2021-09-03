@@ -7,6 +7,12 @@ CXXOBJ = main.o
 
 CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)
 LDFLAGS := $(LDFLAGS) -L$(PROJECT_DIR)/core -L$(PROJECT_DIR)/core/third-party/lib
+PLATFORM = $(shell uname -s)
+DOWNLOAD_TOOL = curl
+
+ifeq ($(PLATFORM),Linux)
+	DOWNLOAD_TOOL = wget
+endif
 
 .PHONY: clean mrproper run
 
@@ -19,7 +25,7 @@ $(PRODUCT): $(CXXOBJ) $(PROJECT_DIR)/core/libcore.a
 	nasm -f bin $< -o $@
 
 test/ibm_bios.bin:
-	curl https://ibm.retropc.se/bios/BIOS_5150_24APR81_U33.BIN -o $@
+	$(DOWNLOAD_TOOL) https://ibm.retropc.se/bios/BIOS_5150_24APR81_U33.BIN -o $@
 
 run:
 	./$(PRODUCT)
