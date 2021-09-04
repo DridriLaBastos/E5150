@@ -45,7 +45,7 @@ void CWD	(void); unsigned int getCWDCycles	(void);
 /* Logic */
 
 void NOT	(void); unsigned int getNOTCycles	(void);
-void SHIFT	(void); unsigned int getSHIFT_ROTATECycles	(void);
+void SHIFT	(void); unsigned int getSHIFT_ROTATECycles	(const unsigned int nPrefix);
 void ROTATE	(void); //Same number of cycles than SHIFT
 // void SHL	(void); unsigned int getSHLCycles	(void);
 // void SHR	(void); unsigned int getSHRCycles	(void);

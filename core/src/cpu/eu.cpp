@@ -301,36 +301,36 @@ static unsigned int prepareInstructionExecution(void)
 		case XED_ICLASS_SHL:
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			cpu.eu.instructionFunction = SHIFT;
-			return getSHIFT_ROTATECycles();
+			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_SHR:
 			cpu.eu.instructionFunction = SHIFT;
-			return getSHIFT_ROTATECycles();
+			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_SAR:
 			cpu.eu.instructionExtraData.setInstructionIsArithmetic();
 			cpu.eu.instructionFunction = SHIFT;
-			return getSHIFT_ROTATECycles();
+			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_ROL:
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			cpu.eu.instructionFunction = ROTATE;
-			return getSHIFT_ROTATECycles();
+			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_ROR:
 			cpu.eu.instructionFunction = ROTATE;
-			return getSHIFT_ROTATECycles();
+			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCL:
 			cpu.eu.instructionExtraData.setRotationWithCarry();
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			cpu.eu.instructionFunction = ROTATE;
-			return getSHIFT_ROTATECycles();
+			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCR:
 			cpu.eu.instructionExtraData.setRotationWithCarry();
 			cpu.eu.instructionFunction = ROTATE;
-			return getSHIFT_ROTATECycles();
+			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_AND:
 			cpu.eu.instructionFunction = AND;
