@@ -33,7 +33,7 @@ namespace E5150::I8086
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);
 
-			unsigned int getEAComputationClockCount();
+			unsigned int computeEAAndGetComputationClockCount();
 			unsigned int EAAddress;
 
 			xed_decoded_inst_t decodedInst;

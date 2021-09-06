@@ -22,7 +22,7 @@ void CALL_NEAR()
 			break;
 		
 		case XED_OPERAND_MEM0:
-			cpu.ip = cpu.biu.readWord(cpu.genEA());
+			cpu.ip = cpu.biu.readWord(cpu.eu.EAAddress);
 			break;
 	}
 
@@ -42,7 +42,7 @@ void CALL_FAR()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = cpu.genEA();
+			const unsigned far_addr_location = cpu.eu.EAAddress;
 			cpu.eu.farCall( cpu.biu.readWord(far_addr_location),
 							cpu.biu.readWord(far_addr_location + 2));
 			break;
@@ -59,7 +59,7 @@ void JMP_NEAR()
 	switch (op_name)
 	{
 		case XED_OPERAND_MEM0:
-			cpu.ip = cpu.biu.readWord(cpu.genEA());
+			cpu.ip = cpu.biu.readWord(cpu.eu.EAAddress);
 			break;
 
 		case XED_OPERAND_REG0:
@@ -82,7 +82,7 @@ void JMP_FAR()
 	{
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = cpu.genEA();
+			const unsigned far_addr_location = cpu.eu.EAAddress;
 			
 			cpu.cs = cpu.biu.readWord(far_addr_location);
 			cpu.ip = cpu.biu.readWord(far_addr_location + 2);

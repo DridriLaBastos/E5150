@@ -10,7 +10,7 @@
 
 #define CLOCK_CYCLES(...) static const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
 #define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)]
-#define ADD_EA_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.getEAComputationClockCount(); }
+#define ADD_EA_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.computeEAAndGetComputationClockCount(); }
 
 #define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)
 #define ADD_EA_ON_IFORM_CONDITION(COND) GET_RAW_CLOCK_COUNT();\
@@ -143,9 +143,9 @@ unsigned int getOUTCycles (void)
 }
 
 unsigned int getXLATCycles (void) { return 11; }
-unsigned int getLEACycles (void) { return 2 + cpu.eu.getEAComputationClockCount(); }
-unsigned int getLDSCycles (void) { return 24 + cpu.eu.getEAComputationClockCount(); }
-unsigned int getLESCycles (void) { return 24 + cpu.eu.getEAComputationClockCount(); }
+unsigned int getLEACycles (void) { return 2 + cpu.eu.computeEAAndGetComputationClockCount(); }
+unsigned int getLDSCycles (void) { return 24 + cpu.eu.computeEAAndGetComputationClockCount(); }
+unsigned int getLESCycles (void) { return 24 + cpu.eu.computeEAAndGetComputationClockCount(); }
 unsigned int getLAHFCycles (void) { return 4; }
 unsigned int getSAHFCycles (void) { return 4; }
 unsigned int getPUSHFCycles (void) { return 14; }
@@ -283,7 +283,7 @@ unsigned int getDECCycles	(void)
 	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
 
-	return op0 == XED_OPERAND_MEM0 ? (23 + cpu.eu.getEAComputationClockCount()) : 3;
+	return op0 == XED_OPERAND_MEM0 ? (23 + cpu.eu.computeEAAndGetComputationClockCount()) : 3;
 }
 
 unsigned int getNEGCycles	(void)
@@ -291,7 +291,7 @@ unsigned int getNEGCycles	(void)
 	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
 
-	return op0 == XED_OPERAND_MEM0 ? (24 + cpu.eu.getEAComputationClockCount()) : 3;
+	return op0 == XED_OPERAND_MEM0 ? (24 + cpu.eu.computeEAAndGetComputationClockCount()) : 3;
 }
 
 unsigned int getCMPCycles	(void)

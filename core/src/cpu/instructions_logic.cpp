@@ -23,7 +23,7 @@ static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunc
 			break;
 
 		case XED_OPERAND_MEM0:
-		 	srcValue = cpu.eu.operandSizeWord ? cpu.biu.readWord(cpu.genEA()) : cpu.biu.readByte(cpu.genEA());
+		 	srcValue = cpu.eu.operandSizeWord ? cpu.biu.readWord(cpu.eu.EAAddress) : cpu.biu.readByte(cpu.eu.EAAddress);
 		 	break;
 
 	}
@@ -39,7 +39,7 @@ static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunc
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.genEA();
+			const unsigned int addr = cpu.eu.EAAddress;
 			destValue = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
 			destValue = instructionFunction(destValue,srcValue);
 			if constexpr (SAVE_RESULT)
@@ -64,7 +64,7 @@ void NOT()
 		cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name), ~cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name)));
 	else //MEM0 is the only possible other case
 	{
-		const unsigned int addr = cpu.genEA();
+		const unsigned int addr = cpu.eu.EAAddress;
 		if (cpu.eu.operandSizeWord)
 			cpu.biu.writeWord(addr,~cpu.biu.readWord(addr));
 		else

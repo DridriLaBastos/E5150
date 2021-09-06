@@ -25,7 +25,7 @@ void MOV()
 			break;
 
 		case XED_OPERAND_MEM0:
-			move_v = cpu.biu.readWord(cpu.genEA());
+			move_v = cpu.biu.readWord(cpu.eu.EAAddress);
 			break;
 	}
 
@@ -39,7 +39,7 @@ void MOV()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int write_addr = cpu.genEA();
+			const unsigned int write_addr = cpu.eu.EAAddress;
 
 			if (xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 1)
 				cpu.biu.writeByte(write_addr, (uint8_t)move_v);
@@ -63,7 +63,7 @@ void PUSH ()
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int dataToPushAddr = cpu.genEA();
+			const unsigned int dataToPushAddr = cpu.eu.EAAddress;
 			cpu.eu.push(cpu.biu.readWord(dataToPushAddr));
 		}
 		break;
@@ -123,7 +123,7 @@ void XCHG()
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.genEA();
+			const unsigned int addr = cpu.eu.EAAddress;
 			const unsigned int value2 = cpu.biu.readWord(addr);
 			cpu.write_reg(register_xchg, value2);
 
@@ -179,13 +179,13 @@ void LEA()
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 1));
 
-	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name0), cpu.genEA());
+	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name0), cpu.eu.EAAddress);
 }
 
 void LDS()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
-	const unsigned int addr = cpu.genEA();
+	const unsigned int addr = cpu.eu.EAAddress;
 	cpu.ds = cpu.biu.readWord(addr);
 	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name),cpu.biu.readWord(addr+2));
 }
@@ -193,7 +193,7 @@ void LDS()
 void LES()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
-	const unsigned int addr = cpu.genEA();
+	const unsigned int addr = cpu.eu.EAAddress;
 	cpu.es = cpu.biu.readWord(addr);
 	cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name),cpu.biu.readWord(addr+2));
 }

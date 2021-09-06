@@ -58,62 +58,6 @@ void CPU::clearFlags (const unsigned int requestedFlags)
 bool CPU::getFlagStatus (const CPU::FLAGS_T flag) const
 { return flags & (unsigned int) flag; }
 
-/**
- * This function compute the effective address for a memory operand and add the corresponding number of 
- * instructions cycles. The instruction cycles are picked up from https://zsmith.co/intel.php#ea :
- * 1.  disp: mod = 0b00 and rm = 0b110								+6
- * 2.  (BX,BP,SI,DI): mod = 0b00 and rm != 0b110 and rm = 0b1xx		+5
- * 3.  disp + (BX,BP,SI,DI): mod = 0b10 and rm = 0b1xx				+9
- * 4.1 (BP+DI, bx+SI): mod = 0b00 and rm = 0b01x					+7
- * 4.2 (BP+SI, bx+DI): mod = 0b00 and rm = 0b00x					+8
- * 5.1 disp + (BP+DI, bx+SI) +-> same as precedet with mod = 0b10	+11
- * 5.2 disp + (BP+SI, bx+DI) +										+12
- *
- * word operands at odd addresses	+4
- * segment override					+2
- */
-unsigned int CPU::genEA()
-{
-	const unsigned int modrm = xed_decoded_inst_get_modrm(&decodedInst);
-	const unsigned int mod = (modrm & 0b11000000) >> 6;
-	const unsigned int rm = modrm & 0b111;
-
-	unsigned int clockNeeded = 0;
-
-	if (mod == 0b00)
-	{
-		//1. disp: mod == 0b00 and rm 0b110
-		if (rm == 0b110)
-			clockNeeded += 6;
-		else
-		{
-			//2. (base,index) mod = 0b00 and rm = 0b1xx and rm != 0b110
-			if (rm & 0b100)
-				clockNeeded += 5;
-			//4.1/4.2 base + index mod = 0b00 and rm = 0b01x/0b00x
-			else
-				clockNeeded += (rm & 0b10) ? 7 : 8;
-		}
-	}
-	//mod = 0b10
-	else
-	{
-		//3. disp + (base,index): mod = 0b10 rm = 0b1xx
-		if (rm & 0b100)
-			clockNeeded += 9;
-		//5.1/5.2 base + index + disp: mod = 0b10 rm = 0b01x/0b00x
-		else
-			clockNeeded += (rm & 0b10) ? 11 : 12;
-	}
-
-	const unsigned int address = genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
-	
-	if (xed_operand_values_has_segment_prefix(&decodedInst))
-		clockNeeded += 2;
-	
-	return address;
-}
-
 void CPU::testCF (const unsigned int value, const bool wordSize)
 {
 	const bool newFlagValue = wordSize ? (value > (uint8_t)0xFFFF || ((signed)value < (int8_t)0x8000)): 
@@ -176,7 +120,6 @@ static void printFlags(const CPU& _cpu)
 	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
 #endif
 }
-bool CPU::isHalted (void) const { return hlt; }
 
 unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
 { return (base << 4) + offset; }

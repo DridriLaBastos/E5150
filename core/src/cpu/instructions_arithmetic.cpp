@@ -27,7 +27,7 @@ static unsigned int Arithmetic_twoOperandsInstruction(
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.genEA();
+			const unsigned int addr = cpu.eu.EAAddress;
 			srcOperand = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
 		} break;
 	}
@@ -43,7 +43,7 @@ static unsigned int Arithmetic_twoOperandsInstruction(
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.genEA();
+			const unsigned int addr = cpu.eu.EAAddress;
 			destOperand = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
 			result = instructionAction(destOperand,srcOperand);
 			if constexpr (OVERWRITE_DEST)
@@ -75,7 +75,7 @@ static unsigned int oneOperandInstruction(
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.genEA();
+			const unsigned int addr = cpu.eu.EAAddress;
 
 			if (cpu.eu.operandSizeWord)
 			{

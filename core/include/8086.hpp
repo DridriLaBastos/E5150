@@ -50,13 +50,9 @@ class CPU
 		CPU(void);
 
 		bool clock (void);
-		bool decode(void);
-		void exec (void);
 
 		void requestNmi (void);
 		void requestIntr (const uint8_t vector);
-		
-		bool isHalted (void) const;
 	
 	public:
 	enum REGISTERS

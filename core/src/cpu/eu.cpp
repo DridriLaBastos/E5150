@@ -610,7 +610,7 @@ void EU::farRet (void)
  * word operands at odd addresses	+4
  * segment override					+2
  */
-unsigned int EU::getEAComputationClockCount()
+unsigned int EU::computeEAAndGetComputationClockCount()
 {
 	const unsigned int modrm = xed_decoded_inst_get_modrm(&decodedInst);
 	const unsigned int mod = (modrm & 0b11000000) >> 6;
