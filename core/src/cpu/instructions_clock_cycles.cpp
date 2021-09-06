@@ -570,15 +570,15 @@ unsigned int getIRETCycles		(void) { return 7 + 0; }
 
 /* Processor Control */
 
-unsigned int getCLCCycles	(void) { return 7 + 0; }
-unsigned int getCMCCycles	(void) { return 7 + 0; }
-unsigned int getSTCCycles	(void) { return 7 + 0; }
-unsigned int getCLDCycles	(void) { return 7 + 0; }
-unsigned int getSTDCycles	(void) { return 7 + 0; }
-unsigned int getCLICycles	(void) { return 7 + 0; }
-unsigned int getSTICycles	(void) { return 7 + 0; }
-unsigned int getHLTCycles	(void) { return 7 + 0; }
+unsigned int getCLCCycles	(void) { return 2; }
+unsigned int getCMCCycles	(void) { return 2; }
+unsigned int getSTCCycles	(void) { return 2; }
+unsigned int getCLDCycles	(void) { return 2; }
+unsigned int getSTDCycles	(void) { return 2; }
+unsigned int getCLICycles	(void) { return 2; }
+unsigned int getSTICycles	(void) { return 2; }
+unsigned int getHLTCycles	(void) { return 2; }
 unsigned int getWAITCycles	(void) { return 7 + 0; }
 unsigned int getLOCKCycles	(void) { return 7 + 0; }
 
-unsigned int getNOPCycles	(void) { return 7 + 0; }
+unsigned int getNOPCycles	(void) { return 3; }
