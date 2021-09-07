@@ -375,107 +375,107 @@ static unsigned int prepareInstructionExecution(void)
 
 		case XED_ICLASS_CALL_NEAR:
 			cpu.eu.instructionFunction = CALL_NEAR;
-			return getCALL_NEARCycles();
+			return getCALLCycles();
 
 		case XED_ICLASS_CALL_FAR:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = CALL_FAR;
-			return getCALL_FARCycles();
+			return getCALLCycles();
 
 		case XED_ICLASS_JMP:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JMP_NEAR;
-			return getJMP_NEARCycles();
+			return getJMPCycles();
 
 		case XED_ICLASS_JMP_FAR:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JMP_FAR;
-			return getJMP_FARCycles();
+			return getJMPCycles();
 
 		case XED_ICLASS_RET_NEAR:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = RET_NEAR;
-			return getRET_NEARCycles();
+			return getRETCycles();
 
 		case XED_ICLASS_RET_FAR:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = RET_FAR;
-			return getRET_FARCycles();
+			return getRETCycles();
 
 		case XED_ICLASS_JZ:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JZ;
-			return getJZCycles();
+			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JL:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JL;
-			return getJLCycles();
+			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER));
 
 		case XED_ICLASS_JLE:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JLE;
-			return getJLECycles();
+			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)));
 
 		case XED_ICLASS_JB:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JB;
-			return getJBCycles();
+			return getJXXCycles(CPU::CARRY);
 
 		case XED_ICLASS_JBE:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JBE;
-			return getJBECycles();
+			return getJXXCycles(CPU::CARRY || CPU::ZERRO);
 
 		case XED_ICLASS_JP:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JP;
-			return getJPCycles();
+			return getJXXCycles(CPU::PARRITY);
 
 		case XED_ICLASS_JO:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JO;
-			return getJOCycles();
+			return getJXXCycles(cpu.getFlagStatus(CPU::OVER));
 		
 		case XED_ICLASS_JS:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JS;
-			return getJSCycles();
+			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN));
 
 		case XED_ICLASS_JNZ:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JNZ;
-			return getJNZCycles();
+			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JNL:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JNL;
-			return getJNLCycles();
+			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER));
 
 		case XED_ICLASS_JNLE:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JNLE;
-			return getJNLECycles();
+			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)));
 
 		case XED_ICLASS_JNB:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JNB;
-			return getJNBCycles();
+			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY));
 
 		case XED_ICLASS_JNBE:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JNBE;
-			return getJNBECycles();
+			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY) && !cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JNP:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JNP;
-			return getJNPCycles();
+			return getJXXCycles(!cpu.getFlagStatus(CPU::PARRITY));
 
 		case XED_ICLASS_JNS:
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = JNS;
-			return getJNSCycles();
+			return getJXXCycles(!cpu.getFlagStatus(CPU::SIGN));
 
 		case XED_ICLASS_LOOP:
 			cpu.biu.startControlTransferInstruction();
@@ -501,10 +501,16 @@ static unsigned int prepareInstructionExecution(void)
 			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = INT;
 			return getINTCycles();
+		
+		case XED_ICLASS_INT3:
+			cpu.biu.startControlTransferInstruction();
+			cpu.eu.instructionFunction = INT3;
+			return getINTCycles();
 
 		case XED_ICLASS_INTO:
+			cpu.biu.startControlTransferInstruction();
 			cpu.eu.instructionFunction = INTO;
-			return getINTOCycles();
+			return getINTCycles();
 
 		case XED_ICLASS_IRET:
 			cpu.eu.instructionFunction = IRET;

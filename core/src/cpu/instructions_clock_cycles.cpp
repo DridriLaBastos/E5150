@@ -539,34 +539,89 @@ unsigned int getSTOSCycles (void) { return 7 + 0; }
 
 /* Control Transfer */
 
-unsigned int getCALL_NEARCycles	(void) { return 7 + 0; }
-unsigned int getCALL_FARCycles	(void) { return 7 + 0; }
-unsigned int getJMP_NEARCycles	(void) { return 7 + 0; }
-unsigned int getJMP_FARCycles	(void) { return 7 + 0; }
-unsigned int getRET_NEARCycles	(void) { return 7 + 0; }
-unsigned int getRET_FARCycles	(void) { return 7 + 0; }
-unsigned int getJZCycles		(void) { return 7 + 0; }/* JE /JZ   */
-unsigned int getJLCycles		(void) { return 7 + 0; }/* JL /JNGE */
-unsigned int getJLECycles		(void) { return 7 + 0; }/* JLE/JNG  */
-unsigned int getJBCycles		(void) { return 7 + 0; }/* JB /JNAE */
-unsigned int getJBECycles		(void) { return 7 + 0; }/* JBE/JNA  */
-unsigned int getJPCycles		(void) { return 7 + 0; }/* JLE/JNG  */
-unsigned int getJOCycles		(void) { return 7 + 0; }/* JP /JPE  */
-unsigned int getJSCycles		(void) { return 7 + 0; }
-unsigned int getJNZCycles		(void) { return 7 + 0; }
-unsigned int getJNLCycles		(void) { return 7 + 0; }
-unsigned int getJNLECycles		(void) { return 7 + 0; }
-unsigned int getJNBCycles		(void) { return 7 + 0; }
-unsigned int getJNBECycles		(void) { return 7 + 0; }
-unsigned int getJNPCycles		(void) { return 7 + 0; }
-unsigned int getJNSCycles		(void) { return 7 + 0; }
-unsigned int getLOOPCycles		(void) { return 7 + 0; }
-unsigned int getLOOPZCycles		(void) { return 7 + 0; }
-unsigned int getLOOPNZCycles	(void) { return 7 + 0; }
-unsigned int getJCXZCycles		(void) { return 7 + 0; }
-unsigned int getINTCycles		(void) { return 7 + 0; }
-unsigned int getINTOCycles		(void) { return 7 + 0; }
-unsigned int getIRETCycles		(void) { return 7 + 0; }
+// unsigned int getCALL_NEARCycles	(void){}
+// unsigned int getCALL_FARCycles	(void) { return 7 + 0; }
+unsigned int getCALLCycles		(void)
+{
+	CLOCK_CYCLES(
+		37,// XED_IFORM_CALL_FAR_MEMp2
+		28,// XED_IFORM_CALL_FAR_PTRp_IMMw
+		21,// XED_IFORM_CALL_NEAR_GPRv
+		16,// XED_IFORM_CALL_NEAR_MEMv
+		0,// XED_IFORM_CALL_NEAR_RELBRd (not implemented on 808x)
+		19// XED_IFORM_CALL_NEAR_RELBRz
+	);
+
+	ADD_EA_ON_MEM_OPERAND();
+	return clockCount;
+}
+
+// unsigned int getJMP_NEARCycles	(void) { return 7 + 0; }
+// unsigned int getJMP_FARCycles	(void) { return 7 + 0; }
+//TODO: verify the value returned
+unsigned int getJMPCycles		(void)
+{
+	CLOCK_CYCLES(
+		11,// XED_IFORM_JMP_GPRv
+		18,// XED_IFORM_JMP_MEMv
+		15,// XED_IFORM_JMP_RELBRb
+		0,// XED_IFORM_JMP_RELBRd (not implemented on 808x)
+		15,// XED_IFORM_JMP_RELBRz
+		24,// XED_IFORM_JMP_FAR_MEMp2
+		24// XED_IFORM_JMP_FAR_PTRp_IMMw
+	);
+
+	ADD_EA_ON_MEM_OPERAND();
+	return clockCount;
+}
+
+unsigned int getRETCycles		(void)
+{
+	CLOCK_CYCLES(
+		34,// XED_IFORM_RET_FAR
+		33,// XED_IFORM_RET_FAR_IMMw
+		20,// XED_IFORM_RET_NEAR
+		24// XED_IFORM_RET_NEAR_IMMw
+	);
+
+	GET_RAW_CLOCK_COUNT();
+	return clockCount;
+}
+// unsigned int getRET_NEARCycles	(void) { return 7 + 0; }
+// unsigned int getRET_FARCycles	(void) { return 7 + 0; }
+
+unsigned int getJXXCycles		(const bool conditionValue) { return conditionValue ? 16 : 4; }
+// unsigned int getJZCycles		(void) { return 7 + 0; }/* JE /JZ   */
+// unsigned int getJLCycles		(void) { return 7 + 0; }/* JL /JNGE */
+// unsigned int getJLECycles		(void) { return 7 + 0; }/* JLE/JNG  */
+// unsigned int getJBCycles		(void) { return 7 + 0; }/* JB /JNAE */
+// unsigned int getJBECycles		(void) { return 7 + 0; }/* JBE/JNA  */
+// unsigned int getJPCycles		(void) { return 7 + 0; }/* JLE/JNG  */
+// unsigned int getJOCycles		(void) { return 7 + 0; }/* JP /JPE  */
+// unsigned int getJSCycles		(void) { return 7 + 0; }
+// unsigned int getJNZCycles		(void) { return 7 + 0; }
+// unsigned int getJNLCycles		(void) { return 7 + 0; }
+// unsigned int getJNLECycles		(void) { return 7 + 0; }
+// unsigned int getJNBCycles		(void) { return 7 + 0; }
+// unsigned int getJNBECycles		(void) { return 7 + 0; }
+// unsigned int getJNPCycles		(void) { return 7 + 0; }
+// unsigned int getJNSCycles		(void) { return 7 + 0; }
+unsigned int getLOOPCycles		(void) { return (cpu.cx - 1 == 0) ? 5 : 18; }
+unsigned int getLOOPZCycles		(void) { return ((cpu.cx - 1 == 0) && cpu.getFlagStatus(CPU::ZERRO)) ? 6 : 18; }
+unsigned int getLOOPNZCycles	(void) { return ((cpu.cx - 1 == 0) && !cpu.getFlagStatus(CPU::ZERRO)) ? 5 : 19; }
+unsigned int getJCXZCycles		(void) { return cpu.cx == 0 ? 6 : 18; }
+unsigned int getINTCycles		(void)
+{
+	if (cpu.biu.instructionBufferQueue[0] & 0b1)//normal int instruction ends with 0b01
+		return 71;
+	
+	if (cpu.biu.instructionBufferQueue[0] & 0b10)//into instruction ends with 0b10
+		return cpu.getFlagStatus(CPU::OVER) ? 73 : 4;
+
+	return 71;//int3 instruction
+}
+
+unsigned int getIRETCycles		(void) { return 44; }
 
 /* Processor Control */
 

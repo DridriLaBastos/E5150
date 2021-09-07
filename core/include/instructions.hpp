@@ -70,33 +70,34 @@ void STOS (void); unsigned int getSTOSCycles (void);
 
 /* Control Transfer */
 
-void CALL_NEAR	(void); unsigned int getCALL_NEARCycles	(void);
-void CALL_FAR	(void); unsigned int getCALL_FARCycles	(void);
-void JMP_NEAR	(void); unsigned int getJMP_NEARCycles	(void);
-void JMP_FAR	(void); unsigned int getJMP_FARCycles	(void);
-void RET_NEAR	(void); unsigned int getRET_NEARCycles	(void);
-void RET_FAR	(void); unsigned int getRET_FARCycles	(void);
-void JZ			(void); unsigned int getJZCycles		(void);/* JE /JZ   */
-void JL			(void); unsigned int getJLCycles		(void);/* JL /JNGE */
-void JLE		(void); unsigned int getJLECycles		(void);/* JLE/JNG  */
-void JB			(void); unsigned int getJBCycles		(void);/* JB /JNAE */
-void JBE		(void); unsigned int getJBECycles		(void);/* JBE/JNA  */
-void JP			(void); unsigned int getJPCycles		(void);/* JLE/JNG  */
-void JO			(void); unsigned int getJOCycles		(void);/* JP /JPE  */
-void JS			(void); unsigned int getJSCycles		(void);
-void JNZ		(void); unsigned int getJNZCycles		(void);
-void JNL		(void); unsigned int getJNLCycles		(void);
-void JNLE		(void); unsigned int getJNLECycles		(void);
-void JNB		(void); unsigned int getJNBCycles		(void);
-void JNBE		(void); unsigned int getJNBECycles		(void);
-void JNP		(void); unsigned int getJNPCycles		(void);
-void JNS		(void); unsigned int getJNSCycles		(void);
+void CALL_NEAR	(void); unsigned int getCALLCycles (void);
+void CALL_FAR	(void); // unsigned int getCALL_FARCycles	(void);
+void JMP_NEAR	(void); unsigned int getJMPCycles		(void);
+void JMP_FAR	(void); // unsigned int getJMP_FARCycles	(void);
+void RET_NEAR	(void); unsigned int getRETCycles	(void);
+void RET_FAR	(void); // unsigned int getRET_FARCycles	(void);
+/* JE/JZ   */void JZ			(void); unsigned int getJXXCycles		(const bool conditionValue);
+/* JL/JNGE */void JL			(void); unsigned int getJLCycles		(void);
+/* JLE/JNG  */void JLE		(void); // unsigned int getJLECycles		(void);
+/* JB/JNAE */void JB			(void); // unsigned int getJBCycles		(void);
+/* JBE/JNA  */void JBE		(void); // unsigned int getJBECycles		(void);
+/* JLE/JNG  */void JP			(void); // unsigned int getJPCycles		(void);
+/* JP/JPE  */void JO			(void); // unsigned int getJOCycles		(void);
+void JS			(void); // unsigned int getJSCycles		(void);
+void JNZ		(void); // unsigned int getJNZCycles		(void);
+void JNL		(void); // unsigned int getJNLCycles		(void);
+void JNLE		(void); // unsigned int getJNLECycles		(void);
+void JNB		(void); // unsigned int getJNBCycles		(void);
+void JNBE		(void); // unsigned int getJNBECycles		(void);
+void JNP		(void); // unsigned int getJNPCycles		(void);
+void JNS		(void); // unsigned int getJNSCycles		(void);
 void LOOP		(void); unsigned int getLOOPCycles		(void);
 void LOOPZ		(void); unsigned int getLOOPZCycles		(void);
 void LOOPNZ		(void); unsigned int getLOOPNZCycles	(void);
 void JCXZ		(void); unsigned int getJCXZCycles		(void);
 void INT		(void); unsigned int getINTCycles		(void);
-void INTO		(void); unsigned int getINTOCycles		(void);
+void INT3		(void); // unsigned int getINT3Cycles		(void);
+void INTO		(void); // unsigned int getINTOCycles		(void);
 void IRET		(void); unsigned int getIRETCycles		(void);
 
 /* Processor Control */

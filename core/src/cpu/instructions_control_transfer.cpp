@@ -135,9 +135,9 @@ void JNBE() { JMP_SHORT_ON_CONDITION(!(cpu.getFlagStatus(CPU::CARRY) || cpu.getF
 void JNP() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::PARRITY)); }
 void JNS() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::SIGN)); }
 
-void LOOP()   { JMP_SHORT_ON_CONDITION(cpu.cx-- != 0); }
-void LOOPZ()  { JMP_SHORT_ON_CONDITION((cpu.cx-- != 0) && cpu.getFlagStatus(CPU::ZERRO)); }
-void LOOPNZ() { JMP_SHORT_ON_CONDITION((cpu.cx-- != 0) && !cpu.getFlagStatus(CPU::ZERRO)); }
+void LOOP()   { cpu.cx -= 1; JMP_SHORT_ON_CONDITION(cpu.cx != 0); }
+void LOOPZ()  { cpu.cx -= 1; JMP_SHORT_ON_CONDITION((cpu.cx != 0) && cpu.getFlagStatus(CPU::ZERRO)); }
+void LOOPNZ() { cpu.cx -= 1; JMP_SHORT_ON_CONDITION((cpu.cx != 0) && !cpu.getFlagStatus(CPU::ZERRO)); }
 
 void JCXZ() { JMP_SHORT_ON_CONDITION(cpu.cx == 0); }
 
@@ -148,7 +148,22 @@ void INT()
 	cpu.biu.endControlTransferInstruction();
 }
 
-void INTO(){}
+void INT3()
+{
+	cpu.intr_v = 3;
+	cpu.interrupt();
+	cpu.biu.endControlTransferInstruction();
+}
+
+void INTO()
+{
+	if (cpu.getFlagStatus(CPU::OVER))
+	{
+		cpu.intr_v = 4;
+		cpu.interrupt();
+	}
+	cpu.biu.endControlTransferInstruction();
+}
 
 void IRET ()
 {
