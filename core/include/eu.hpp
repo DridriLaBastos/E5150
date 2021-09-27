@@ -35,13 +35,14 @@ namespace E5150::I8086
 
 			unsigned int computeEAAndGetComputationClockCount();
 			unsigned int EAAddress;
+			unsigned int repeatCount;
 
 			xed_decoded_inst_t decodedInst;
 			const xed_inst_t* xedInst;
 			bool operandSizeWord;
+			bool repInstructionFinished;
 			bool (*clock)(void);
 			bool (*nextClockFunction)(void);
-			void (*instructionFunction)(void);
 			InstructionExtraData_t instructionExtraData;
 	};
 }

@@ -3,7 +3,7 @@ PRODUCT = epc.out
 ASSRC = $(wildcard test/*.s)
 ASOBJ = $(ASSRC:.s=.bin) test/ibm_bios.bin
 
-CXXOBJ = main.o
+CXXSRC = main.cpp
 
 CPPFLAGS := $(CPPFLAGS) -I$(PROJECT_DIR)
 LDFLAGS := $(LDFLAGS) -L$(PROJECT_DIR)/core -L$(PROJECT_DIR)/core/third-party/lib
@@ -18,8 +18,8 @@ endif
 
 all: $(PRODUCT) $(ASOBJ)
 
-$(PRODUCT): $(CXXOBJ) $(PROJECT_DIR)/core/libcore.a
-	$(CXX) $(LDFLAGS) -Xlinker -rpath -Xlinker $(DEV)/lib -o $@ $(CXXOBJ) -lcore -lsfml-system -lxed 
+$(PRODUCT): $(CXXSRC) $(PROJECT_DIR)/core/libcore.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(CXXSRC) -lcore -lxed 
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@

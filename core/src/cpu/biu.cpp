@@ -35,7 +35,9 @@ static void BIUDataAccessClock(void)
 
 static void BIUWaitPlaceInInstrutionBufferQueueClock(void)
 {
-	printf("REACHED WAIT %d\n",cpu.biu.instructionBufferQueuePos);
+	#if DEBUG_BUILD
+		printf("REACHED WAIT %d\n",cpu.biu.instructionBufferQueuePos);
+	#endif
 	if (cpu.biu.instructionBufferQueuePos >= 5)
 	{
 		#ifdef DEBUG_BUILD

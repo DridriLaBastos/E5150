@@ -4,9 +4,12 @@
 #include "instructions.hpp"
 
 using namespace E5150::I8086;
-
 static bool EUWaitSuccessfullDecodeClock(void);
+
+static void (*instructionFunction)(void) = nullptr;
+static unsigned int (*repInstructionGetNextClockCount)(const unsigned int) = nullptr;
 static unsigned int INSTRUCTION_CLOCK_LEFT = 0;
+static unsigned int REP_COUNT = 0;
 
 static void printCurrentInstruction(void)
 {
@@ -129,11 +132,35 @@ static bool EUExecInstructionClock(void)
 	#endif
 	if (INSTRUCTION_CLOCK_LEFT == 0)
 	{
-		cpu.eu.instructionFunction();
+		instructionFunction();
+
 		cpu.eu.nextClockFunction = EUWaitSuccessfullDecodeClock;
 		printRegisters();
 		printFlags();
 		return true;
+	}
+
+	INSTRUCTION_CLOCK_LEFT -= 1;
+	return false;
+}
+
+static bool EUExecRepInstructionClock(void)
+{
+	if (INSTRUCTION_CLOCK_LEFT == 0)
+	{
+		++REP_COUNT;
+		instructionFunction();
+		
+		if (cpu.eu.repInstructionFinished)
+		{
+			cpu.eu.nextClockFunction = EUWaitSuccessfullDecodeClock;
+			cpu.eu.repInstructionFinished = false;
+			return true;
+		}
+		else
+		{
+			INSTRUCTION_CLOCK_LEFT = repInstructionGetNextClockCount(REP_COUNT);
+		}
 	}
 
 	INSTRUCTION_CLOCK_LEFT -= 1;
@@ -155,401 +182,419 @@ static unsigned int prepareInstructionExecution(void)
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
 		case XED_ICLASS_MOV:
-			cpu.eu.instructionFunction = MOV;
+			instructionFunction = MOV;
 			return getMOVCycles();
 
 		case XED_ICLASS_PUSH:
-			cpu.eu.instructionFunction = PUSH;
+			instructionFunction = PUSH;
 			return getPUSHCycles();
 
 		case XED_ICLASS_POP:
-			cpu.eu.instructionFunction = POP;
+			instructionFunction = POP;
 			return getPOPCycles();
 
 		case XED_ICLASS_XCHG:
-			cpu.eu.instructionFunction = XCHG;
+			instructionFunction = XCHG;
 			return getXCHGCycles();
 
 		case XED_ICLASS_IN:
-			cpu.eu.instructionFunction = IN;
+			instructionFunction = IN;
 			return getINCycles();
 
 		case XED_ICLASS_OUT:
-			cpu.eu.instructionFunction = OUT;
+			instructionFunction = OUT;
 			return getOUTCycles();
 
 		case XED_ICLASS_XLAT:
-			cpu.eu.instructionFunction = XLAT;
+			instructionFunction = XLAT;
 			return getXLATCycles();
 
 		case XED_ICLASS_LEA:
-			cpu.eu.instructionFunction = LEA;
+			instructionFunction = LEA;
 			return getLEACycles();
 
 		case XED_ICLASS_LDS:
-			cpu.eu.instructionFunction = LDS;
+			instructionFunction = LDS;
 			return getLDSCycles();
 
 		case XED_ICLASS_LES:
-			cpu.eu.instructionFunction = LES;
+			instructionFunction = LES;
 			return getLESCycles();
 
 		case XED_ICLASS_LAHF:
-			cpu.eu.instructionFunction = LAHF;
+			instructionFunction = LAHF;
 			return getLAHFCycles();
 
 		case XED_ICLASS_SAHF:
-			cpu.eu.instructionFunction = SAHF;
+			instructionFunction = SAHF;
 			return getSAHFCycles();
 
 		case XED_ICLASS_PUSHF:
-			cpu.eu.instructionFunction = PUSHF;
+			instructionFunction = PUSHF;
 			return getPUSHFCycles();
 
 		case XED_ICLASS_POPF:
-			cpu.eu.instructionFunction = POPF;
+			instructionFunction = POPF;
 			return getPOPFCycles();
 
 		case XED_ICLASS_ADD:
 			cpu.eu.instructionExtraData.withCarry = false;
-			cpu.eu.instructionFunction = ADD;
+			instructionFunction = ADD;
 			return getADDCycles();
 
 		case XED_ICLASS_ADC:
 			cpu.eu.instructionExtraData.withCarry = true;
-			cpu.eu.instructionFunction = ADD;
+			instructionFunction = ADD;
 			return getADDCycles();
 
 		case XED_ICLASS_INC:
-			cpu.eu.instructionFunction = INC;
+			instructionFunction = INC;
 			return getINCCycles();
 
 		case XED_ICLASS_AAA:
-			cpu.eu.instructionFunction = AAA;
+			instructionFunction = AAA;
 			return getAAACycles();
 
 		case XED_ICLASS_DAA:
-			cpu.eu.instructionFunction = DAA;
+			instructionFunction = DAA;
 			return getDAACycles();
 
 		case XED_ICLASS_SUB:
 			cpu.eu.instructionExtraData.withCarry = false;
-			cpu.eu.instructionFunction = SUB;
+			instructionFunction = SUB;
 			return getSUBCycles();
 
 		case XED_ICLASS_SBB:
 			cpu.eu.instructionExtraData.withCarry = true;
-			cpu.eu.instructionFunction = SUB;
+			instructionFunction = SUB;
 			return getSUBCycles();
 
 		case XED_ICLASS_DEC:
-			cpu.eu.instructionFunction = DEC;
+			instructionFunction = DEC;
 			return getDECCycles();
 
 		case XED_ICLASS_NEG:
-			cpu.eu.instructionFunction = NEG;
+			instructionFunction = NEG;
 			return getNEGCycles();
 
 		case XED_ICLASS_CMP:
-			cpu.eu.instructionFunction = CMP;
+			instructionFunction = CMP;
 			return getCMPCycles();
 
 		case XED_ICLASS_AAS:
-			cpu.eu.instructionFunction = AAS;
+			instructionFunction = AAS;
 			return getAASCycles();
 
 		case XED_ICLASS_DAS:
-			cpu.eu.instructionFunction = DAS;
+			instructionFunction = DAS;
 			return getDASCycles();
 
 		case XED_ICLASS_MUL:
 			cpu.eu.instructionExtraData.isSigned = false;
-			cpu.eu.instructionFunction = MUL;
+			instructionFunction = MUL;
 			return getMULCycles();
 
 		case XED_ICLASS_IMUL:
 			cpu.eu.instructionExtraData.isSigned = true;
-			cpu.eu.instructionFunction = MUL;
+			instructionFunction = MUL;
 			return getIMULCycles();
 
 		case XED_ICLASS_DIV:
 			cpu.eu.instructionExtraData.isSigned = false;
-			cpu.eu.instructionFunction = DIV;
+			instructionFunction = DIV;
 			return getDIVCycles();
 
 		case XED_ICLASS_IDIV:
 			cpu.eu.instructionExtraData.isSigned = true;
-			cpu.eu.instructionFunction = DIV;
+			instructionFunction = DIV;
 			return getIDIVCycles();
 
 		case XED_ICLASS_AAD:
-			cpu.eu.instructionFunction = AAD;
+			instructionFunction = AAD;
 			return getAADCycles();
 
 		case XED_ICLASS_CBW:
-			cpu.eu.instructionFunction = CBW;
+			instructionFunction = CBW;
 			return getCBWCycles();
 
 		case XED_ICLASS_CWD:
-			cpu.eu.instructionFunction = CWD;
+			instructionFunction = CWD;
 			return getCWDCycles();
 
 		case XED_ICLASS_NOT:
-			cpu.eu.instructionFunction = NOT;
+			instructionFunction = NOT;
 			return getNOTCycles();
 
 		case XED_ICLASS_SHL:
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
-			cpu.eu.instructionFunction = SHIFT;
+			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_SHR:
-			cpu.eu.instructionFunction = SHIFT;
+			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_SAR:
 			cpu.eu.instructionExtraData.setInstructionIsArithmetic();
-			cpu.eu.instructionFunction = SHIFT;
+			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_ROL:
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
-			cpu.eu.instructionFunction = ROTATE;
+			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_ROR:
-			cpu.eu.instructionFunction = ROTATE;
+			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCL:
 			cpu.eu.instructionExtraData.setRotationWithCarry();
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
-			cpu.eu.instructionFunction = ROTATE;
+			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCR:
 			cpu.eu.instructionExtraData.setRotationWithCarry();
-			cpu.eu.instructionFunction = ROTATE;
+			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_AND:
-			cpu.eu.instructionFunction = AND;
+			instructionFunction = AND;
 			return getANDCycles();
 
 		case XED_ICLASS_TEST:
-			cpu.eu.instructionFunction = TEST;
+			instructionFunction = TEST;
 			return getTESTCycles();
 
 		case XED_ICLASS_OR:
-			cpu.eu.instructionFunction = OR;
+			instructionFunction = OR;
 			return getORCycles();
 
 		case XED_ICLASS_XOR:
-			cpu.eu.instructionFunction = XOR;
+			instructionFunction = XOR;
 			return getXORCycles();
-
+		
 		case XED_ICLASS_MOVSB:
 		case XED_ICLASS_MOVSW:
-			cpu.eu.instructionFunction = MOVS;
+			instructionFunction = MOVS;
+			repInstructionGetNextClockCount = getREP_MOVSCycles;
+			return getREP_MOVSCycles(REP_COUNT);
+
+		case XED_ICLASS_REP_MOVSB:
+		case XED_ICLASS_REP_MOVSW:
+			instructionFunction = MOVS;
 			return getMOVSCycles();
 
+		case XED_ICLASS_REPE_CMPSB:
+		case XED_ICLASS_REPNE_CMPSB:
+		case XED_ICLASS_REPE_CMPSW:
+		case XED_ICLASS_REPNE_CMPSW:
 		case XED_ICLASS_CMPSB:
 		case XED_ICLASS_CMPSW:
-			cpu.eu.instructionFunction = CMPS;
+			instructionFunction = CMPS;
 			return getCMPSCycles();
 
 		case XED_ICLASS_SCASB:
 		case XED_ICLASS_SCASW:
-			cpu.eu.instructionFunction = SCAS;
+		case XED_ICLASS_REPE_SCASB:
+		case XED_ICLASS_REPNE_SCASB:
+		case XED_ICLASS_REPE_SCASW:
+		case XED_ICLASS_REPNE_SCASW:
+			instructionFunction = SCAS;
 			return getSCASCycles();
 
 		case XED_ICLASS_LODSB:
 		case XED_ICLASS_LODSW:
-			cpu.eu.instructionFunction = LODS;
+		case XED_ICLASS_REP_LODSB:
+		case XED_ICLASS_REP_LODSW:
+			instructionFunction = LODS;
 			return getLODSCycles();
 
 		case XED_ICLASS_STOSB:
 		case XED_ICLASS_STOSW:
-			cpu.eu.instructionFunction = STOS;
+		case XED_ICLASS_REP_STOSB:
+		case XED_ICLASS_REP_STOSW:
+			instructionFunction = STOS;
 			return getSTOSCycles();
 
 		case XED_ICLASS_CALL_NEAR:
-			cpu.eu.instructionFunction = CALL_NEAR;
+			instructionFunction = CALL_NEAR;
 			return getCALLCycles();
 
 		case XED_ICLASS_CALL_FAR:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = CALL_FAR;
+			instructionFunction = CALL_FAR;
 			return getCALLCycles();
 
 		case XED_ICLASS_JMP:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JMP_NEAR;
+			instructionFunction = JMP_NEAR;
 			return getJMPCycles();
 
 		case XED_ICLASS_JMP_FAR:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JMP_FAR;
+			instructionFunction = JMP_FAR;
 			return getJMPCycles();
 
 		case XED_ICLASS_RET_NEAR:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = RET_NEAR;
+			instructionFunction = RET_NEAR;
 			return getRETCycles();
 
 		case XED_ICLASS_RET_FAR:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = RET_FAR;
+			instructionFunction = RET_FAR;
 			return getRETCycles();
 
 		case XED_ICLASS_JZ:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JZ;
+			instructionFunction = JZ;
 			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JL:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JL;
+			instructionFunction = JL;
 			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER));
 
 		case XED_ICLASS_JLE:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JLE;
+			instructionFunction = JLE;
 			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)));
 
 		case XED_ICLASS_JB:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JB;
+			instructionFunction = JB;
 			return getJXXCycles(CPU::CARRY);
 
 		case XED_ICLASS_JBE:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JBE;
+			instructionFunction = JBE;
 			return getJXXCycles(CPU::CARRY || CPU::ZERRO);
 
 		case XED_ICLASS_JP:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JP;
+			instructionFunction = JP;
 			return getJXXCycles(CPU::PARRITY);
 
 		case XED_ICLASS_JO:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JO;
+			instructionFunction = JO;
 			return getJXXCycles(cpu.getFlagStatus(CPU::OVER));
 		
 		case XED_ICLASS_JS:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JS;
+			instructionFunction = JS;
 			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN));
 
 		case XED_ICLASS_JNZ:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JNZ;
+			instructionFunction = JNZ;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JNL:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JNL;
+			instructionFunction = JNL;
 			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER));
 
 		case XED_ICLASS_JNLE:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JNLE;
+			instructionFunction = JNLE;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)));
 
 		case XED_ICLASS_JNB:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JNB;
+			instructionFunction = JNB;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY));
 
 		case XED_ICLASS_JNBE:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JNBE;
+			instructionFunction = JNBE;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY) && !cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JNP:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JNP;
+			instructionFunction = JNP;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::PARRITY));
 
 		case XED_ICLASS_JNS:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JNS;
+			instructionFunction = JNS;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::SIGN));
 
 		case XED_ICLASS_LOOP:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = LOOP;
+			instructionFunction = LOOP;
 			return getLOOPCycles();
 		
 		case XED_ICLASS_LOOPE:// = LOOPZ
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = LOOPZ;
+			instructionFunction = LOOPZ;
 			return getLOOPZCycles();
 
 		case XED_ICLASS_LOOPNE:// = LOOPNZ
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = LOOPNZ;
+			instructionFunction = LOOPNZ;
 			return getLOOPNZCycles();
 
 		case XED_ICLASS_JCXZ:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = JCXZ;
+			instructionFunction = JCXZ;
 			return getJCXZCycles();
 
 		case XED_ICLASS_INT:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = INT;
+			instructionFunction = INT;
 			return getINTCycles();
 		
 		case XED_ICLASS_INT3:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = INT3;
+			instructionFunction = INT3;
 			return getINTCycles();
 
 		case XED_ICLASS_INTO:
 			cpu.biu.startControlTransferInstruction();
-			cpu.eu.instructionFunction = INTO;
+			instructionFunction = INTO;
 			return getINTCycles();
 
 		case XED_ICLASS_IRET:
-			cpu.eu.instructionFunction = IRET;
+			instructionFunction = IRET;
 			return getIRETCycles();
 
 		case XED_ICLASS_CLC:
-			cpu.eu.instructionFunction = CLC;
+			instructionFunction = CLC;
 			return getCLCCycles();
 
 		case XED_ICLASS_CMC:
-			cpu.eu.instructionFunction = CMC;
+			instructionFunction = CMC;
 			return getCMCCycles();
 
 		case XED_ICLASS_STC:
-			cpu.eu.instructionFunction = STC;
+			instructionFunction = STC;
 			return getSTCCycles();
 
 		case XED_ICLASS_CLD:
-			cpu.eu.instructionFunction = CLD;
+			instructionFunction = CLD;
 			return getCLDCycles();
 
 		case XED_ICLASS_STD:
-			cpu.eu.instructionFunction = STD;
+			instructionFunction = STD;
 			return getSTDCycles();
 
 		case XED_ICLASS_CLI:
-			cpu.eu.instructionFunction = CLI;
+			instructionFunction = CLI;
 			return getCLICycles();
 
 		case XED_ICLASS_STI:
-			cpu.eu.instructionFunction = STI;
+			instructionFunction = STI;
 			return getSTICycles();
 
 		case XED_ICLASS_HLT:
-			cpu.eu.instructionFunction = HLT;
+			instructionFunction = HLT;
 			return getHLTCycles();
 
 		case XED_ICLASS_NOP:
-			cpu.eu.instructionFunction = NOP;
+			instructionFunction = NOP;
 			return getNOPCycles();
 
 	default:
@@ -565,6 +610,7 @@ static bool EUWaitSuccessfullDecodeClock(void)
 	if (DECODE_STATUS == XED_ERROR_NONE)
 	{
 		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
+
 		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
 		cpu.instructionExecutedCount += 1;
 		cpu.eu.nextClockFunction = EUExecInstructionClock;
@@ -576,7 +622,7 @@ static bool EUWaitSuccessfullDecodeClock(void)
 	return false;
 }
 
-EU::EU(): clock(EUWaitSuccessfullDecodeClock), nextClockFunction(EUWaitSuccessfullDecodeClock) {}
+EU::EU(): clock(EUWaitSuccessfullDecodeClock), nextClockFunction(EUWaitSuccessfullDecodeClock){}
 
 void EU::push (const uint16_t data)
 { cpu.sp -= 2; cpu.biu.writeWord(cpu.genAddress(cpu.ss,cpu.sp), data); }

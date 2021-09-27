@@ -1,5 +1,6 @@
 [CPU 8086]
 
 toJmp:
-	sahf
-	jmp toJmp
+	jmp 0:0x500
+	cli
+	hlt

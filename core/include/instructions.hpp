@@ -61,12 +61,16 @@ void XOR	(void); unsigned int getXORCycles	(void);
 
 /* String Manipulation */
 
-void REP (void); unsigned int getREPCycles (void);
 void MOVS (void); unsigned int getMOVSCycles (void);
+void REP_MOVS (void); unsigned int getREP_MOVSCycles (const unsigned int repeatCount);
 void CMPS (void); unsigned int getCMPSCycles (void);
+void REP_CMPS (void); unsigned int getREP_CMPSCycles (const unsigned int repeatCount);
 void SCAS (void); unsigned int getSCASCycles (void);
+void REP_SCAS (void); unsigned int getREP_SCASCycles (const unsigned int repeatCount);
 void LODS (void); unsigned int getLODSCycles (void);
+void REP_LODS (void); unsigned int getREP_LODSCycles (const unsigned int repeatCount);
 void STOS (void); unsigned int getSTOSCycles (void);
+void REP_STOS (void); unsigned int getREP_STOSCycles (const unsigned int repeatCount);
 
 /* Control Transfer */
 

@@ -530,12 +530,16 @@ unsigned int getXORCycles	(void)
 
 /* String Manipulation */
 
-unsigned int getREPCycles (void) { return 7 + 0; }
-unsigned int getMOVSCycles (void) { return 7 + 0; }
-unsigned int getCMPSCycles (void) { return 7 + 0; }
-unsigned int getSCASCycles (void) { return 7 + 0; }
-unsigned int getLODSCycles (void) { return 7 + 0; }
-unsigned int getSTOSCycles (void) { return 7 + 0; }
+unsigned int getMOVSCycles (void) { return 18; }
+unsigned int getREP_MOVSCycles (const unsigned int repeatCount) { return 17 + (repeatCount == 1 ? 9 : 0); }
+unsigned int getCMPSCycles (void) { return 22; }
+unsigned int getREP_CMPSCycles (const unsigned int repeatCount) { return 22 + (repeatCount == 1 ? 9 : 0); }
+unsigned int getSCASCycles (void) { return 15; }
+unsigned int getREP_SCASCycles (const unsigned int repeatCount) { return 15 + (repeatCount == 1 ? 9 : 0); }
+unsigned int getLODSCycles (void) { return 12; }
+unsigned int getREP_LODSCycles (const unsigned int repeatCount) { return 13 + (repeatCount == 1 ? 9 : 0); }
+unsigned int getSTOSCycles (void) { return 11; }
+unsigned int getREP_STOSCycles (const unsigned int repeatCount) { return 10 + (repeatCount == 1 ? 9 : 0); }
 
 /* Control Transfer */
 

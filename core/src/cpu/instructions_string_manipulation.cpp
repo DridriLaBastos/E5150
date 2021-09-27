@@ -1,8 +1,98 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
-void MOVS (void) {}
-void CMPS (void) {}
-void SCAS (void) {}
-void LODS (void) {}
-void STOS (void) {}
+#define END_REP_OPERATION()
+
+void MOVS (void)
+{
+	const unsigned int srcAddr = cpu.genAddress(cpu.ds,cpu.si);
+	const unsigned int destAddr = cpu.genAddress(cpu.ds,cpu.di);
+	const bool decrement = cpu.getFlagStatus(CPU::DIR);
+
+	if (cpu.eu.operandSizeWord)
+	{
+		cpu.biu.writeWord(destAddr,cpu.biu.readWord(srcAddr));
+		cpu.si = decrement ? (cpu.si - 2) : (cpu.si + 2);
+		cpu.di = decrement ? (cpu.di - 2) : (cpu.di + 2);
+	}
+	else
+	{
+		cpu.biu.writeByte(destAddr,cpu.biu.readByte(srcAddr));
+		cpu.si = decrement ? (cpu.si - 1) : (cpu.si + 1);
+		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1);
+	}
+}
+
+void CMPS (void)
+{
+	const unsigned int src1 = cpu.genAddress(cpu.ds,cpu.si);
+	const unsigned int src2 = cpu.genAddress(cpu.ds,cpu.di);
+	const unsigned int temp = src1 - src2;
+	const bool decrement = cpu.getFlagStatus(CPU::DIR);
+	cpu.updateStatusFlags(temp,cpu.eu.operandSizeWord);
+
+	if (cpu.eu.operandSizeWord)
+	{
+		cpu.si = decrement ? (cpu.si - 2) : (cpu.si + 2);
+		cpu.di = decrement ? (cpu.di - 2) : (cpu.di + 2);
+	}
+	else
+	{
+		cpu.si = decrement ? (cpu.si - 1) : (cpu.si + 1);
+		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1);
+	}
+}
+
+void SCAS (void)
+{
+	const unsigned int destAddr = cpu.genAddress(cpu.ds,cpu.di);
+	const bool decrement = cpu.getFlagStatus(CPU::DIR);
+	unsigned int temp;
+
+	if (cpu.eu.operandSizeWord)
+	{
+		temp = cpu.ax - cpu.biu.readWord(destAddr);
+		cpu.di = decrement ? (cpu.di - 2) : (cpu.di + 2);
+	}
+	else
+	{
+		temp = cpu.al - cpu.biu.readByte(destAddr);
+		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1);
+	}
+
+	cpu.updateStatusFlags(temp,cpu.eu.operandSizeWord);
+}
+
+void LODS (void)
+{
+	const unsigned int srcAddr = cpu.genAddress(cpu.ds,cpu.si);
+	const bool decrement = cpu.getFlagStatus(CPU::DIR);
+
+	if (cpu.eu.operandSizeWord)
+	{
+		cpu.ax = cpu.biu.readWord(srcAddr);
+		cpu.si = decrement ? (cpu.si - 2) : (cpu.si + 2);
+	}
+	else
+	{
+		cpu.al = cpu.biu.readByte(srcAddr);
+		cpu.si = decrement ? (cpu.si - 1) : (cpu.si + 1);
+	}
+}
+
+void STOS (void)
+{
+	const unsigned int destAddr = cpu.genAddress(cpu.ds,cpu.di);
+	const bool decrement = cpu.getFlagStatus(CPU::DIR);
+
+	if (cpu.eu.operandSizeWord)
+	{
+		cpu.biu.writeWord(destAddr,cpu.ax);
+		cpu.di = decrement ? (cpu.di - 2) : (cpu.di + 2);
+	}
+	else
+	{
+		cpu.biu.writeByte(destAddr,cpu.al);
+		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1);
+	}
+}
