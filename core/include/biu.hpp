@@ -34,7 +34,6 @@ namespace E5150::I8086
 			void outWord (const unsigned int address, const uint16_t data);
 		
 			void(*clock)(void);
-			void(*nextClockFunction)(void);
 			std::array<uint8_t, 5> instructionBufferQueue;
 			unsigned int instructionBufferQueuePos;
 			unsigned int EUMemoryAccessClockCountDown;

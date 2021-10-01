@@ -76,7 +76,7 @@ static void BIUInstructionFetchClock(void)
 	#endif
 }
 
-BIU::BIU(): clock(BIUInstructionFetchClock), nextClockFunction(BIUInstructionFetchClock), EUMemoryAccessClockCountDown(0),EUExecutesControlTransfertInstruction(false) {}
+BIU::BIU(): clock(BIUInstructionFetchClock), EUMemoryAccessClockCountDown(0),EUExecutesControlTransfertInstruction(false) {}
 
 void BIU::updateClockFunction()
 {
@@ -94,7 +94,8 @@ void BIU::updateClockFunction()
 
 void BIU::endControlTransferInstruction ()
 {
-	resetInstructionBufferQueue();
+	//For every control transfert instruction the size of the instruction is artificially set to 5 to clear the instruction buffer at the end of the execution of the instruction
+	cpu.eu.instructionLength = 5;
 	BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
 	cpu.biu.EUExecutesControlTransfertInstruction = false;
 }

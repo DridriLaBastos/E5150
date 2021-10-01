@@ -1,6 +1,5 @@
 #include <thread>
 #include <signal.h>
-#include <SFML/System/Clock.hpp>
 
 #include "arch.hpp"
 #include "util.hpp"
@@ -107,7 +106,7 @@ void E5150::Arch::startSimulation()
 				currentClock += 1;
 				const bool instructionExecuted = _cpu.clock();
 				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-					if (E5150::Util::_stop && instructionExecuted)
+					if (E5150::Util::_stop)
 						clockWait();
 				#endif
 				_pit.clock();

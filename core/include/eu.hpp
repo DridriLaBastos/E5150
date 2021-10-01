@@ -26,7 +26,6 @@ namespace E5150::I8086
 		public:
 			EU(void);
 
-
 			uint16_t pop (void);
 			void push (const uint16_t data);
 
@@ -36,6 +35,7 @@ namespace E5150::I8086
 			unsigned int computeEAAndGetComputationClockCount();
 			unsigned int EAAddress;
 			unsigned int repeatCount;
+			unsigned int instructionLength;
 
 			xed_decoded_inst_t decodedInst;
 			const xed_inst_t* xedInst;

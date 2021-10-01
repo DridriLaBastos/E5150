@@ -203,14 +203,44 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 	return 0;
 }
 
+static void printRegisters(void)
+{
+#if defined(SEE_REGS) ||  defined(SEE_ALL)
+	printf("CS: %#6x   DS: %#6x   ES: %#6x   SS: %#6x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
+	printf("AX: %#6x   bx: %#6x   CX: %#6x   DX: %#6x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
+	printf("SI: %#6x   DI: %#6x   BP: %#6x   SP: %#6x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
+#endif
+}
+
+static void printFlags(void)
+{
+#if defined(SEE_FLAGS) || defined(SEE_ALL)
+	printf("%s  %s  %s  %s  %s  %s  %s  %s  %s\n",(cpu.flags & CPU::OVER) ? "OF" : "of", (cpu.flags & CPU::DIR) ? "DF" : "df", (cpu.flags & CPU::INTF) ? "IF" : "if", (cpu.flags & CPU::TRAP) ? "TF" : "tf", (cpu.flags & CPU::SIGN) ? "SF" : "sf", (cpu.flags & CPU::ZERRO) ? "ZF" : "zf", (cpu.flags & CPU::A_CARRY) ? "AF" : "af", (cpu.flags & CPU::PARRITY) ? "PF" : "pf", (cpu.flags & CPU::CARRY) ? "CF" : "cf");
+#endif
+}
+
 bool CPU::clock()
 {
 	if (!hlt)
 		cpu.biu.clock();
 	const bool instructionExecuted = cpu.eu.clock();
 
-	cpu.biu.updateClockFunction();
-	cpu.eu.clock = cpu.eu.nextClockFunction;
+	if (instructionExecuted)
+	{
+		biu.instructionBufferQueuePop(cpu.eu.instructionLength);
+		instructionExecutedCount += 1;
+		#if defined(SEE_ALL) || defined(SEE_REGS)
+			printRegisters();
+		#endif
+
+		#if defined(SEE_ALL) || defined(SEE_FLAGS)
+			printFlags();
+		#endif
+	}
+
+	eu.clock = cpu.eu.nextClockFunction;
+	biu.updateClockFunction();
+
 	return instructionExecuted;
 #if 0
 	if (clockCountDown != 0)

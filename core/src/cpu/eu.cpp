@@ -109,25 +109,9 @@ static void printCurrentInstruction(void)
 	#endif
 }
 
-static void printRegisters(void)
-{
-#if defined(SEE_REGS) ||  defined(SEE_ALL)
-	printf("CS: %#6x   DS: %#6x   ES: %#6x   SS: %#6x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
-	printf("AX: %#6x   bx: %#6x   CX: %#6x   DX: %#6x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
-	printf("SI: %#6x   DI: %#6x   BP: %#6x   SP: %#6x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
-#endif
-}
-
-static void printFlags(void)
-{
-#if defined(SEE_FLAGS) || defined(SEE_ALL)
-	printf("%s  %s  %s  %s  %s  %s  %s  %s  %s\n",(cpu.flags & CPU::OVER) ? "OF" : "of", (cpu.flags & CPU::DIR) ? "DF" : "df", (cpu.flags & CPU::INTF) ? "IF" : "if", (cpu.flags & CPU::TRAP) ? "TF" : "tf", (cpu.flags & CPU::SIGN) ? "SF" : "sf", (cpu.flags & CPU::ZERRO) ? "ZF" : "zf", (cpu.flags & CPU::A_CARRY) ? "AF" : "af", (cpu.flags & CPU::PARRITY) ? "PF" : "pf", (cpu.flags & CPU::CARRY) ? "CF" : "cf");
-#endif
-}
-
 static bool EUExecInstructionClock(void)
 {
-	#ifdef SEE_CURRENT_INST
+	#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
 		printCurrentInstruction();   printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
 	#endif
 	if (INSTRUCTION_CLOCK_LEFT == 0)
@@ -135,8 +119,6 @@ static bool EUExecInstructionClock(void)
 		instructionFunction();
 
 		cpu.eu.nextClockFunction = EUWaitSuccessfullDecodeClock;
-		printRegisters();
-		printFlags();
 		return true;
 	}
 
@@ -146,6 +128,10 @@ static bool EUExecInstructionClock(void)
 
 static bool EUExecRepInstructionClock(void)
 {
+	#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
+		printCurrentInstruction();   printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
+	#endif
+
 	if (INSTRUCTION_CLOCK_LEFT == 0)
 	{
 		++REP_COUNT;
@@ -175,10 +161,9 @@ static unsigned int prepareInstructionExecution(void)
 	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu.eu.decodedInst);
 	cpu.eu.operandSizeWord = cpu.biu.instructionBufferQueue[nPrefix] & 0b1;
 	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * (cpu.eu.operandSizeWord + 1);
-	//printf("Computed by EU : Memory byte access : %d\n",memoryByteAccess);
 	cpu.biu.requestMemoryByte(memoryByteAccess);
-	for (uint8_t& b : cpu.eu.instructionExtraData.Shift_RotateFlags)
-		b = 0;
+	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu.eu.decodedInst);
+
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
 		case XED_ICLASS_MOV:
@@ -238,11 +223,13 @@ static unsigned int prepareInstructionExecution(void)
 			return getPOPFCycles();
 
 		case XED_ICLASS_ADD:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.withCarry = false;
 			instructionFunction = ADD;
 			return getADDCycles();
 
 		case XED_ICLASS_ADC:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.withCarry = true;
 			instructionFunction = ADD;
 			return getADDCycles();
@@ -260,11 +247,13 @@ static unsigned int prepareInstructionExecution(void)
 			return getDAACycles();
 
 		case XED_ICLASS_SUB:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.withCarry = false;
 			instructionFunction = SUB;
 			return getSUBCycles();
 
 		case XED_ICLASS_SBB:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.withCarry = true;
 			instructionFunction = SUB;
 			return getSUBCycles();
@@ -290,21 +279,25 @@ static unsigned int prepareInstructionExecution(void)
 			return getDASCycles();
 
 		case XED_ICLASS_MUL:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.isSigned = false;
 			instructionFunction = MUL;
 			return getMULCycles();
 
 		case XED_ICLASS_IMUL:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.isSigned = true;
 			instructionFunction = MUL;
 			return getIMULCycles();
 
 		case XED_ICLASS_DIV:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.isSigned = false;
 			instructionFunction = DIV;
 			return getDIVCycles();
 
 		case XED_ICLASS_IDIV:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.isSigned = true;
 			instructionFunction = DIV;
 			return getIDIVCycles();
@@ -326,6 +319,7 @@ static unsigned int prepareInstructionExecution(void)
 			return getNOTCycles();
 
 		case XED_ICLASS_SHL:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
@@ -335,11 +329,13 @@ static unsigned int prepareInstructionExecution(void)
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_SAR:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.setInstructionIsArithmetic();
 			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_ROL:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
@@ -349,12 +345,14 @@ static unsigned int prepareInstructionExecution(void)
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCL:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.setRotationWithCarry();
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCR:
+			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.setRotationWithCarry();
 			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
@@ -378,47 +376,69 @@ static unsigned int prepareInstructionExecution(void)
 		case XED_ICLASS_MOVSB:
 		case XED_ICLASS_MOVSW:
 			instructionFunction = MOVS;
-			repInstructionGetNextClockCount = getREP_MOVSCycles;
-			return getREP_MOVSCycles(REP_COUNT);
+			return getMOVSCycles();
 
 		case XED_ICLASS_REP_MOVSB:
 		case XED_ICLASS_REP_MOVSW:
-			instructionFunction = MOVS;
-			return getMOVSCycles();
+			REP_COUNT = 0;
+			instructionFunction = REP_MOVS;
+			repInstructionGetNextClockCount = getREP_MOVSCycles;
+			return getREP_MOVSCycles(REP_COUNT);
 
-		case XED_ICLASS_REPE_CMPSB:
-		case XED_ICLASS_REPNE_CMPSB:
-		case XED_ICLASS_REPE_CMPSW:
-		case XED_ICLASS_REPNE_CMPSW:
 		case XED_ICLASS_CMPSB:
 		case XED_ICLASS_CMPSW:
 			instructionFunction = CMPS;
 			return getCMPSCycles();
 
+		case XED_ICLASS_REPE_CMPSB:
+		case XED_ICLASS_REPNE_CMPSB:
+		case XED_ICLASS_REPE_CMPSW:
+		case XED_ICLASS_REPNE_CMPSW:
+			REP_COUNT = 0;
+			instructionFunction = REP_CMPS;
+			repInstructionGetNextClockCount = getREP_CMPSCycles;
+			return getREP_CMPSCycles(REP_COUNT);
+
 		case XED_ICLASS_SCASB:
 		case XED_ICLASS_SCASW:
+			instructionFunction = SCAS;
+			return getSCASCycles();
+
 		case XED_ICLASS_REPE_SCASB:
 		case XED_ICLASS_REPNE_SCASB:
 		case XED_ICLASS_REPE_SCASW:
 		case XED_ICLASS_REPNE_SCASW:
-			instructionFunction = SCAS;
+			REP_COUNT = 0;
+			instructionFunction = REP_SCAS;
+			repInstructionGetNextClockCount = getREP_SCASCycles;
 			return getSCASCycles();
 
 		case XED_ICLASS_LODSB:
 		case XED_ICLASS_LODSW:
-		case XED_ICLASS_REP_LODSB:
-		case XED_ICLASS_REP_LODSW:
 			instructionFunction = LODS;
 			return getLODSCycles();
 
+		case XED_ICLASS_REP_LODSB:
+		case XED_ICLASS_REP_LODSW:
+			REP_COUNT = 0;
+			instructionFunction = REP_LODS;
+			repInstructionGetNextClockCount = getREP_LODSCycles;
+			return getREP_LODSCycles(REP_COUNT);
+
 		case XED_ICLASS_STOSB:
 		case XED_ICLASS_STOSW:
-		case XED_ICLASS_REP_STOSB:
-		case XED_ICLASS_REP_STOSW:
 			instructionFunction = STOS;
 			return getSTOSCycles();
 
+		case XED_ICLASS_REP_STOSB:
+		case XED_ICLASS_REP_STOSW:
+			REP_COUNT = 0;
+			instructionFunction = REP_STOS;
+			repInstructionGetNextClockCount = getREP_STOSCycles;
+			return getREP_STOSCycles(REP_COUNT);
+
 		case XED_ICLASS_CALL_NEAR:
+			cpu.biu.startControlTransferInstruction();
 			instructionFunction = CALL_NEAR;
 			return getCALLCycles();
 
@@ -610,11 +630,8 @@ static bool EUWaitSuccessfullDecodeClock(void)
 	if (DECODE_STATUS == XED_ERROR_NONE)
 	{
 		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
-
-		cpu.biu.instructionBufferQueuePop(xed_decoded_inst_get_length(&cpu.eu.decodedInst));
-		cpu.instructionExecutedCount += 1;
 		cpu.eu.nextClockFunction = EUExecInstructionClock;
-		#ifdef SEE_CURRENT_INST
+		#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
 			printCurrentInstruction();
 		#endif
 	}

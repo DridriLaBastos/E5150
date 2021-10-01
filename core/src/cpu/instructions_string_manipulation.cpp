@@ -1,28 +1,21 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
-#define END_REP_OPERATION()
+#define MOVS_OPERATIONS() const unsigned int srcAddr = cpu.genAddress(cpu.ds,cpu.si);\
+	const unsigned int destAddr = cpu.genAddress(cpu.ds,cpu.di);\
+	const bool decrement = cpu.getFlagStatus(CPU::DIR);\
+	if (cpu.eu.operandSizeWord) {\
+		cpu.biu.writeWord(destAddr,cpu.biu.readWord(srcAddr));\
+		cpu.si = decrement ? (cpu.si - 2) : (cpu.si + 2);\
+		cpu.di = decrement ? (cpu.di - 2) : (cpu.di + 2); } else {\
+		cpu.biu.writeByte(destAddr,cpu.biu.readByte(srcAddr));\
+		cpu.si = decrement ? (cpu.si - 1) : (cpu.si + 1);\
+		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1); }
 
-void MOVS (void)
-{
-	const unsigned int srcAddr = cpu.genAddress(cpu.ds,cpu.si);
-	const unsigned int destAddr = cpu.genAddress(cpu.ds,cpu.di);
-	const bool decrement = cpu.getFlagStatus(CPU::DIR);
+void REP_MOVS(void) {}
+void MOVS(void) { MOVS_OPERATIONS(); }
 
-	if (cpu.eu.operandSizeWord)
-	{
-		cpu.biu.writeWord(destAddr,cpu.biu.readWord(srcAddr));
-		cpu.si = decrement ? (cpu.si - 2) : (cpu.si + 2);
-		cpu.di = decrement ? (cpu.di - 2) : (cpu.di + 2);
-	}
-	else
-	{
-		cpu.biu.writeByte(destAddr,cpu.biu.readByte(srcAddr));
-		cpu.si = decrement ? (cpu.si - 1) : (cpu.si + 1);
-		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1);
-	}
-}
-
+void REP_CMPS(void) {}
 void CMPS (void)
 {
 	const unsigned int src1 = cpu.genAddress(cpu.ds,cpu.si);
@@ -43,6 +36,7 @@ void CMPS (void)
 	}
 }
 
+void REP_SCAS(void) {}
 void SCAS (void)
 {
 	const unsigned int destAddr = cpu.genAddress(cpu.ds,cpu.di);
@@ -63,6 +57,7 @@ void SCAS (void)
 	cpu.updateStatusFlags(temp,cpu.eu.operandSizeWord);
 }
 
+void REP_LODS(void) {}
 void LODS (void)
 {
 	const unsigned int srcAddr = cpu.genAddress(cpu.ds,cpu.si);
@@ -80,6 +75,7 @@ void LODS (void)
 	}
 }
 
+void REP_STOS(void) {}
 void STOS (void)
 {
 	const unsigned int destAddr = cpu.genAddress(cpu.ds,cpu.di);
