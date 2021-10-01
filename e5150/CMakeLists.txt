@@ -1,8 +1,6 @@
-add_subdirectory(../core)
-
 add_executable(e5150 main.cpp)
 
-target_link_libraries(core PUBLIC e5150)
-target_include_directories(e5150 PUBLIC "${PROJECT_BINATY_DIR}/core/include")
+add_dependencies(e5150 core)
 
-add_library(core)
+target_link_libraries(e5150 PUBLIC core)
+target_include_directories(e5150 PUBLIC "${PROJECT_SOURCE_DIR}")
