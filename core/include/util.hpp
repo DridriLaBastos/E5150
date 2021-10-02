@@ -1,7 +1,6 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
-#include "pch.hpp"
 #include "config.hpp"
 
 constexpr unsigned int DEBUG_LEVEL_MAX = 10;

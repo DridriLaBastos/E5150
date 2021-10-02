@@ -1,3 +1,4 @@
+#include "core/include/pch.hpp"
 #include "core/include/arch.hpp"
 
 /* Exemple de fonctionnement */
