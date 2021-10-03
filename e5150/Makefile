@@ -16,10 +16,8 @@ endif
 
 .PHONY: clean mrproper run
 
-all: $(PRODUCT) $(ASOBJ)
-
-$(PRODUCT): $(CXXSRC) $(PROJECT_DIR)/core/libcore.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(CXXSRC) -lcore -lxed 
+$(PRODUCT): $(CXXSRC) $(PROJECT_DIR)/core/libcore.a | $(ASOBJ)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(CXXSRC) -lcore -lxed
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@
@@ -31,7 +29,7 @@ run:
 	./$(PRODUCT)
 
 clean:
-	rm -f *.o
+	rm -f $(CXXOBJ) $(ASOBJ)
 
 mrproper:
 	rm -f $(PRODUCT)

@@ -25,8 +25,6 @@ endif
 $(PRODUCT): $(CXXOBJ)
 	$(AR) -vrcu $@ $^
 
-$(CXXOBJ): %.o: %.d
-
 $(THIRD_PARTY_LIB):
 	$(MAKE) -C third-party
 
