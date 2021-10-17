@@ -17,7 +17,7 @@ endif
 .PHONY: clean mrproper run
 
 $(PRODUCT): $(CXXSRC) $(PROJECT_DIR)/core/libcore.a | $(ASOBJ)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(CXXSRC) -lcore -lxed
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LDFLAGS) -o $@ $(CXXSRC) -lcore
 
 %.bin: %.s test/util.inc
 	nasm -f bin $< -o $@

@@ -23,7 +23,8 @@ endif
 .PHONY: clean mrproper
 
 $(PRODUCT): $(CXXOBJ)
-	$(AR) -vrcu $@ $^
+	$(AR) -x $(THIRD_PARTY_LIB)
+	$(AR) -vrcu $@ $^ *.o
 
 $(THIRD_PARTY_LIB):
 	$(MAKE) -C third-party
@@ -35,7 +36,7 @@ $(PCHOBJ): $(PCHSRC) $(THIRD_PARTY_LIB)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) $@ $<
 
 clean:
-	rm -f $(CXXOBJ)
+	rm -f *.o
 
 mrproper:
 	rm -f $(PRODUCT)
