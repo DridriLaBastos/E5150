@@ -17,8 +17,10 @@ BUILD_XED = $(shell sh xed-is-missing.sh)
 THIRD_PARTY_LIB = 
 
 ifeq ($(BUILD_XED),1)
-	THIRD_PARTY_LIB += third-party/lib/libxed.a
+	XED_LIB = third-party/lib/libxed.a
 endif
+
+THIRD_PARTY_LIB = $(XED_LIB)
 
 .PHONY: clean mrproper
 
@@ -36,7 +38,7 @@ $(PCHOBJ): $(PCHSRC) $(THIRD_PARTY_LIB)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(DEPFLAGS) $@ $<
 
 clean:
-	rm -f *.o
+	rm -f $(CXXOBJ) *.o
 
 mrproper:
 	rm -f $(PRODUCT)

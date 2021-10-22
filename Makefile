@@ -11,7 +11,7 @@ ifneq ($(RELEASE),0)
 	CXX := $(CXX) --std=c++17 -O3 -flto
 	DEBUG = 0
 else
-	CXX := $(CXX) --std=c++17 -O0 -g
+	CXX := $(CXX) --std=c++17 -Og -g
 endif
 
 ifneq ($(DEBUG),0)
