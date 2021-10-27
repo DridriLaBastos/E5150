@@ -18,6 +18,6 @@
 //#define SEE_REGS
 //#define SEE_FLAGS
 
-#endif//DEBUG_BUILD
+#endif//CONFIG_HPP
 
 #endif//CONFIG_HPP

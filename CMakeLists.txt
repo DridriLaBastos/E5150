@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(E5150 VERSION 0.1 LANGUAGES C CXX ASM_NASM)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+project(E5150
+		VERSION 0.1
+		DESCRIPTION "Clock accurate emulator of the IBM PC 5150"
+		LANGUAGES C CXX ASM_NASM)
+
+set(CMAKE_BUILD_TYPE "Debug")
 
 #Maybe using a configuration file later
 #configure_file(config.hpp.in config.hpp)
-
-if (${CMAKE_BUILD_TYPE} MATCHES DEBUG)
-add_definitions(-DDEBUG_BUILD)
-endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

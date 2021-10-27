@@ -1,5 +1,7 @@
 project(libcore)
 
+add_compile_definitions($<$<CONFIG:Debug>:DEBUG_BUILD>)
+
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_custom_command(OUTPUT third-party/lib/libxed.a third-party/lib/libxed-ild.a third-party/include/xed
