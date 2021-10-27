@@ -7,8 +7,6 @@ project(E5150
 		DESCRIPTION "Clock accurate emulator of the IBM PC 5150"
 		LANGUAGES C CXX ASM_NASM)
 
-set(CMAKE_BUILD_TYPE "Debug")
-
 #Maybe using a configuration file later
 #configure_file(config.hpp.in config.hpp)
 

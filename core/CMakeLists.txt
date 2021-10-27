@@ -1,5 +1,7 @@
 project(libcore)
 
+message("Build type: '${CMAKE_BUILD_TYPE}'")
+
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG_BUILD>)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
