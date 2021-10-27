@@ -46,3 +46,7 @@ core/third-party/xed/kits
 
 # macOS files
 *.DS_Store
+
+# Cmake
+*[Cc][Mm][Aa][Kk][Ee]*
+Makefile
