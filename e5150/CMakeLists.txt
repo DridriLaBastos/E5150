@@ -1,27 +1,36 @@
 project(e5150)
 
 enable_language(ASM_NASM)
-set(CMAKE_ASM_NASM_SOURCE_FILE_EXTENSIONS ${CMAKE_ASM_NASM_SOURCE_FILE_EXTENSIONS} S s)
-set(CMAKE_ASM_NASM_FLAGS ${CMAKE_ASM_NASM_FLAGS} -f bi -I${PROJECT_SOURCE_DIR})
 
-message("${CMAKE_ASM_NASM_FLAGS}")
-message("${CMAKE_CXX_FLAGS}")
-
-
-#message("${CMAKE_ASM_NASM_SOURCE_FILE_EXTENSIONS}")
-
-add_executable(epc.out main.cpp)
-add_library(asm OBJECT test/bios.s test/interrupts.s test/jmp.s)
-#add_dependencies(epc.out bios interrupts jmp)
+set(CMAKE_ASM_NASM_OBJECT_FORMAT bin)
+set(CMAKE_ASM_NASM_FLAGS "-I ${PROJECT_SOURCE_DIR}")
 
 file(DOWNLOAD https://ibm.retropc.se/bios/BIOS_5150_24APR81_U33.BIN ${PROJECT_BINARY_DIR}/test/ibm_bios.bin SHOW_PROGRESS)
 
-#add_custom_target(bios ${CMAKE_ASM_NASM_COMPILER} -f bin -I${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/test/bios.s -o ${PROJECT_BINARY_DIR}/test/bios.bin)
-#add_custom_target(interrupts ${CMAKE_ASM_NASM_COMPILER} -f bin -I${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/test/interrupts.s -o ${PROJECT_BINARY_DIR}/test/interrupts.bin)
-#add_custom_target(jmp ${CMAKE_ASM_NASM_COMPILER} -f bin -I${PROJECT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/test/jmp.s -o ${PROJECT_BINARY_DIR}/test/jmp.bin)
+add_custom_command(OUTPUT test/bios.bin
+					COMMAND ${CMAKE_ASM_NASM_COMPILER} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${CMAKE_ASM_NASM_FLAGS} ${PROJECT_SOURCE_DIR}/test/bios.s -o test/bios.bin
+					DEPENDS test/bios.s
+					BYPRODUCTS test/bios.bin
+				)
 
-add_dependencies(epc.out asm)
+add_custom_command(OUTPUT test/interrupts.bin
+					COMMAND ${CMAKE_ASM_NASM_COMPILER} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${CMAKE_ASM_NASM_FLAGS} ${PROJECT_SOURCE_DIR}/test/interrupts.s -o test/interrupts.bin
+					DEPENDS test/interrupts.s
+					BYPRODUCTS test/interrupts.bin
+				)
+
+add_custom_command(OUTPUT test/jmp.bin
+					COMMAND ${CMAKE_ASM_NASM_COMPILER} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${CMAKE_ASM_NASM_FLAGS} ${PROJECT_SOURCE_DIR}/test/jmp.s -o test/jmp.bin
+					DEPENDS test/jmp.s
+					BYPRODUCTS test/jmp.bin
+				)
+
+add_custom_target(bios DEPENDS test/bios.bin)
+add_custom_target(interrupts DEPENDS test/interrupts.bin)
+add_custom_target(jmp DEPENDS test/jmp.bin)
+
+add_executable(epc.out main.cpp)
+add_dependencies(epc.out bios interrupts jmp)
 
 target_link_directories(epc.out PUBLIC "${PROJECT_BINARY_DIR}/../core/third-party/lib")
-
-target_link_libraries(epc.out PUBLIC core PRIVATE xed)
+target_link_libraries(epc.out PUBLIC core PRIVATE libxed.a)
