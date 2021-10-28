@@ -1,6 +1,9 @@
 # Prerequisites
 *.d
 
+# Cmake Folder
+build 
+
 # Compiled Object files
 *.slo
 *.lo
@@ -43,5 +46,7 @@ core/third-party/xed/kits
 
 # macOS files
 *.DS_Store
-*.dSYM
-__.SYMDEF SORTED
+
+# Cmake
+*[Cc][Mm][Aa][Kk][Ee]*
+Makefile
