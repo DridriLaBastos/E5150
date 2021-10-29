@@ -29,7 +29,10 @@ add_custom_target(bios DEPENDS test/bios.bin)
 add_custom_target(interrupts DEPENDS test/interrupts.bin)
 add_custom_target(jmp DEPENDS test/jmp.bin)
 
-add_executable(epc.out main.cpp)
+file(GLOB TEST_ASM_SRC "test/*.s")
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${TEST_ASM_SRC})
+
+add_executable(epc.out main.cpp ${TEST_ASM_SRC})
 add_dependencies(epc.out bios interrupts jmp)
 
 target_link_directories(epc.out PUBLIC "${PROJECT_BINARY_DIR}/../core/third-party/lib")

@@ -1,6 +1,7 @@
 project(libcore)
 
 message("Build type: '${CMAKE_BUILD_TYPE}'")
+message(${PROJECT_SOURCE_DIR})
 
 add_compile_definitions($<$<CONFIG:Debug>:DEBUG_BUILD>)
 
@@ -13,7 +14,15 @@ add_custom_command(OUTPUT third-party/lib/libxed.a third-party/lib/libxed-ild.a 
 
 add_custom_target(xed DEPENDS third-party/lib/libxed.a)
 
-add_library(core STATIC src/arch.cpp src/cpu.cpp src/floppy.cpp src/pic.cpp src/pit.cpp src/ports.cpp src/ppi.cpp src/ram.cpp)
+file(GLOB COMPILED_SOURCES "src/*.cpp")
+file(GLOB INCLUDED_SOURCES "src/cpu/*.cpp" "src/floppy/*.cpp")
+file(GLOB HEADERS "include/*.hpp")
+set_source_files_properties(${INCLUDED_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
+
+source_group(TREE ${PROJECT_SOURCE_DIR}/src FILES ${COMPILED_SOURCES} ${INCLUDED_SOURCES})
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${HEADERS})
+
+add_library(core STATIC ${COMPILED_SOURCES} ${INCLUDED_SOURCES} ${HEADERS})
 
 add_dependencies(core xed)
 target_include_directories(core PUBLIC ${PROJECT_BINARY_DIR}/third-party/include PUBLIC ${PROJECT_SOURCE_DIR}/include)
