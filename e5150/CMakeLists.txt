@@ -25,15 +25,29 @@ add_custom_command(OUTPUT test/jmp.bin
 					BYPRODUCTS test/jmp.bin
 				)
 
+add_custom_command(OUTPUT test/clock_test.bin
+					COMMAND ${CMAKE_ASM_NASM_COMPILER} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${CMAKE_ASM_NASM_FLAGS} ${PROJECT_SOURCE_DIR}/test/clock_test.s -o test/clock_test.bin
+					DEPENDS test/clock_test.s
+					BYPRODUCTS test/clock_test.bin
+				)
+
+add_custom_command(OUTPUT test/jmp0.bin
+				COMMAND ${CMAKE_ASM_NASM_COMPILER} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${CMAKE_ASM_NASM_FLAGS} ${PROJECT_SOURCE_DIR}/test/jmp0.s -o test/jmp0.bin
+				DEPENDS test/jmp0.s
+				BYPRODUCTS test/jmp0.bin
+			)
+
 add_custom_target(bios DEPENDS test/bios.bin)
 add_custom_target(interrupts DEPENDS test/interrupts.bin)
 add_custom_target(jmp DEPENDS test/jmp.bin)
+add_custom_target(jmp0 DEPENDS test/jmp0.bin)
+add_custom_target(clock_test DEPENDS test/clock_test.bin)
 
 file(GLOB TEST_ASM_SRC "test/*.s")
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${TEST_ASM_SRC})
 
 add_executable(epc.out main.cpp ${TEST_ASM_SRC})
-add_dependencies(epc.out bios interrupts jmp)
+add_dependencies(epc.out bios interrupts jmp jmp0 clock_test)
 
 target_link_directories(epc.out PUBLIC "${PROJECT_BINARY_DIR}/../core/third-party/lib")
 
