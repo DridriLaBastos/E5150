@@ -9,7 +9,6 @@
 #include <vector>
 #include <utility>
 #include <fstream>
-#include <cstdint>
 #include <stdint.h>
 #include <iostream>
 #include <algorithm>

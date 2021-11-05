@@ -18,7 +18,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 include_directories(${PROJECT_SOURCE_DIR}/third-party/spdlog/include ${PROJECT_SOURCE_DIR})
 
-
 add_subdirectory(core)
 add_subdirectory(e5150)
 
