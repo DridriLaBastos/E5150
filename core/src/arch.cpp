@@ -4,8 +4,6 @@
 #include "arch.hpp"
 #include "util.hpp"
 
-using FloatMicroDuration = std::chrono::duration<float, std::micro>;
-
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
@@ -80,7 +78,6 @@ static void clockWait()
 
 void E5150::Arch::startSimulation()
 {
-
 	auto timeForAllBlocks = std::chrono::microseconds::zero();
 	unsigned int blockCount = 0;
 	unsigned int currentClock = 0;
@@ -92,7 +89,6 @@ void E5150::Arch::startSimulation()
 		while (Util::_continue)
 		{
 			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
-			//The next block is launch if we have enougth time (we can run at less clock than specified but not more)
 			unsigned int clockToExecute = CLOCK_PER_BLOCKS;
 			const unsigned int clocksLeftAfterThisBlock = BASE_CLOCK - (currentClock + CLOCK_PER_BLOCKS);
 			
@@ -104,11 +100,21 @@ void E5150::Arch::startSimulation()
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
 				currentClock += 1;
-				const bool instructionExecuted = _cpu.clock();
-				#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-					if (E5150::Util::_stop)
-						clockWait();
+				
+				#if !defined(STOP_AT_CLOCK) && !defined(STOP_AT_INSTRUCTION)
+					_cpu.clock();
+				#else
+					#ifdef STOP_AT_CLOCK
+						_cpu.clock();
+						if (E5150::Util::_stop)
+							clockWait();
+					#else
+						const bool instructionExecuted = _cpu.clock();
+						if(instructionExecuted && E5150::Util::_stop)
+							clockWait();
+					#endif
 				#endif
+
 				_pit.clock();
 
 				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
@@ -126,8 +132,8 @@ void E5150::Arch::startSimulation()
 			blockCount += 1;
 			timeForAllBlocks += timeForBlock;
 
-			if (microsecondsToWait.count() > 0)
-				std::this_thread::sleep_for(microsecondsToWait);
+			if (microsecondsToWait > std::chrono::microseconds(0))
+			{ std::this_thread::sleep_for(microsecondsToWait); }
 		#endif
 			//printf("%d\n", (std::chrono::high_resolution_clock::now() - loopBegin).count());
 			if (std::chrono::high_resolution_clock::now() - loopBegin >= std::chrono::seconds(1))

@@ -28,10 +28,6 @@ using Clock = std::chrono::high_resolution_clock;
 #define WARNING(...)	spdlog::warn(__VA_ARGS__)
 #define ERROR(...)		spdlog::error(__VA_ARGS__)
 
-#if defined(DEBUG_BUILD) || defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-	#define CLOCK_PAUSE
-#endif
-
 #ifdef DEBUG_BUILD
 	#define ASSERT(x) assert(x)
 #else

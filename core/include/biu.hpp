@@ -13,7 +13,7 @@ namespace E5150::I8086
 			void instructionBufferQueuePop(const unsigned int n);
 			void resetInstructionBufferQueue(void);
 			void startControlTransferInstruction (void);
-			void endControlTransferInstruction (void);
+			void endControlTransferInstruction (const bool flushInstructionBuffer = false);
 
 			uint8_t readByte (const unsigned int address) const;
 			uint16_t readWord (const unsigned int address) const;
@@ -36,8 +36,6 @@ namespace E5150::I8086
 			void(*clock)(void);
 			std::array<uint8_t, 5> instructionBufferQueue;
 			unsigned int instructionBufferQueuePos;
-			unsigned int EUMemoryAccessClockCountDown;
-			bool EUExecutesControlTransfertInstruction;
 	};
 }
 

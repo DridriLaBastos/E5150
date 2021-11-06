@@ -75,11 +75,11 @@ void REP_STOS (void); unsigned int getREP_STOSCycles (const unsigned int repeatC
 /* Control Transfer */
 
 void CALL_NEAR	(void); unsigned int getCALLCycles (void);
-void CALL_FAR	(void); // unsigned int getCALL_FARCycles	(void);
+void CALL_FAR	(void); unsigned int getCALL_FARCycles	(void);
 void JMP_NEAR	(void); unsigned int getJMPCycles		(void);
-void JMP_FAR	(void); // unsigned int getJMP_FARCycles	(void);
+void JMP_FAR	(void); unsigned int getJMP_FARCycles	(void);
 void RET_NEAR	(void); unsigned int getRETCycles	(void);
-void RET_FAR	(void); // unsigned int getRET_FARCycles	(void);
+void RET_FAR	(void); unsigned int getRET_FARCycles	(void);
 /* JE/JZ   */void JZ			(void); unsigned int getJXXCycles		(const bool conditionValue);
 /* JL/JNGE */void JL			(void); unsigned int getJLCycles		(void);
 /* JLE/JNG  */void JLE		(void); // unsigned int getJLECycles		(void);

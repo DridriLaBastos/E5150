@@ -12,7 +12,15 @@
 		cpu.si = decrement ? (cpu.si - 1) : (cpu.si + 1);\
 		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1); }
 
-void REP_MOVS(void) {}
+#define COMPUTE_REP_INSTRUCTION_END_CONDITION()\
+	cpu.cx == 0 || ((cpu.biu.instructionBufferQueue[0] & 1) & !cpu.getFLagStatus(CPU::ZERO)
+
+void REP_MOVS(void)
+{
+	MOVS_OPERATIONS();
+	cpu.cx -= cpu.eu.operanSizeWord ? 2 : 1;
+}
+
 void MOVS(void) { MOVS_OPERATIONS(); }
 
 void REP_CMPS(void) {}

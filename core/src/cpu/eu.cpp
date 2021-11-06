@@ -6,6 +6,7 @@
 using namespace E5150::I8086;
 static bool EUWaitSuccessfullDecodeClock(void);
 
+static bool (*nextClockFunction)(void) = nullptr;
 static void (*instructionFunction)(void) = nullptr;
 static unsigned int (*repInstructionGetNextClockCount)(const unsigned int) = nullptr;
 static unsigned int INSTRUCTION_CLOCK_LEFT = 0;
@@ -104,21 +105,23 @@ static void printCurrentInstruction(void)
 			++realOperandPos;
 		}
 	}
+		printf(" (iform: '%s') ", xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)));
 
-	printf(" (%d)",cpu.instructionExecutedCount);
+	printf(" (%d)\n",cpu.instructionExecutedCount);
 	#endif
 }
 
 static bool EUExecInstructionClock(void)
 {
 	#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
-		printCurrentInstruction();   printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
+		printCurrentInstruction();
+	printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
 	#endif
 	if (INSTRUCTION_CLOCK_LEFT == 0)
 	{
 		instructionFunction();
 
-		cpu.eu.nextClockFunction = EUWaitSuccessfullDecodeClock;
+		nextClockFunction = EUWaitSuccessfullDecodeClock;
 		return true;
 	}
 
@@ -139,7 +142,7 @@ static bool EUExecRepInstructionClock(void)
 		
 		if (cpu.eu.repInstructionFinished)
 		{
-			cpu.eu.nextClockFunction = EUWaitSuccessfullDecodeClock;
+			nextClockFunction = EUWaitSuccessfullDecodeClock;
 			cpu.eu.repInstructionFinished = false;
 			return true;
 		}
@@ -445,7 +448,7 @@ static unsigned int prepareInstructionExecution(void)
 		case XED_ICLASS_CALL_FAR:
 			cpu.biu.startControlTransferInstruction();
 			instructionFunction = CALL_FAR;
-			return getCALLCycles();
+			return getCALL_FARCycles();
 
 		case XED_ICLASS_JMP:
 			cpu.biu.startControlTransferInstruction();
@@ -455,7 +458,7 @@ static unsigned int prepareInstructionExecution(void)
 		case XED_ICLASS_JMP_FAR:
 			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JMP_FAR;
-			return getJMPCycles();
+			return getJMP_FARCycles();
 
 		case XED_ICLASS_RET_NEAR:
 			cpu.biu.startControlTransferInstruction();
@@ -465,7 +468,7 @@ static unsigned int prepareInstructionExecution(void)
 		case XED_ICLASS_RET_FAR:
 			cpu.biu.startControlTransferInstruction();
 			instructionFunction = RET_FAR;
-			return getRETCycles();
+			return getRET_FARCycles();
 
 		case XED_ICLASS_JZ:
 			cpu.biu.startControlTransferInstruction();
@@ -629,17 +632,22 @@ static bool EUWaitSuccessfullDecodeClock(void)
 
 	if (DECODE_STATUS == XED_ERROR_NONE)
 	{
-		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
-		cpu.eu.nextClockFunction = EUExecInstructionClock;
 		#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
 			printCurrentInstruction();
+		#endif
+		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
+		nextClockFunction = EUExecInstructionClock;
+		#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
+			printf("Clock cycles: %d\n",INSTRUCTION_CLOCK_LEFT);
 		#endif
 	}
 
 	return false;
 }
 
-EU::EU(): clock(EUWaitSuccessfullDecodeClock), nextClockFunction(EUWaitSuccessfullDecodeClock){}
+EU::EU(): clock(EUWaitSuccessfullDecodeClock) { nextClockFunction = EUWaitSuccessfullDecodeClock; }
+
+void EU::updateClockFunction() { clock = nextClockFunction; }
 
 void EU::push (const uint16_t data)
 { cpu.sp -= 2; cpu.biu.writeWord(cpu.genAddress(cpu.ss,cpu.sp), data); }

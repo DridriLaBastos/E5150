@@ -5,12 +5,14 @@ using namespace E5150::I8086;
 
 static constexpr unsigned int BUS_CYCLE_CLOCK = 4;
 static unsigned int BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
+static unsigned int EU_DATA_ACCESS_CLOCK_LEFT = 0;
+static bool EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = false;
 
 static void BIUInstructionFetchClock(void);
 
 static void BIUWaitEndOfControlTransfertInstructionClock(void)
 {
-	if (BUS_CYCLE_CLOCK_LEFT > 0)
+	if (BUS_CYCLE_CLOCK_LEFT < BUS_CYCLE_CLOCK)
 	{
 		BUS_CYCLE_CLOCK_LEFT -= 1;
 
@@ -28,27 +30,25 @@ static void BIUWaitEndOfControlTransfertInstructionClock(void)
 static void BIUDataAccessClock(void)
 {
 	#ifdef DEBUG_BUILD
-		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", cpu.biu.EUMemoryAccessClockCountDown);
+		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", EU_DATA_ACCESS_CLOCK_LEFT);
 	#endif
-	cpu.biu.EUMemoryAccessClockCountDown -= 1;
+	EU_DATA_ACCESS_CLOCK_LEFT -= 1;
 }
 
 static void BIUWaitPlaceInInstrutionBufferQueueClock(void)
 {
-	#if DEBUG_BUILD
-		printf("REACHED WAIT %d\n",cpu.biu.instructionBufferQueuePos);
+	#ifdef DEBUG_BUILD
+		printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
 	#endif
-	if (cpu.biu.instructionBufferQueuePos >= 5)
-	{
-		#ifdef DEBUG_BUILD
-			printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
-		#endif
-		return;
-	}
 }
 
 static void BIUInstructionFetchClock(void)
 {
+	BUS_CYCLE_CLOCK_LEFT -= 1;
+	#ifdef DEBUG_BUILD
+		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+	#endif
+
 	if (BUS_CYCLE_CLOCK_LEFT == 0)
 	{
 		if (cpu.biu.instructionBufferQueuePos < 5)
@@ -69,50 +69,41 @@ static void BIUInstructionFetchClock(void)
 			BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
 		}
 	}
-
-	BUS_CYCLE_CLOCK_LEFT -= 1;
-	#ifdef DEBUG_BUILD
-		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
-	#endif
 }
 
-BIU::BIU(): clock(BIUInstructionFetchClock), EUMemoryAccessClockCountDown(0),EUExecutesControlTransfertInstruction(false) {}
+BIU::BIU(): clock(BIUInstructionFetchClock) {}
 
 void BIU::updateClockFunction()
 {
-	clock = BIUInstructionFetchClock;
+	//If a new bus cycle is about to start a new clock function is used to execute custom functions
+	if (BUS_CYCLE_CLOCK_LEFT == BUS_CYCLE_CLOCK)
+	{
+		clock = BIUInstructionFetchClock;
 
-	if (cpu.biu.instructionBufferQueuePos >= 5)
-		clock = BIUWaitPlaceInInstrutionBufferQueueClock;
-	
-	if (cpu.biu.EUExecutesControlTransfertInstruction)
-		clock = BIUWaitEndOfControlTransfertInstructionClock;
+		//No special action are required but the buffer queu is full
+		if (cpu.biu.instructionBufferQueuePos >= 5)
+			clock = BIUWaitPlaceInInstrutionBufferQueueClock;
 
-	if (cpu.biu.EUMemoryAccessClockCountDown > 0)
-		clock = BIUDataAccessClock;
+		//A control transfert instruction is being executed and no data are required
+		//TODO: Is there a case were EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION goes from true to false in less than the clock cycles needed to complete the current bus cycle ?
+		if (EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION)
+			clock = BIUWaitEndOfControlTransfertInstructionClock;
+
+		//Biger priority: the EU request data from memory
+		if (EU_DATA_ACCESS_CLOCK_LEFT > 0)
+			clock = BIUDataAccessClock;
+	}
 }
 
-void BIU::endControlTransferInstruction ()
+void BIU::endControlTransferInstruction (const bool flushInstructionQueue)
 {
-	//For every control transfert instruction the size of the instruction is artificially set to 5 to clear the instruction buffer at the end of the execution of the instruction
-	cpu.eu.instructionLength = 5;
-	BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
-	cpu.biu.EUExecutesControlTransfertInstruction = false;
+	if (flushInstructionQueue)
+		cpu.eu.instructionLength = 5;
+	EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = false;
 }
 
 void BIU::startControlTransferInstruction()
-{
-	cpu.biu.EUExecutesControlTransfertInstruction = true;
-
-	/**
-	 * BIU.BIUInstructionFetchClock always starts a new bus cycle.
-	 * The decoding of the instruction is done in EU.clock, called after BIU.BIUInstructionFetchClock
-	 * 
-	 * If a control transfert instruction is detected and BIU.BIUInstructionFetchClock started a new bus cycle, we want to cancel this bus cycle because in real hardware the BIU and EU runs concurrently and the control transfert instruction will be detected before the new bus cycle is launched
-	 */
-	if (BUS_CYCLE_CLOCK_LEFT == BUS_CYCLE_CLOCK)
-		BUS_CYCLE_CLOCK_LEFT = 0;
-}
+{ EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = true; }
 
 void BIU::instructionBufferQueuePop(const unsigned int n)
 {
@@ -122,12 +113,12 @@ void BIU::instructionBufferQueuePop(const unsigned int n)
 }
 
 void BIU::resetInstructionBufferQueue(){ instructionBufferQueuePos = 0; }
-void BIU::requestMemoryByte(const unsigned int nBytes) noexcept { EUMemoryAccessClockCountDown += nBytes * BUS_CYCLE_CLOCK; }
+void BIU::requestMemoryByte(const unsigned int nBytes) noexcept { EU_DATA_ACCESS_CLOCK_LEFT += nBytes * BUS_CYCLE_CLOCK; }
 
-uint8_t BIU::readByte (const unsigned int address) const { return ram.read(address); }
+uint8_t BIU::readByte (const unsigned int address) const { EU_DATA_ACCESS_CLOCK_LEFT += 4; return ram.read(address); }
 uint16_t BIU::readWord (const unsigned int address) const { return (readByte(address + 1) << 8) | readByte(address); }
 
-void BIU::writeByte (const unsigned int address, const uint8_t byte) const { ram.write(address, byte); }
+void BIU::writeByte (const unsigned int address, const uint8_t byte) const { EU_DATA_ACCESS_CLOCK_LEFT += 4; ram.write(address, byte); }
 void BIU::writeWord (const unsigned int address, const uint16_t word) const { writeByte(address,(uint8_t)word); writeByte(address+1,word >> 8); }
 
 //TODO: Get the clock access count per components

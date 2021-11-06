@@ -238,7 +238,7 @@ bool CPU::clock()
 		#endif
 	}
 
-	eu.clock = cpu.eu.nextClockFunction;
+	eu.updateClockFunction();
 	biu.updateClockFunction();
 
 	return instructionExecuted;

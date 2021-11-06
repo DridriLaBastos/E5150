@@ -1,10 +1,11 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
+//TODO: Is reseting cs still necessary ?
 #define JMP_SHORT_ON_CONDITION(COND) if(COND){\
 										cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);\
 										cpu.cs = cpu.cs;}\
-										cpu.biu.endControlTransferInstruction();
+										cpu.biu.endControlTransferInstruction(COND);
 
 void CALL_NEAR()
 {

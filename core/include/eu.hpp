@@ -28,6 +28,7 @@ namespace E5150::I8086
 
 			uint16_t pop (void);
 			void push (const uint16_t data);
+			void updateClockFunction(void);
 
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);
@@ -42,7 +43,6 @@ namespace E5150::I8086
 			bool operandSizeWord;
 			bool repInstructionFinished;
 			bool (*clock)(void);
-			bool (*nextClockFunction)(void);
 			InstructionExtraData_t instructionExtraData;
 	};
 }
