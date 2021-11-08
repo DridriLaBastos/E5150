@@ -13,12 +13,13 @@
 		cpu.di = decrement ? (cpu.di - 1) : (cpu.di + 1); }
 
 #define COMPUTE_REP_INSTRUCTION_END_CONDITION()\
-	cpu.cx == 0 || ((cpu.biu.instructionBufferQueue[0] & 1) & !cpu.getFLagStatus(CPU::ZERO)
+	cpu.cx == 0 || ((cpu.biu.instructionBufferQueue[0] & 1) & !cpu.getFlagStatus(CPU::ZERRO))
 
 void REP_MOVS(void)
 {
 	MOVS_OPERATIONS();
-	cpu.cx -= cpu.eu.operanSizeWord ? 2 : 1;
+	cpu.cx -= cpu.eu.operandSizeWord ? 2 : 1;
+	cpu.eu.repInstructionFinished = COMPUTE_REP_INSTRUCTION_END_CONDITION();
 }
 
 void MOVS(void) { MOVS_OPERATIONS(); }

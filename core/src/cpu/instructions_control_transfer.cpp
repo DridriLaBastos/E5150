@@ -1,10 +1,13 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
-//TODO: Is reseting cs still necessary ?
-#define JMP_SHORT_ON_CONDITION(COND) if(COND){\
-										cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);\
-										cpu.cs = cpu.cs;}\
+//Two types of JMP_NEAR: classic jmp near (jmp within a segment) or jmp short if the displacement is 1 byte long
+//If displacement is one octet long the displacement is interpreted as a value in the -128 +127 range. In this case the jmp is a short jmp and the displacement is added to the value of ip of the next instruction. The BIU increments IP at each fetch and stop the fetch (thus stop incrementing IP) when a control transfert instruction is detected. So at the time of executing this macro, the value of IP is already pointing to the instruction following the jmp
+#define JMP_NEAR_MACRO() const unsigned int branchWidth = xed_decoded_inst_get_branch_displacement_width(&cpu.eu.decodedInst);\
+			const int displacement = xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);\
+			cpu.ip = displacement + (branchWidth == 1 ? cpu.ip : 0);
+
+#define JMP_NEAR_ON_CONDITION(COND) if(COND){ JMP_NEAR_MACRO(); }\
 										cpu.biu.endControlTransferInstruction(COND);
 
 void CALL_NEAR()
@@ -68,7 +71,7 @@ void JMP_NEAR()
 			break;
 
 		case XED_OPERAND_RELBR:
-			cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+			JMP_NEAR_MACRO();
 			break;
 	}
 
@@ -120,27 +123,28 @@ void RET_FAR()
 	cpu.biu.endControlTransferInstruction();
 }
 
-void JZ()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO)); }
-void JL()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)); }
-void JLE() { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))); }
-void JB()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY)); }
-void JBE() { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO)); }
-void JP()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::PARRITY)); }
-void JO()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::OVER)); }
-void JS()  { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN)); }
-void JNZ() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO)); }
-void JNL() { JMP_SHORT_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)); }
-void JNLE() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))); }
-void JNB() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::CARRY)); }
-void JNBE() { JMP_SHORT_ON_CONDITION(!(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO))); }
-void JNP() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::PARRITY)); }
-void JNS() { JMP_SHORT_ON_CONDITION(!cpu.getFlagStatus(CPU::SIGN)); }
+//TODO: Wrong clock cycles for JO (at least)
+void JZ()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO)); }
+void JL()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)); }
+void JLE() { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))); }
+void JB()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY)); }
+void JBE() { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO)); }
+void JP()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::PARRITY)); }
+void JO()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::OVER)); }
+void JS()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN)); }
+void JNZ() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO)); }
+void JNL() { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)); }
+void JNLE() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))); }
+void JNB() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::CARRY)); }
+void JNBE() { JMP_NEAR_ON_CONDITION(!(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO))); }
+void JNP() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::PARRITY)); }
+void JNS() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::SIGN)); }
 
-void LOOP()   { cpu.cx -= 1; JMP_SHORT_ON_CONDITION(cpu.cx != 0); }
-void LOOPZ()  { cpu.cx -= 1; JMP_SHORT_ON_CONDITION((cpu.cx != 0) && cpu.getFlagStatus(CPU::ZERRO)); }
-void LOOPNZ() { cpu.cx -= 1; JMP_SHORT_ON_CONDITION((cpu.cx != 0) && !cpu.getFlagStatus(CPU::ZERRO)); }
+void LOOP()   { cpu.cx -= 1; JMP_NEAR_ON_CONDITION(cpu.cx != 0); }
+void LOOPZ()  { cpu.cx -= 1; JMP_NEAR_ON_CONDITION((cpu.cx != 0) && cpu.getFlagStatus(CPU::ZERRO)); }
+void LOOPNZ() { cpu.cx -= 1; JMP_NEAR_ON_CONDITION((cpu.cx != 0) && !cpu.getFlagStatus(CPU::ZERRO)); }
 
-void JCXZ() { JMP_SHORT_ON_CONDITION(cpu.cx == 0); }
+void JCXZ() { JMP_NEAR_ON_CONDITION(cpu.cx == 0); }
 
 void INT()
 {
