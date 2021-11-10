@@ -19,8 +19,7 @@ int main (void)
 		ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
 		//ram.load("test/test.bin",0);
 	#endif
-	std::cout << std::showbase;
+
 	arch.startSimulation();
-	std::cout << std::noshowbase;
 	return EXIT_SUCCESS;
 }

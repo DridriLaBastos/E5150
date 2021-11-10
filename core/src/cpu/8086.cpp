@@ -67,15 +67,13 @@ void CPU::testCF (const unsigned int value, const bool wordSize)
 
 void CPU::testPF (unsigned int value)
 {
-	unsigned int count = 0;
+	unsigned int count = 1;
 
-	while (value)
+	while (value & 0xFF)
 	{
-		if (value & 0b1)
-			++count;
+		count += value & 1;
 		value >>= 1;
 	}
-
 	updateFlag(PARRITY, count & 1);
 }
 

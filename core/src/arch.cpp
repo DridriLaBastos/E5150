@@ -135,7 +135,6 @@ void E5150::Arch::startSimulation()
 			if (microsecondsToWait > std::chrono::microseconds(0))
 			{ std::this_thread::sleep_for(microsecondsToWait); }
 		#endif
-			//printf("%d\n", (std::chrono::high_resolution_clock::now() - loopBegin).count());
 			if (std::chrono::high_resolution_clock::now() - loopBegin >= std::chrono::seconds(1))
 			{
 			#if not defined(DEBUG_BUILD)

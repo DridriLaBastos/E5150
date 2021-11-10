@@ -78,29 +78,30 @@ void SHIFT	(void)
 	{
 		if (shiftCount == 0)
 			return destValue;
+
 		const unsigned int operandMSBMask = cpu.eu.operandSizeWord ? 0x8000 : 0x80;
 		const bool directionIsLeft = cpu.eu.instructionExtraData.directionIsLeft();
 		const bool instructionIsSAR = cpu.eu.instructionExtraData.instructionIsArithmetic();
 		
-		unsigned int tempDest = destValue;
-		const unsigned int carryFlagValueMask = directionIsLeft ? (operandMSBMask >> (shiftCount - 1)) : (1 << (shiftCount - 1));
+		const unsigned int tmpDest = directionIsLeft ? (destValue << shiftCount) : (destValue >> shiftCount);
+		const bool newCarryFlagValue = directionIsLeft ? (tmpDest & (operandMSBMask << 1)) : (destValue & (1 << (shiftCount - 1)));
 		
-		cpu.updateFlag(CPU::CARRY, tempDest & carryFlagValueMask);
-		tempDest = directionIsLeft ? (tempDest << shiftCount) : (tempDest >> shiftCount);
+		cpu.updateFlag(CPU::CARRY, newCarryFlagValue);
 
 		if (shiftCount == 1)
 		{
 			if (directionIsLeft)
-				cpu.updateFlag(CPU::OVER,(tempDest & operandMSBMask) ^ cpu.getFlagStatus(CPU::CARRY));
+				cpu.updateFlag(CPU::OVER,((bool)(tmpDest & operandMSBMask)) ^ newCarryFlagValue);
 			else
-				cpu.updateFlag(CPU::OVER,instructionIsSAR ? false : (tempDest & operandMSBMask));
+				cpu.updateFlag(CPU::OVER,instructionIsSAR ? false : (destValue & operandMSBMask));
 		}
-		else if (shiftCount > 1)
-			cpu.updateFlag(CPU::OVER,instructionIsSAR ? false : (tempDest & operandMSBMask));
-
-		return tempDest & (operandMSBMask - 1);
+		else
+			cpu.clearFlags(CPU::OVER);
+		
+		//Converting 0x80 to 0xFF for byte operand and 0x8000 to 0xFFFF for word operand
+		return tmpDest & ((operandMSBMask << 1) - 1);
 	});
-
+	
 	cpu.testSF(result);   cpu.testZF(result);   cpu.testPF(result);
 }
 

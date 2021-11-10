@@ -5,8 +5,8 @@
 #define VERSION_MINOR 1
 
 #ifdef DEBUG_BUILD
-	#define STOP_AT_CLOCK
-	//#define STOP_AT_INSTRUCTION
+	//#define STOP_AT_CLOCK
+	#define STOP_AT_INSTRUCTION
 	#define SEE_CURRENT_INST
 	#define SEE_REGS
 	#define SEE_FLAGS
