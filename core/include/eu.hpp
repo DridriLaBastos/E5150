@@ -22,6 +22,8 @@ namespace E5150::I8086
 
 				void setRotationWithCarry(void) { Shift_RotateFlags[0] |= 0b100; }
 				bool rotationWithCarry(void) const { return Shift_RotateFlags[0] & 0b100; }
+				
+				void clearData(void) { isSigned = 0; }
 			};
 		public:
 			EU(void);

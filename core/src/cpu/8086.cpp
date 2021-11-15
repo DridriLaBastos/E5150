@@ -60,9 +60,8 @@ bool CPU::getFlagStatus (const CPU::FLAGS_T flag) const
 
 void CPU::testCF (const unsigned int value, const bool wordSize)
 {
-	const bool newFlagValue = wordSize ? (value > (uint8_t)0xFFFF || ((signed)value < (int8_t)0x8000)): 
-										 (value > (uint8_t)0x00FF || ((signed)value < (int8_t)0x0080));
-	updateFlag(CARRY,newFlagValue);
+	const unsigned int carryMask = ~(wordSize ? 0xFFFF : 0xFF);
+	updateFlag(CARRY,value & carryMask);
 }
 
 void CPU::testPF (unsigned int value)

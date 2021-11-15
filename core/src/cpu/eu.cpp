@@ -322,23 +322,24 @@ static unsigned int prepareInstructionExecution(void)
 			return getNOTCycles();
 
 		case XED_ICLASS_SHL:
-			cpu.eu.instructionExtraData.isSigned = 0;
+			cpu.eu.instructionExtraData.clearData();
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_SHR:
+			cpu.eu.instructionExtraData.clearData();
 			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_SAR:
-			cpu.eu.instructionExtraData.isSigned = 0;
+			cpu.eu.instructionExtraData.clearData();
 			cpu.eu.instructionExtraData.setInstructionIsArithmetic();
 			instructionFunction = SHIFT;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_ROL:
-			cpu.eu.instructionExtraData.isSigned = 0;
+			cpu.eu.instructionExtraData.clearData();
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
@@ -348,14 +349,14 @@ static unsigned int prepareInstructionExecution(void)
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCL:
-			cpu.eu.instructionExtraData.isSigned = 0;
+			cpu.eu.instructionExtraData.clearData();
 			cpu.eu.instructionExtraData.setRotationWithCarry();
 			cpu.eu.instructionExtraData.setDirectionIsLeft();
 			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
 
 		case XED_ICLASS_RCR:
-			cpu.eu.instructionExtraData.isSigned = 0;
+			cpu.eu.instructionExtraData.clearData();
 			cpu.eu.instructionExtraData.setRotationWithCarry();
 			instructionFunction = ROTATE;
 			return getSHIFT_ROTATECycles(nPrefix);
