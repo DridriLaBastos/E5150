@@ -26,20 +26,20 @@ static void BIUWaitEndOfControlTransfertInstructionClock(void)
 	{
 		BUS_CYCLE_CLOCK_LEFT -= 1;
 
-		#ifdef DEBUG_BUILD
+		#ifdef STOP_AT_CLOCK
 			printf("BIU: ENDING BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
 		#endif
 		return;
 	}
 
-	#ifdef DEBUG_BUILD
+	#ifdef STOP_AT_CLOCK
 		printf("BIU: WAITING END OF CONTROL TRANSFERT INSTRUCTION\n");
 	#endif
 }
 
 static void BIUDataAccessClock(void)
 {
-	#ifdef DEBUG_BUILD
+	#ifdef STOP_AT_CLOCK
 		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", EU_DATA_ACCESS_CLOCK_LEFT);
 	#endif
 	EU_DATA_ACCESS_CLOCK_LEFT -= 1;
@@ -47,7 +47,7 @@ static void BIUDataAccessClock(void)
 
 static void BIUWaitPlaceInInstrutionBufferQueueClock(void)
 {
-	#ifdef DEBUG_BUILD
+	#ifdef STOP_AT_CLOCK
 		printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
 	#endif
 }
@@ -55,7 +55,7 @@ static void BIUWaitPlaceInInstrutionBufferQueueClock(void)
 static void BIUInstructionFetchClock(void)
 {
 	BUS_CYCLE_CLOCK_LEFT -= 1;
-	#ifdef DEBUG_BUILD
+	#ifdef STOP_AT_CLOCK
 		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
 	#endif
 
@@ -68,7 +68,7 @@ static void BIUInstructionFetchClock(void)
 			cpu.ip += 1;
 			cpu.biu.instructionBufferQueuePos += 1;
 
-			#ifdef DEBUG_BUILD
+			#ifdef STOP_AT_CLOCK
 				printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
 				printf("Instruction buffer: ");

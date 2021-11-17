@@ -34,6 +34,8 @@ using Clock = std::chrono::high_resolution_clock;
 	#define ASSERT(x)
 #endif
 
+#define FORCE_INLINE inline __attribute__((always_inline))
+
 //Print nothing if not in debug build
 template <unsigned int DEBUG_LEVEL_REQUIRED,class... Args>
 void debug(Args&&... args)

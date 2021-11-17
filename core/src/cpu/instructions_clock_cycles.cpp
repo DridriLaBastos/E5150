@@ -400,18 +400,30 @@ unsigned int getNOTCycles	(void)
 unsigned int getSHIFT_ROTATECycles (const unsigned int nPrefix)
 {
 	CLOCK_CYCLES(
-		8,// GPR8_CL
-		0,// GPR8_IMMb (doesn't exist on 808x)
-		2,// GPR8_ONE
-		8,// GPRv_CL
-		0,// GPRv_IMMb (doesn't exist on 808x)
-		2,// GPRv_ONE
-		28,// MEMb_CL
-		0,// MEMb_IMMb (doesn't exist on 808x)
-		23,// MEMb_ONE
-		28,// MEMv_CL
-		0,// MEMv_IMMb (doesn't exist on 808x)
-		23// MEMv_ONE
+		8,// XED_IFORM_SHL_GPR8_CL_D2r4
+		8,// XED_IFORM_SHL_GPR8_CL_D2r6
+		// XED_IFORM_SHL_GPR8_IMMb_C0r4 (not implemented in 808x)
+		// XED_IFORM_SHL_GPR8_IMMb_C0r6 (not implemented in 808x)
+		2,// XED_IFORM_SHL_GPR8_ONE_D0r4
+		2,// XED_IFORM_SHL_GPR8_ONE_D0r6
+		8,// XED_IFORM_SHL_GPRv_CL_D3r4
+		8,// XED_IFORM_SHL_GPRv_CL_D3r6
+		// XED_IFORM_SHL_GPRv_IMMb_C1r4 (not implemented in 808x)
+		// XED_IFORM_SHL_GPRv_IMMb_C1r6 (not implemented in 808x)
+		2,// XED_IFORM_SHL_GPRv_ONE_D1r4
+		2,// XED_IFORM_SHL_GPRv_ONE_D1r6
+		20,// XED_IFORM_SHL_MEMb_CL_D2r4
+		20,// XED_IFORM_SHL_MEMb_CL_D2r6
+		// XED_IFORM_SHL_MEMb_IMMb_C0r4 (not implemented in 808x)
+		// XED_IFORM_SHL_MEMb_IMMb_C0r6 (not implemented in 808x)
+		15,// XED_IFORM_SHL_MEMb_ONE_D0r4
+		15,// XED_IFORM_SHL_MEMb_ONE_D0r6
+		20,// XED_IFORM_SHL_MEMv_CL_D3r4
+		20,// XED_IFORM_SHL_MEMv_CL_D3r6
+		// XED_IFORM_SHL_MEMv_IMMb_C1r4 (not implemented in 808x)
+		// XED_IFORM_SHL_MEMv_IMMb_C1r6 (not implemented in 808x)
+		15,// XED_IFORM_SHL_MEMv_ONE_D1r4
+		15// XED_IFORM_SHL_MEMv_ONE_D1r6
 	);
 
 	ADD_EA_ON_MEM_OPERAND();
@@ -529,17 +541,18 @@ unsigned int getXORCycles	(void)
 }
 
 /* String Manipulation */
-
-unsigned int getMOVSCycles (void) { return 18; }
-unsigned int getREP_MOVSCycles (const unsigned int repeatCount) { return 17 + (repeatCount == 1 ? 9 : 0); }
-unsigned int getCMPSCycles (void) { return 22; }
-unsigned int getREP_CMPSCycles (const unsigned int repeatCount) { return 22 + (repeatCount == 1 ? 9 : 0); }
-unsigned int getSCASCycles (void) { return 15; }
-unsigned int getREP_SCASCycles (const unsigned int repeatCount) { return 15 + (repeatCount == 1 ? 9 : 0); }
-unsigned int getLODSCycles (void) { return 12; }
-unsigned int getREP_LODSCycles (const unsigned int repeatCount) { return 13 + (repeatCount == 1 ? 9 : 0); }
-unsigned int getSTOSCycles (void) { return 11; }
-unsigned int getREP_STOSCycles (const unsigned int repeatCount) { return 10 + (repeatCount == 1 ? 9 : 0); }
+unsigned int getMOVSCycles (void) { return cpu.eu.operandSizeWord ? 26 : 18; }
+unsigned int getREP_MOVSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 25 : 17); }
+//TODO: find accurate clock cycles
+unsigned int getCMPSCycles (void) { return cpu.eu.operandSizeWord ? 30 : 22; }
+unsigned int getREP_CMPSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : 30; }
+unsigned int getSCASCycles (void) { return 19; }
+unsigned int getREP_SCASCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 19 : 15); }
+unsigned int getLODSCycles (void) { return 16; }
+//TODO: clock value from my mind, I didn't find infos about the rep clock cycle version
+unsigned int getREP_LODSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 15 : 14); }
+unsigned int getSTOSCycles (void) { return cpu.eu.operandSizeWord ? 15 : 11; }
+unsigned int getREP_STOSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 14 : 10); }
 
 /* Control Transfer */
 

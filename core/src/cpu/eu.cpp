@@ -14,7 +14,6 @@ static unsigned int REP_COUNT = 0;
 
 static void printCurrentInstruction(void)
 {
-	#if defined(SEE_CURRENT_INST) || defined(SEE_ALL)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
@@ -108,12 +107,11 @@ static void printCurrentInstruction(void)
 		printf(" (iform: '%s') ", xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)));
 
 	printf(" (%d)\n",cpu.instructionExecutedCount);
-	#endif
 }
 
 static bool EUExecInstructionClock(void)
 {
-	#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
+	#ifdef STOP_AT_CLOCK
 		printCurrentInstruction();
 	printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
 	#endif
@@ -131,7 +129,7 @@ static bool EUExecInstructionClock(void)
 
 static bool EUExecRepInstructionClock(void)
 {
-	#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
+	#if defined(STOP_AT_CLOCK)
 		printCurrentInstruction();   printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
 	#endif
 
@@ -156,7 +154,7 @@ static bool EUExecRepInstructionClock(void)
 	return false;
 }
 
-//TODO: How to handle REP, LOCK, WAIT and ESC
+//TODO: How to handle LOCK, WAIT and ESC
 static unsigned int prepareInstructionExecution(void)
 {
 	//At the end of the instructions that access memory there is w bit = 0 for byte operand and 1 one for word operands.
@@ -387,6 +385,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_MOVS;
 			repInstructionGetNextClockCount = getREP_MOVSCycles;
+			nextClockFunction = EUExecRepInstructionClock;
 			return getREP_MOVSCycles(REP_COUNT);
 
 		case XED_ICLASS_CMPSB:
@@ -401,6 +400,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_CMPS;
 			repInstructionGetNextClockCount = getREP_CMPSCycles;
+			nextClockFunction = EUExecRepInstructionClock;
 			return getREP_CMPSCycles(REP_COUNT);
 
 		case XED_ICLASS_SCASB:
@@ -415,7 +415,8 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_SCAS;
 			repInstructionGetNextClockCount = getREP_SCASCycles;
-			return getSCASCycles();
+			nextClockFunction = EUExecRepInstructionClock;
+			return getREP_SCASCycles(REP_COUNT);
 
 		case XED_ICLASS_LODSB:
 		case XED_ICLASS_LODSW:
@@ -427,6 +428,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_LODS;
 			repInstructionGetNextClockCount = getREP_LODSCycles;
+			nextClockFunction = EUExecRepInstructionClock;
 			return getREP_LODSCycles(REP_COUNT);
 
 		case XED_ICLASS_STOSB:
@@ -439,6 +441,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_STOS;
 			repInstructionGetNextClockCount = getREP_STOSCycles;
+			nextClockFunction = EUExecRepInstructionClock;
 			return getREP_STOSCycles(REP_COUNT);
 
 		case XED_ICLASS_CALL_NEAR:
@@ -633,12 +636,10 @@ static bool EUWaitSuccessfullDecodeClock(void)
 
 	if (DECODE_STATUS == XED_ERROR_NONE)
 	{
-		#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
-			printCurrentInstruction();
-		#endif
-		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
 		nextClockFunction = EUExecInstructionClock;
-		#if defined(SEE_ALL) || defined(SEE_CURRENT_INST)
+		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
+		#if defined(STOP_AT_CLOCK) || defined(STOP_AT_INSTRUCTION)
+			printCurrentInstruction();
 			printf("Clock cycles: %d\n",INSTRUCTION_CLOCK_LEFT);
 		#endif
 	}

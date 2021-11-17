@@ -1,15 +1,6 @@
 #include "arch.hpp"
 #include "instructions.hpp"
 
-//Two types of JMP_NEAR: classic jmp near (jmp within a segment) or jmp short if the displacement is 1 byte long
-//If displacement is one octet long the displacement is interpreted as a value in the -128 +127 range. In this case the jmp is a short jmp and the displacement is added to the value of ip of the next instruction. The BIU increments IP at each fetch and stop the fetch (thus stop incrementing IP) when a control transfert instruction is detected. So at the time of executing this macro, the value of IP is already pointing to the instruction following the jmp
-#define JMP_NEAR_MACRO() const unsigned int branchWidth = xed_decoded_inst_get_branch_displacement_width(&cpu.eu.decodedInst);\
-			const int displacement = xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);\
-			cpu.ip = displacement + (branchWidth == 1 ? cpu.ip : 0);
-
-#define JMP_NEAR_ON_CONDITION(COND) if(COND){ JMP_NEAR_MACRO(); }\
-										cpu.biu.endControlTransferInstruction(COND);
-
 void CALL_NEAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
@@ -71,7 +62,7 @@ void JMP_NEAR()
 			break;
 
 		case XED_OPERAND_RELBR:
-			JMP_NEAR_MACRO();
+			cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
 			break;
 	}
 
@@ -121,6 +112,13 @@ void RET_FAR()
 		cpu.regs[CPU::SP] += xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
 	
 	cpu.biu.endControlTransferInstruction();
+}
+
+static FORCE_INLINE void JMP_NEAR_ON_CONDITION(const bool condition)
+{
+	if(condition)
+	{ cpu.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst); }
+	cpu.biu.endControlTransferInstruction(condition);
 }
 
 //TODO: Wrong clock cycles for JO (at least)
