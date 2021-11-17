@@ -52,4 +52,4 @@ add_dependencies(epc.out bios interrupts jmp jmp0 clock_test)
 target_link_directories(epc.out PUBLIC "${PROJECT_BINARY_DIR}/../core/third-party/lib")
 
 #TODO: Removing link to libxed by embedding exd into libcore
-target_link_libraries(epc.out PUBLIC core PRIVATE libxed.a)
+target_link_libraries(epc.out PUBLIC core)

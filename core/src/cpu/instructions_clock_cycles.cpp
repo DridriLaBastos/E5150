@@ -598,7 +598,6 @@ unsigned int getJMPCycles		(void)
 	);
 
 	ADD_EA_ON_MEM_OPERAND();
-	printf("%d\n",xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst));
 	return clockCount;
 }
 

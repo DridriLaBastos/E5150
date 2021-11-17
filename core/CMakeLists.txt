@@ -20,8 +20,15 @@ set_source_files_properties(${INCLUDED_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE
 source_group(TREE ${PROJECT_SOURCE_DIR}/src FILES ${COMPILED_SOURCES} ${INCLUDED_SOURCES})
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${HEADERS})
 
-
 add_library(core STATIC ${COMPILED_SOURCES} ${INCLUDED_SOURCES} ${HEADERS})
+
+if(CMAKE_AR)
+	add_custom_command(TARGET core POST_BUILD
+					COMMAND ${CMAKE_AR} ARGS -x third-party/lib/libxed.a
+					COMMAND ${CMAKE_AR} ARGS -rvu $<TARGET_FILE:core> *.o
+					WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+					)
+endif(CMAKE_AR)
 
 add_dependencies(core xed)
 target_include_directories(core PUBLIC ${PROJECT_BINARY_DIR}/third-party/include PUBLIC ${PROJECT_SOURCE_DIR}/include)
