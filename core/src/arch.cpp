@@ -37,7 +37,7 @@ E5150::FDC E5150::Arch::_fdc(pic,ports);
 E5150::Arch::Arch()
 {
 	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
-	#ifndef STOP_AT_END
+	#ifndef STOP_AT_INSTRUCTION
 		INFO("Configured : {} clk per block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
 	#endif
 	INFO("This program use the library Intel XED to decode the instructions");
@@ -124,7 +124,7 @@ void E5150::Arch::startSimulation()
 				}
 			}
 
-		#if !defined(STOP_AT_END) && !defined(CLOCK_DEBUG)
+		#if !defined(DEBUG_BUILD)
 			const auto blockEnd = std::chrono::high_resolution_clock::now();
 			const auto timeForBlock = std::chrono::duration_cast<std::chrono::microseconds>(blockEnd - blockBegin);
 			const std::chrono::microseconds microsecondsToWait = realTimeForBlock - timeForBlock;
