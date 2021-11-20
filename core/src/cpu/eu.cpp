@@ -12,14 +12,20 @@ static unsigned int (*repInstructionGetNextClockCount)(const unsigned int) = nul
 static unsigned int INSTRUCTION_CLOCK_LEFT = 0;
 static unsigned int REP_COUNT = 0;
 
+#ifdef UNIT_TEST
+	#define INSTRUCTION_PRINT std::cerr
+#else
+	#define INSTRUCTION_PRINT std::cout
+#endif
+
 static void printCurrentInstruction(void)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
-	std::cout << std::hex << cpu.cs << ":" << cpu.ip << " (" << cpu.genAddress(cpu.cs,cpu.ip) << ")" << std::dec << ": ";
-	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " : length = " << xed_decoded_inst_get_length(&cpu.eu.decodedInst) << std::endl;
-	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " ";
+	INSTRUCTION_PRINT << std::hex << cpu.cs << ":" << cpu.ip << " (" << cpu.genAddress(cpu.cs,cpu.ip) << ")" << std::dec << ": ";
+	INSTRUCTION_PRINT << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " : length = " << xed_decoded_inst_get_length(&cpu.eu.decodedInst) << std::endl;
+	INSTRUCTION_PRINT << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " ";
 	unsigned int realOperandPos = 0;
 	bool foundPtr = false;
 
@@ -32,35 +38,35 @@ static void printCurrentInstruction(void)
 		{
 			if (foundPtr)
 			{
-				std::cout << ":";
+				INSTRUCTION_PRINT << ":";
 				foundPtr = false;
 			}
 			else
 			{
 				if (realOperandPos > 0)
-					std::cout << ", ";
+					INSTRUCTION_PRINT<< ", ";
 			}
 
 			switch (op_name)
 			{
 			case XED_OPERAND_RELBR:
-				std::cout << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF);
+				INSTRUCTION_PRINT << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF);
 				break;
 
 			case XED_OPERAND_PTR:
-				std::cout << std::hex << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
+				INSTRUCTION_PRINT << std::hex << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
 				foundPtr = true;
 				break;
 
 			case XED_OPERAND_REG0:
 			case XED_OPERAND_REG1:
 			case XED_OPERAND_REG2:
-				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
+				INSTRUCTION_PRINT << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 				break;
 
 			case XED_OPERAND_IMM0:
 			case XED_OPERAND_IMM1:
-				std::cout << std::hex << (xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
+				INSTRUCTION_PRINT << std::hex << (xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
 				break;
 
 			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
@@ -69,17 +75,17 @@ static void printCurrentInstruction(void)
 				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&cpu.eu.decodedInst, 0);
 				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&cpu.eu.decodedInst, 0);
 				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&cpu.eu.decodedInst,0);
-				std::cout << ((xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 1) ? "BYTE" : "WORD") << " ";
-				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&cpu.eu.decodedInst, 0)) << ":[";
+				INSTRUCTION_PRINT << ((xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 1) ? "BYTE" : "WORD") << " ";
+				INSTRUCTION_PRINT << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&cpu.eu.decodedInst, 0)) << ":[";
 
 				if (baseReg != XED_REG_INVALID)
-					std::cout << xed_reg_enum_t2str(baseReg);
+					INSTRUCTION_PRINT << xed_reg_enum_t2str(baseReg);
 				
 				if (indexReg != XED_REG_INVALID)
 				{
 					if (baseReg != XED_REG_INVALID)
-						std::cout << " + ";
-					std::cout << xed_reg_enum_t2str(indexReg);
+						INSTRUCTION_PRINT << " + ";
+					INSTRUCTION_PRINT << xed_reg_enum_t2str(indexReg);
 				}
 
 				if ((indexReg != XED_REG_INVALID) || (baseReg != XED_REG_INVALID))
@@ -87,14 +93,14 @@ static void printCurrentInstruction(void)
 					if (memDisplacement != 0)
 					{
 						if (memDisplacement > 0)
-							std::cout << " + " << memDisplacement;
+							INSTRUCTION_PRINT << " + " << memDisplacement;
 						else
-							std::cout << " - " << -memDisplacement;
+							INSTRUCTION_PRINT << " - " << -memDisplacement;
 					}
 				}
 				else
-					std::cout << memDisplacement;
-				std::cout << "]";
+					INSTRUCTION_PRINT << memDisplacement;
+				INSTRUCTION_PRINT<< "]";
 			}	break;
 
 			default:
@@ -104,9 +110,8 @@ static void printCurrentInstruction(void)
 			++realOperandPos;
 		}
 	}
-		printf(" (iform: '%s') ", xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)));
-
-	printf(" (%d)\n",cpu.instructionExecutedCount);
+		INSTRUCTION_PRINT << " (iform: ' "<< xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)) << "')";
+		INSTRUCTION_PRINT << " (" << cpu.instructionExecutedCount+1 << ")\n";
 }
 
 static bool EUExecInstructionClock(void)
@@ -638,9 +643,11 @@ static bool EUWaitSuccessfullDecodeClock(void)
 	{
 		nextClockFunction = EUExecInstructionClock;
 		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
-		#if defined(STOP_AT_CLOCK) || defined(STOP_AT_INSTRUCTION)
+		#if defined(STOP_AT_CLOCK) || defined(STOP_AT_INSTRUCTION) || defined(UNIT_TEST)
 			printCurrentInstruction();
-			printf("Clock cycles: %d\n",INSTRUCTION_CLOCK_LEFT);
+			#ifndef UNIT_TEST//Only display the clock cycles when not unit testing
+				printf("Clock cycles: %d\n",INSTRUCTION_CLOCK_LEFT);
+			#endif
 		#endif
 	}
 
