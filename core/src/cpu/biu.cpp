@@ -11,62 +11,65 @@ enum class BIU_WORKING_MODE
 	WAIT_ROOM_IN_QUEUE
 };
 
-//Some status variables are created here becuse they are related to the internal working of the BIU emulation and thus they don't need to be visible in the header file of the class
+//Some status variables are created here because they are related to the internal working of the BIU emulation and thus they don't need to be visible in the header file of the class
 static constexpr unsigned int BUS_CYCLE_CLOCK = 4;
 static unsigned int BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
 static unsigned int EU_DATA_ACCESS_CLOCK_LEFT = 0;
 static bool EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = false;
+static bool UPDATE_WORKING_MODE = false;
 static BIU_WORKING_MODE workingMode = BIU_WORKING_MODE::FETCH_INSTRUCTION;
+static unsigned int IP_OFFSET = 0;
 
-static void BIUInstructionFetchClock(void);
-
-static void BIUWaitEndOfControlTransfertInstructionClock(void)
+static bool BIUWaitEndOfControlTransfertInstructionClock(void)
 {
 	if (BUS_CYCLE_CLOCK_LEFT < BUS_CYCLE_CLOCK)
 	{
 		BUS_CYCLE_CLOCK_LEFT -= 1;
 
 		#ifdef STOP_AT_CLOCK
-			printf("BIU: ENDING BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+			printf("BIU: ENDING BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+IP_OFFSET),cpu.cs,cpu.ip+IP_OFFSET);
 		#endif
-		return;
+		return false;
 	}
 
 	#ifdef STOP_AT_CLOCK
 		printf("BIU: WAITING END OF CONTROL TRANSFERT INSTRUCTION\n");
 	#endif
+	return !EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION;
 }
 
-static void BIUDataAccessClock(void)
+static bool BIUDataAccessClock(void)
 {
 	#ifdef STOP_AT_CLOCK
 		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", EU_DATA_ACCESS_CLOCK_LEFT);
 	#endif
 	EU_DATA_ACCESS_CLOCK_LEFT -= 1;
+	return EU_DATA_ACCESS_CLOCK_LEFT == 0;
 }
 
-static void BIUWaitPlaceInInstrutionBufferQueueClock(void)
+static bool BIUWaitPlaceInInstrutionBufferQueueClock(void)
 {
 	#ifdef STOP_AT_CLOCK
 		printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
 	#endif
+	return true;
 }
 
-static void BIUInstructionFetchClock(void)
+static bool BIUInstructionFetchClock(void)
 {
 	BUS_CYCLE_CLOCK_LEFT -= 1;
 	#ifdef STOP_AT_CLOCK
-		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip),cpu.cs,cpu.ip);
+		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+IP_OFFSET),cpu.cs,cpu.ip+IP_OFFSET);
 	#endif
 
 	if (BUS_CYCLE_CLOCK_LEFT == 0)
 	{
 		if (cpu.biu.instructionBufferQueuePos < 5)
 		{
-			const unsigned int address = cpu.genAddress(cpu.cs, cpu.ip);
-			cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = ram.read(address);
-			cpu.ip += 1;
+			const unsigned int fecthAddress = cpu.genAddress(cpu.cs, cpu.ip + IP_OFFSET);
+			cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = ram.read(fecthAddress);
 			cpu.biu.instructionBufferQueuePos += 1;
+			IP_OFFSET += 1;
 
 			#ifdef STOP_AT_CLOCK
 				printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
@@ -77,8 +80,10 @@ static void BIUInstructionFetchClock(void)
 				putchar('\n');
 			#endif
 			BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
+			return true;
 		}
 	}
+	return false;
 }
 
 void BIU::clock()
@@ -86,23 +91,33 @@ void BIU::clock()
 	switch (workingMode)
 	{
 	case BIU_WORKING_MODE::FETCH_INSTRUCTION:
-		return BIUInstructionFetchClock();
+		UPDATE_WORKING_MODE = BIUInstructionFetchClock(); return;
 	
 	case BIU_WORKING_MODE::FETCH_DATA:
-		return BIUDataAccessClock();
+		UPDATE_WORKING_MODE = BIUDataAccessClock(); return;
 	
 	case BIU_WORKING_MODE::WAIT_ROOM_IN_QUEUE:
-		return BIUWaitPlaceInInstrutionBufferQueueClock();
+		UPDATE_WORKING_MODE = BIUWaitPlaceInInstrutionBufferQueueClock(); return;
 	
 	case BIU_WORKING_MODE::WAIT_END_OF_JMP:
-		return BIUWaitEndOfControlTransfertInstructionClock();
+		UPDATE_WORKING_MODE = BIUWaitEndOfControlTransfertInstructionClock(); return;
 	}
+}
+
+void BIU::debug(void)
+{
+	// std::for_each(instructionBufferQueue.begin(), instructionBufferQueue.end(), [](const uint8_t& b)
+	// 			  { printf("0x%2.x ",b); });
+	// putchar('\n');
+	// for (int i = 0; i < instructionBufferQueuePos; ++i)
+	// { printf("     "); }
+	// puts("  ^");
 }
 
 void BIU::updateClockFunction()
 {
 	//If a new bus cycle is about to start a new clock function is used to execute custom functions
-	if (BUS_CYCLE_CLOCK_LEFT == BUS_CYCLE_CLOCK)
+	if (UPDATE_WORKING_MODE)
 	{
 		workingMode = BIU_WORKING_MODE::FETCH_INSTRUCTION;
 
@@ -118,20 +133,38 @@ void BIU::updateClockFunction()
 		//Biger priority: the EU request data from memory
 		if (EU_DATA_ACCESS_CLOCK_LEFT > 0)
 			workingMode = BIU_WORKING_MODE::FETCH_DATA;
+		UPDATE_WORKING_MODE = false;
 	}
 }
 
-void BIU::endControlTransferInstruction (const bool flushInstructionQueue)
+/**
+ * @brief Reset the instruction buffer queue and start a new instruction stream if a jump happened
+ * 
+ * @details This function must be called after a jump (or a successfull conditionnal jump). It has two effects:
+ * 
+ * - The first as mentionned is to reset the instruction queue. The queue will be cleared of all bytes
+ * - The second is to make the cpu fetch data from IP again. Because of the design of 8086/8088 the currently fetched instruction address may be ahead from the address in cs:ip. After a jump, the program flow changed
+ */
+void BIU::endControlTransferInstruction (const bool didJump)
 {
 	//At the end of the execution <instructionLength> octets are poped from the instruction buffer queue.
-	//When flushing after a jmp, the length is set to 5 (the size of the queue of the 808), this make the buffer queue to be popped
+	//When flushing after a jmp, the length is set to 5 (the size of the queue of the 8088), this make the buffer queue to be popped
 	//The position in the queue is also set to 5 because in the implementaion, the amount of elements to pop is substracted to the position in the queue. If there is 4 (or less) elements in the queue when poping, the new pos is 4 - 5 = -1 = 2^32 in unsigned and the queu will be always considered as full and no new instructions will be fetched
-	if (flushInstructionQueue)
+	//This parameter is only usefull for conditionnal jmp. If the jmp didn't happens, only the <instructionLength> octet have to be removed from the queue (the 8086::clock function takes care of that)
+	if (didJump)
 	{
 		cpu.eu.instructionLength  = 5;
 		instructionBufferQueuePos = 5;
+		IP_OFFSET = 0;
 	}
 	EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = false;
+	UPDATE_WORKING_MODE = true;
+}
+
+void BIU::IPToNextInstruction(const unsigned int instructionLength)
+{
+	cpu.ip += instructionLength;
+	IP_OFFSET -= instructionLength;
 }
 
 void BIU::startControlTransferInstruction()
@@ -144,13 +177,21 @@ void BIU::instructionBufferQueuePop(const unsigned int n)
 	instructionBufferQueuePos -= n;
 }
 
-void BIU::resetInstructionBufferQueue(){ instructionBufferQueuePos = 0; }
 void BIU::requestMemoryByte(const unsigned int nBytes) noexcept { EU_DATA_ACCESS_CLOCK_LEFT += nBytes * BUS_CYCLE_CLOCK; }
 
-uint8_t BIU::readByte (const unsigned int address) const { EU_DATA_ACCESS_CLOCK_LEFT += 4; return ram.read(address); }
+uint8_t BIU::readByte (const unsigned int address) const
+{
+	Arch::_addressBus = address;
+	return ram.read(address);
+}
 uint16_t BIU::readWord (const unsigned int address) const { return (readByte(address + 1) << 8) | readByte(address); }
 
-void BIU::writeByte (const unsigned int address, const uint8_t byte) const { EU_DATA_ACCESS_CLOCK_LEFT += 4; ram.write(address, byte); }
+void BIU::writeByte (const unsigned int address, const uint8_t byte) const
+{
+	ram.write(address, byte);
+	Arch::_addressBus = address;
+	Arch::_dataBus    = byte;
+}
 void BIU::writeWord (const unsigned int address, const uint16_t word) const { writeByte(address,(uint8_t)word); writeByte(address+1,word >> 8); }
 
 //TODO: Get the clock access count per components

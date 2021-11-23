@@ -237,6 +237,9 @@ bool CPU::clock()
 
 	eu.updateClockFunction();
 	biu.updateClockFunction();
+#ifdef DEBUG_BUILD
+	biu.debug();
+#endif
 
 	return instructionExecuted;
 #if 0

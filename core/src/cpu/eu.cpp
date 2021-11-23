@@ -11,6 +11,8 @@ static void (*instructionFunction)(void) = nullptr;
 static unsigned int (*repInstructionGetNextClockCount)(const unsigned int) = nullptr;
 static unsigned int INSTRUCTION_CLOCK_LEFT = 0;
 static unsigned int REP_COUNT = 0;
+static unsigned int CURRENT_INSTRUCTION_CS = 0;
+static unsigned int CURRENT_INSTRUCTION_IP = 0;
 
 #ifdef UNIT_TEST
 	#define INSTRUCTION_PRINT std::cerr
@@ -23,7 +25,7 @@ static void printCurrentInstruction(void)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
-	INSTRUCTION_PRINT << std::hex << cpu.cs << ":" << cpu.ip << " (" << cpu.genAddress(cpu.cs,cpu.ip) << ")" << std::dec << ": ";
+	INSTRUCTION_PRINT << std::hex << CURRENT_INSTRUCTION_CS << ":" << CURRENT_INSTRUCTION_IP << " (" << cpu.genAddress(CURRENT_INSTRUCTION_CS,CURRENT_INSTRUCTION_IP) << ")" << std::dec << ": ";
 	INSTRUCTION_PRINT << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " : length = " << xed_decoded_inst_get_length(&cpu.eu.decodedInst) << std::endl;
 	INSTRUCTION_PRINT << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " ";
 	unsigned int realOperandPos = 0;
@@ -169,6 +171,9 @@ static unsigned int prepareInstructionExecution(void)
 	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * (cpu.eu.operandSizeWord + 1);
 	cpu.biu.requestMemoryByte(memoryByteAccess);
 	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu.eu.decodedInst);
+	CURRENT_INSTRUCTION_CS = cpu.cs;
+	CURRENT_INSTRUCTION_IP = cpu.ip;
+	cpu.biu.IPToNextInstruction(cpu.eu.instructionLength);
 
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
