@@ -58,13 +58,13 @@ void PUSH ()
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			cpu.eu.push(cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name)));
+			cpu.push(cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name)));
 			break;
 
 		case XED_OPERAND_MEM0:
 		{
 			const unsigned int dataToPushAddr = cpu.eu.EAAddress;
-			cpu.eu.push(cpu.biu.readWord(dataToPushAddr));
+			cpu.push(cpu.biu.readWord(dataToPushAddr));
 		}
 		break;
 	}
@@ -80,7 +80,7 @@ void POP ()
 		{
 			const xed_reg_enum_t tmp_reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name);
 
-			cpu.write_reg(tmp_reg, cpu.eu.pop());
+			cpu.write_reg(tmp_reg, cpu.pop());
 
 			if (tmp_reg == XED_REG_SP)
 				cpu.sp += 2;
@@ -207,7 +207,7 @@ void SAHF ()
 { cpu.flags = (cpu.ah & statusFlagsMask) | 0b10; }
 
 void PUSHF ()
-{ cpu.eu.push(cpu.flags); }
+{ cpu.push(cpu.flags); }
 
 void POPF ()
-{ cpu.flags = cpu.eu.pop(); }
+{ cpu.flags = cpu.pop(); }

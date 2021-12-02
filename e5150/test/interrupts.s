@@ -1,13 +1,17 @@
 %include "test/util.inc"
 
-section interruptVectors
-times 0xB0*4 db 0
+dd 0
+dd int1
+times 0xAE dd intDef
 
 times 6 dd intDef
 dd int6
 
-section interruptImpl follows=interruptVectors
 intDef:
+	iret
+
+int1:
+	xchg ax, ax
 	iret
 
 int6:

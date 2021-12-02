@@ -230,6 +230,7 @@ void MUL()
 
 //TODO: what happens when dividing by zero ? Restart ?
 //TODO: continue working on the signed division
+//TODO: Divide interrupt
 void DIV()
 {
 	const unsigned int src = oneOperandInstruction([](const unsigned int destOperand) { return  (cpu.eu.instructionExtraData.isSigned) ? (int)destOperand : destOperand;});

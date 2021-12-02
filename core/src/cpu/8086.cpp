@@ -2,41 +2,33 @@
 #include "8086.hpp"
 #include "instructions.hpp"
 
-CPU::CPU() : hlt(false), intr(false), nmi(false), intr_v(0),interrupt_enable(true),clockCountDown(0),
-							instructionExecutedCount(0)
+static bool CPU_HLT				= false;
+static bool TEMP_TF				= false;
+static bool INTR				= false;
+static bool NMI					= false;
+static bool INTO				= false;
+static bool INT3				= false;
+static bool INTN				= false;
+static bool DIVIDE				= false;
+static bool IRET_DELAY			= false;
+static uint8_t INTERRUPT_VECTOR	= 0;
+
+CPU::CPU() : instructionExecutedCount(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
-	cs = 0xF000;
-	ss = 0xEF0;
+	cs = 0xFFFF;
+	ds = 0;
+	ss = 0;
+	es = 0;
 	sp = 0xFF;
-	ip = 0xFFF0;
-	flags = 0x02;
+	ip = 0;
 	addressBus = genAddress(cs,ip);
 
-	/* initialisation de xed */
+	/* initializing xed */
 	xed_tables_init();
 	xed_decoded_inst_zero(&decodedInst);
 	xed_decoded_inst_set_mode(&decodedInst, XED_MACHINE_MODE_REAL_16, XED_ADDRESS_WIDTH_16b);
-}
-
-void CPU::requestNmi (void)
-{
-	nmi = true;
-	requestIntr(2);
-}
-
-void CPU::requestIntr (const uint8_t vector)
-{ intr_v = vector; intr = true; }
-
-void CPU::interrupt (const bool isNMI)
-{
-	E5150::Util::_stop = true;
-	const unsigned int interruptVector = isNMI ? 2 : intr_v;
-	cpu.eu.push(flags);
-	clearFlags(INTF);
-	cpu.eu.farCall(cpu.biu.readWord(genAddress(0, 4 * interruptVector + 2)), cpu.biu.readWord(genAddress(0, 4 * interruptVector)));
-	hlt = false;
 }
 
 //Clear the value of the flag, then update the value according to the bool status (fales = 0, true = 1) using only bitwise operators to speedup the operation
@@ -216,9 +208,117 @@ static void printFlags(void)
 #endif
 }
 
+void CPU::interrupt(const CPU::INTERRUPT_TYPE type, const uint8_t interruptVector)
+{
+	INTERRUPT_VECTOR = interruptVector;
+
+	switch (type)
+	{
+		case CPU::INTERRUPT_TYPE::EXTERNAL:
+			INTR = true;
+			return;
+		
+		case CPU::INTERRUPT_TYPE::INTERNAL:
+			INTN = true;
+			return;
+		
+		case CPU::INTERRUPT_TYPE::NMI:
+			NMI = true;
+			return;
+		
+		case CPU::INTERRUPT_TYPE::INTO:
+			INTO = true;
+			return;
+		
+		case CPU::INTERRUPT_TYPE::INT3:
+			INT3 = true;
+			return;
+		
+		case CPU::INTERRUPT_TYPE::DIVIDE:
+			DIVIDE = true;
+			return;
+		#if DEBUG_BUILD
+		default:
+			ERROR("Interrupt type not handled. Program quit\n");
+			*(unsigned int*)0 = 4;//Force error emission (by writing to memory address 0) if an interrupt type is not handled
+		#endif
+	}
+}
+
+void CPU::handleInterrupts(void)
+{
+	static unsigned int INTERRUPT_SEQUENCE_CLOCK_COUNT = 0;
+	CPU_HLT = false;
+	if (INTN)
+	{
+		INTN = false;
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 51;
+	}
+	else if (INT3)// General int n interrupt
+	{
+		INT3 = false;
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 52;
+		INTERRUPT_VECTOR = 3;
+	}
+	else if (DIVIDE)
+	{
+		DIVIDE = false;
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 51;//Guessed TODO: search the clock count for now I assume it is equivalent to int 0
+		INTERRUPT_VECTOR = 0;
+	}
+	else if (INTO)
+	{
+		INTO = false;
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 53;
+		INTERRUPT_VECTOR = 4;
+	}
+	else if (NMI)// nmi
+	{
+		NMI = false;
+		INTERRUPT_VECTOR = 2;
+	}
+	else if (INTR)// intr line asserted
+	{
+		INTR = false;
+		if (!cpu.getFlagStatus(CPU::FLAGS_T::INTF))
+		{
+			debug<DEBUG_LEVEL_MAX>("INTEL 8088: INTERRUPT: interrupt request while IF is disabled");
+			return;
+		}
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 61;
+	}
+	else//trap interrupt
+	{
+		INTERRUPT_VECTOR = 1;
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 50;
+	}
+	
+	cpu.biu.startInterruptDataSaveSequence();
+	cpu.eu.enterInterruptServiceProcedure(INTERRUPT_SEQUENCE_CLOCK_COUNT);
+}
+
+bool CPU::interruptSequence()
+{
+	push(flags);
+	cpu.eu.farCall(biu.readWord(INTERRUPT_VECTOR*4 + 2), biu.readWord(INTERRUPT_VECTOR*4));
+	#ifdef DEBUG_BUILD
+	printf("Interrupt (%#2x) data saved: %#4x:%#4x\n",INTERRUPT_VECTOR,cs,ip);
+	#endif
+	TEMP_TF = getFlagStatus(CPU::FLAGS_T::TRAP);
+	clearFlags(CPU::FLAGS_T::INTF | CPU::FLAGS_T::TRAP);
+
+	#ifdef DEBUG_BUILD
+	printf("New cs:ip from %#x: %#4x:%#4x\n",INTERRUPT_VECTOR*4,cs,ip);
+	#endif
+
+	return NMI || TEMP_TF;
+}
+
+void CPU::iretDelay(void) { IRET_DELAY = true; }
+
 bool CPU::clock()
 {
-	if (!hlt)
+	if (!CPU_HLT)
 		cpu.biu.clock();
 	const bool instructionExecuted = cpu.eu.clock();
 
@@ -233,59 +333,38 @@ bool CPU::clock()
 		#if defined(SEE_ALL) || defined(SEE_FLAGS)
 			printFlags();
 		#endif
+
+		//TODO: This might optimization by using bit mask to tell which interrupt is triggered
+		const bool shouldInterrupt = (!IRET_DELAY) && (INTR || INTN || INTO || INT3 || DIVIDE || NMI || cpu.getFlagStatus(CPU::FLAGS_T::TRAP));
+		if (shouldInterrupt)
+			handleInterrupts();
+		IRET_DELAY = false;
 	}
 
 	eu.updateClockFunction();
 	biu.updateClockFunction();
 #ifdef DEBUG_BUILD
 	biu.debug();
+	printFlags();
+	printf("temp t: %d, intr: %d, nmi: %d, into: %d, int3: %d, intn: %d, divide: %d\n",TEMP_TF,INTR,NMI,INTO,INT3,INTN,DIVIDE);
 #endif
 
 	return instructionExecuted;
-#if 0
-	if (clockCountDown != 0)
-	{
-		--clockCountDown;
-		return;
-	}
+}
 
-	if (!hlt)
-	{
-		xed_decoded_inst_zero_keep_mode(&decodedInst);
-		xed_decode(&decodedInst, ram.m_ram + genAddress(cs,ip), 16);
+void CPU::hlt(void) { CPU_HLT = true; }
 
-	#if defined(STOP_AT_END) || defined(CLOCK_DEBUG)
-		if (E5150::Util::_stop)
-		{
-			printRegisters(*this);
-			printFlags(*this);
-			printCurrentInstruction(*this);
-			clockWait();
-		}
-	#endif
+void CPU::push (const uint16_t data)
+{
+	cpu.sp -= 2;
+	cpu.biu.writeWord(cpu.genAddress(cpu.ss,cpu.sp), data);
+}
 
-		if (!execNonControlTransferInstruction(*this))
-			execControlTransferInstruction(*this);
-	}
-
-	if (intr)
-	{
-		intr = false;
-
-		if (nmi)
-		{
-			interrupt(true);
-			nmi = false;
-		}
-		else
-		{
-			if (getFlagStatus(INTF))
-				interrupt();
-			else
-				debug<6>("CPU: INTERRUPT: interrupt request while IF is disabled");
-		}
-	}
-#endif
+uint16_t CPU::pop (void)
+{
+	const uint16_t ret = cpu.biu.readWord(cpu.genAddress(cpu.ss,cpu.sp));
+	cpu.sp += 2;
+	return ret;
 }
 
 void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)

@@ -7,35 +7,26 @@ enum class BIU_WORKING_MODE
 {
 	FETCH_INSTRUCTION,
 	FETCH_DATA,
-	WAIT_END_OF_JMP,
-	WAIT_ROOM_IN_QUEUE
+	WAIT_ROOM_IN_QUEUE,
+	WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE,
+	INTERRUPT_DATA_SAVE
 };
 
 //Some status variables are created here because they are related to the internal working of the BIU emulation and thus they don't need to be visible in the header file of the class
 static constexpr unsigned int BUS_CYCLE_CLOCK = 4;
 static unsigned int BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
 static unsigned int EU_DATA_ACCESS_CLOCK_LEFT = 0;
-static bool EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = false;
+static bool CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = false;
 static bool UPDATE_WORKING_MODE = false;
 static BIU_WORKING_MODE workingMode = BIU_WORKING_MODE::FETCH_INSTRUCTION;
 static unsigned int IP_OFFSET = 0;
 
-static bool BIUWaitEndOfControlTransfertInstructionClock(void)
+static bool BIUWaitEndOfInterruptDataSaveSequenceClock(void)
 {
-	if (BUS_CYCLE_CLOCK_LEFT < BUS_CYCLE_CLOCK)
-	{
-		BUS_CYCLE_CLOCK_LEFT -= 1;
-
-		#ifdef STOP_AT_CLOCK
-			printf("BIU: ENDING BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+IP_OFFSET),cpu.cs,cpu.ip+IP_OFFSET);
-		#endif
-		return false;
-	}
-
-	#ifdef STOP_AT_CLOCK
-		printf("BIU: WAITING END OF CONTROL TRANSFERT INSTRUCTION\n");
+	#ifdef DEBUG_BUILD
+		printf("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE\n");
 	#endif
-	return !EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION;
+	return !CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE;
 }
 
 static bool BIUDataAccessClock(void)
@@ -99,19 +90,19 @@ void BIU::clock()
 	case BIU_WORKING_MODE::WAIT_ROOM_IN_QUEUE:
 		UPDATE_WORKING_MODE = BIUWaitPlaceInInstrutionBufferQueueClock(); return;
 	
-	case BIU_WORKING_MODE::WAIT_END_OF_JMP:
-		UPDATE_WORKING_MODE = BIUWaitEndOfControlTransfertInstructionClock(); return;
+	case BIU_WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
+		UPDATE_WORKING_MODE = BIUWaitEndOfInterruptDataSaveSequenceClock(); return;
 	}
 }
 
 void BIU::debug(void)
 {
-	// std::for_each(instructionBufferQueue.begin(), instructionBufferQueue.end(), [](const uint8_t& b)
-	// 			  { printf("0x%2.x ",b); });
-	// putchar('\n');
-	// for (int i = 0; i < instructionBufferQueuePos; ++i)
-	// { printf("     "); }
-	// puts("  ^");
+	std::for_each(instructionBufferQueue.begin(), instructionBufferQueue.end(), [](const uint8_t& b)
+				  { printf("%#4x ",b); });
+	putchar('\n');
+	for (int i = 0; i < instructionBufferQueuePos; ++i)
+	{ printf("     "); }
+	puts("  ^");
 }
 
 void BIU::updateClockFunction()
@@ -119,22 +110,28 @@ void BIU::updateClockFunction()
 	//If a new bus cycle is about to start a new clock function is used to execute custom functions
 	if (UPDATE_WORKING_MODE)
 	{
+		UPDATE_WORKING_MODE = false;
 		workingMode = BIU_WORKING_MODE::FETCH_INSTRUCTION;
 
 		//No special action are required but the buffer queue is full
-		if (cpu.biu.instructionBufferQueuePos >= 5)
+		if (instructionBufferQueuePos >= 5)
 			workingMode = BIU_WORKING_MODE::WAIT_ROOM_IN_QUEUE;
-
-		//A control transfert instruction is being executed and no data are required
-		//TODO: Is there a case were EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION goes from true to false in less than the clock cycles needed to complete the current bus cycle ?
-		if (EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION)
-			workingMode = BIU_WORKING_MODE::WAIT_END_OF_JMP;
 
 		//Biger priority: the EU request data from memory
 		if (EU_DATA_ACCESS_CLOCK_LEFT > 0)
 			workingMode = BIU_WORKING_MODE::FETCH_DATA;
-		UPDATE_WORKING_MODE = false;
+		
+		if (CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE)
+			workingMode = BIU_WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE;
 	}
+}
+
+void BIU::startInterruptDataSaveSequence() { CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = true; }
+void BIU::endInterruptDataSaveSequence()
+{
+	instructionBufferQueuePos = 0;
+	CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = false;
+	UPDATE_WORKING_MODE = true;
 }
 
 /**
@@ -144,6 +141,8 @@ void BIU::updateClockFunction()
  * 
  * - The first as mentionned is to reset the instruction queue. The queue will be cleared of all bytes
  * - The second is to make the cpu fetch data from IP again. Because of the design of 8086/8088 the currently fetched instruction address may be ahead from the address in cs:ip. After a jump, the program flow changed
+ * 
+ * @param didJump For conditionnal jump, specidfy if the jump happened or not
  */
 void BIU::endControlTransferInstruction (const bool didJump)
 {
@@ -157,7 +156,6 @@ void BIU::endControlTransferInstruction (const bool didJump)
 		instructionBufferQueuePos = 5;
 		IP_OFFSET = 0;
 	}
-	EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = false;
 	UPDATE_WORKING_MODE = true;
 }
 
@@ -166,9 +164,6 @@ void BIU::IPToNextInstruction(const unsigned int instructionLength)
 	cpu.ip += instructionLength;
 	IP_OFFSET -= instructionLength;
 }
-
-void BIU::startControlTransferInstruction()
-{ EU_EXECUTES_CONTROL_TRANSFERT_INSTRUCTION = true; }
 
 void BIU::instructionBufferQueuePop(const unsigned int n)
 {

@@ -11,6 +11,6 @@ void STD () { cpu.setFlags(CPU::DIR); }
 void CLI () { cpu.clearFlags(CPU::INTF); }
 void STI () { cpu.setFlags(CPU::INTF); }
 
-void HLT () { cpu.hlt = true; }
+void HLT () { cpu.hlt(); }
 
 void NOP() { }

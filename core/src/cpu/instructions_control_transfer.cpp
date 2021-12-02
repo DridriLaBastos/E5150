@@ -4,7 +4,7 @@
 void CALL_NEAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
-	cpu.eu.push(cpu.ip);
+	cpu.push(cpu.ip);
 
 	switch (op_name)
 	{   
@@ -95,7 +95,7 @@ void JMP_FAR()
 
 void RET_NEAR()
 {
-	cpu.ip = cpu.eu.pop();
+	cpu.ip = cpu.pop();
 	cpu.cs = cpu.cs;
 
 	if (xed_decoded_inst_get_length(&cpu.eu.decodedInst) > 1)
@@ -144,33 +144,10 @@ void LOOPNZ() { cpu.cx -= 1; JMP_NEAR_ON_CONDITION((cpu.cx != 0) && !cpu.getFlag
 
 void JCXZ() { JMP_NEAR_ON_CONDITION(cpu.cx == 0); }
 
-void INT()
-{
-	cpu.intr_v = (uint8_t)xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
-	cpu.interrupt(); //interrupt takes care of cpu.pushing flags and clearing IF
-	cpu.biu.endControlTransferInstruction();
-}
-
-void INT3()
-{
-	cpu.intr_v = 3;
-	cpu.interrupt();
-	cpu.biu.endControlTransferInstruction();
-}
-
-void INTO()
-{
-	if (cpu.getFlagStatus(CPU::OVER))
-	{
-		cpu.intr_v = 4;
-		cpu.interrupt();
-	}
-	cpu.biu.endControlTransferInstruction();
-}
-
 void IRET ()
 {
 	cpu.eu.farRet();
-	cpu.flags = cpu.eu.pop();
+	cpu.flags = cpu.pop();
 	cpu.biu.endControlTransferInstruction();
+	cpu.iretDelay();
 }

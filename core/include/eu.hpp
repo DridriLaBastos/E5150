@@ -28,9 +28,8 @@ namespace E5150::I8086
 		public:
 			EU(void);
 
-			uint16_t pop (void);
-			void push (const uint16_t data);
 			void updateClockFunction(void);
+			void enterInterruptServiceProcedure(const unsigned int procedureClockCycles);
 
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);

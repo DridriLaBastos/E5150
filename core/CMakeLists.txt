@@ -1,7 +1,5 @@
 project(libcore)
 
-add_compile_definitions($<$<CONFIG:Debug>:DEBUG_BUILD>)
-
 if(TEST)
 	add_compile_definitions(UNIT_TEST)
 endif(TEST)

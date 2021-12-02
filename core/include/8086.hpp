@@ -50,12 +50,16 @@ class CPU
 		CPU(void);
 
 		bool clock (void);
-
-		void requestNmi (void);
-		void requestIntr (const uint8_t vector);
+		/**
+		 * @brief Perform the interrupt sequence
+		 * 
+		 * @return true The interrupt sequence needs to be relaunch because IF or TF was on
+		 * @return false The interrupt sequence finishes without a need to relaunch
+		 */
+		bool interruptSequence(void);
 	
 	public:
-	enum REGISTERS
+		enum REGISTERS
 		{ AX, BX, CX, DX,
 		  SI, DI, BP, SP,
 		  CS, DS, ES, SS, 
@@ -74,20 +78,24 @@ class CPU
 			DIR		= 1 << 10, // direction flag
 			OVER	= 1 << 11  // overflow flag
 		};
+
+		enum class INTERRUPT_TYPE
+		{ NMI, INT3, INTO, INTERNAL, EXTERNAL, DIVIDE };
 	
 	/* *** UTILITY FUNCTIONS NEEDED BY INSTRUCTIONS AND OTHER COMPONENTS *** */
 	public:
+		void interrupt(const CPU::INTERRUPT_TYPE type, const uint8_t vector=0);
+		void handleInterrupts (void);
+		void iretDelay(void);
+
 		unsigned int genAddress (const uint16_t base, const uint16_t offset) const;
 		unsigned int genAddress (const uint16_t base, const xed_reg_enum_t offset) const;
 		unsigned int genAddress (const xed_reg_enum_t segment, const uint16_t offset) const;
 		unsigned int genAddress (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const;
 		unsigned int genEA (void);
 
-		uint8_t  readByte (const unsigned int addr) const;
-		uint16_t readWord (const unsigned int addr) const;
-
-		void writeByte (const unsigned int addr, const uint8_t  data);
-		void writeWord (const unsigned int addr, const uint16_t data);
+		void push (const uint16_t data);
+		uint16_t pop (void);
 
 		void testCF (const unsigned int value, const bool byte);
 		void testPF	(const unsigned int value);
@@ -106,11 +114,10 @@ class CPU
 
 		uint16_t readReg  (const xed_reg_enum_t reg) const;
 		void write_reg  (const xed_reg_enum_t reg, const unsigned int data);
-		void interrupt (const bool isNMI = false);
+		void hlt(void);
 
 	public:
 		xed_decoded_inst_t decodedInst;
-		unsigned int clockCountDown;
 		std::array<reg_t, REGISTERS::NUM> regs;
 
 		#define ax regs[CPU::REGISTERS::AX].x
@@ -143,12 +150,6 @@ class CPU
 		#define ip regs[CPU::REGISTERS::IP].v
 		#define flags regs[CPU::REGISTERS::FLAGS].v
 
-		uint8_t intr_v;
-		bool hlt;
-		bool nmi;
-		bool intr;
-		bool interrupt_enable;
-		unsigned int fault_count;
 		E5150::I8086::BIU biu;
 		E5150::I8086::EU eu;
 

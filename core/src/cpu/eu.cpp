@@ -20,6 +20,8 @@ static unsigned int CURRENT_INSTRUCTION_IP = 0;
 	#define INSTRUCTION_PRINT std::cout
 #endif
 
+static void doNothing(void) { return; }
+
 static void printCurrentInstruction(void)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
@@ -114,6 +116,31 @@ static void printCurrentInstruction(void)
 	}
 		INSTRUCTION_PRINT << " (iform: ' "<< xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)) << "')";
 		INSTRUCTION_PRINT << " (" << cpu.instructionExecutedCount+1 << ")\n";
+}
+
+static bool EUExecInterruptServiceProcedureClock(void)
+{
+	INSTRUCTION_CLOCK_LEFT -= 1;
+
+	#ifdef STOP_AT_CLOCK
+		printf("EU: INTERRUPT SERVICE PROCEDURE: clock left: %d\n", INSTRUCTION_CLOCK_LEFT);
+	#endif
+
+	if (INSTRUCTION_CLOCK_LEFT == 0)
+	{
+		if (cpu.interruptSequence())
+		{
+			debug<DEBUG_LEVEL_MAX>("[EU] New interrupt detected while servicing an interrupt");
+			cpu.handleInterrupts();
+		}
+		else
+		{
+			cpu.biu.endInterruptDataSaveSequence();
+			nextClockFunction = EUWaitSuccessfullDecodeClock;
+		}
+	}
+
+	return false;
 }
 
 static bool EUExecInstructionClock(void)
@@ -455,144 +482,122 @@ static unsigned int prepareInstructionExecution(void)
 			return getREP_STOSCycles(REP_COUNT);
 
 		case XED_ICLASS_CALL_NEAR:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = CALL_NEAR;
 			return getCALLCycles();
 
 		case XED_ICLASS_CALL_FAR:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = CALL_FAR;
 			return getCALL_FARCycles();
 
 		case XED_ICLASS_JMP:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JMP_NEAR;
 			return getJMPCycles();
 
 		case XED_ICLASS_JMP_FAR:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JMP_FAR;
 			return getJMP_FARCycles();
 
 		case XED_ICLASS_RET_NEAR:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = RET_NEAR;
 			return getRETCycles();
 
 		case XED_ICLASS_RET_FAR:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = RET_FAR;
 			return getRET_FARCycles();
 
 		case XED_ICLASS_JZ:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JZ;
 			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JL:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JL;
 			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER));
 
 		case XED_ICLASS_JLE:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JLE;
 			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)));
 
 		case XED_ICLASS_JB:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JB;
 			return getJXXCycles(CPU::CARRY);
 
 		case XED_ICLASS_JBE:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JBE;
 			return getJXXCycles(CPU::CARRY || CPU::ZERRO);
 
 		case XED_ICLASS_JP:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JP;
 			return getJXXCycles(CPU::PARRITY);
 
 		case XED_ICLASS_JO:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JO;
 			return getJXXCycles(cpu.getFlagStatus(CPU::OVER));
 		
 		case XED_ICLASS_JS:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JS;
 			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN));
 
 		case XED_ICLASS_JNZ:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JNZ;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JNL:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JNL;
 			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER));
 
 		case XED_ICLASS_JNLE:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JNLE;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)));
 
 		case XED_ICLASS_JNB:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JNB;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY));
 
 		case XED_ICLASS_JNBE:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JNBE;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY) && !cpu.getFlagStatus(CPU::ZERRO));
 
 		case XED_ICLASS_JNP:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JNP;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::PARRITY));
 
 		case XED_ICLASS_JNS:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JNS;
 			return getJXXCycles(!cpu.getFlagStatus(CPU::SIGN));
 
 		case XED_ICLASS_LOOP:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = LOOP;
 			return getLOOPCycles();
 		
 		case XED_ICLASS_LOOPE:// = LOOPZ
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = LOOPZ;
 			return getLOOPZCycles();
 
 		case XED_ICLASS_LOOPNE:// = LOOPNZ
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = LOOPNZ;
 			return getLOOPNZCycles();
 
 		case XED_ICLASS_JCXZ:
-			cpu.biu.startControlTransferInstruction();
 			instructionFunction = JCXZ;
 			return getJCXZCycles();
 
+		/* Servicing interrupts vary a bit than executing normal instruction */
 		case XED_ICLASS_INT:
-			cpu.biu.startControlTransferInstruction();
-			instructionFunction = INT;
-			return getINTCycles();
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
+			return 0;
 		
 		case XED_ICLASS_INT3:
-			cpu.biu.startControlTransferInstruction();
-			instructionFunction = INT3;
-			return getINTCycles();
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INT3);
+			return 0;
 
 		case XED_ICLASS_INTO:
-			cpu.biu.startControlTransferInstruction();
-			instructionFunction = INTO;
-			return getINTCycles();
+			if (!cpu.getFlagStatus(CPU::OVER))
+			{
+				instructionFunction = doNothing;
+				return 4;
+			}
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INTO);
+			return 0;
 
 		case XED_ICLASS_IRET:
 			instructionFunction = IRET;
@@ -654,6 +659,9 @@ static bool EUWaitSuccessfullDecodeClock(void)
 				printf("Clock cycles: %d\n",INSTRUCTION_CLOCK_LEFT);
 			#endif
 		#endif
+		//An instruction function has been decode and the cpu will tell the EU how much clock cycles will be needed
+		if (INSTRUCTION_CLOCK_LEFT == 0)
+			return true;
 	}
 
 	return false;
@@ -662,20 +670,16 @@ static bool EUWaitSuccessfullDecodeClock(void)
 EU::EU(): clock(EUWaitSuccessfullDecodeClock) { nextClockFunction = EUWaitSuccessfullDecodeClock; }
 
 void EU::updateClockFunction() { clock = nextClockFunction; }
-
-void EU::push (const uint16_t data)
-{ cpu.sp -= 2; cpu.biu.writeWord(cpu.genAddress(cpu.ss,cpu.sp), data); }
-
-uint16_t EU::pop (void)
+void EU::enterInterruptServiceProcedure(const unsigned int interruptServiceClockCycles)
 {
-	const uint16_t ret = cpu.biu.readWord(cpu.genAddress(cpu.ss,cpu.sp)); cpu.sp += 2;
-	return ret;
+	nextClockFunction = EUExecInterruptServiceProcedureClock;
+	INSTRUCTION_CLOCK_LEFT = interruptServiceClockCycles;
 }
 
 void EU::farCall (const uint16_t seg, const uint16_t offset)
 {
-	push(cpu.cs);
-	push(cpu.ip);
+	cpu.push(cpu.cs);
+	cpu.push(cpu.ip);
 
 	cpu.cs = seg;
 	cpu.ip = offset;
@@ -683,8 +687,8 @@ void EU::farCall (const uint16_t seg, const uint16_t offset)
 
 void EU::farRet (void)
 {
-	cpu.ip = pop();
-	cpu.cs = pop();
+	cpu.ip = cpu.pop();
+	cpu.cs = cpu.pop();
 }
 
 /**
@@ -735,7 +739,7 @@ unsigned int EU::computeEAAndGetComputationClockCount()
 			clockNeeded += (rm & 0b10) ? 11 : 12;
 	}
 
-	cpu.eu.EAAddress = cpu.genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
+	EAAddress = cpu.genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
 	
 	if (xed_operand_values_has_segment_prefix(&decodedInst))
 		clockNeeded += 2;

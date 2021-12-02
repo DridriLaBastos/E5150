@@ -10,8 +10,9 @@ namespace E5150::I8086
 		public:
 			void updateClockFunction(void);
 			void instructionBufferQueuePop(const unsigned int n);
-			void startControlTransferInstruction (void);
-			void endControlTransferInstruction (const bool didJump = true);
+			void startInterruptDataSaveSequence (void);
+			void endInterruptDataSaveSequence   (void);
+			void endControlTransferInstruction (const bool didJmp = true);
 			void IPToNextInstruction(const unsigned int instructionLength);
 			void debug(void);
 			void clock(void);

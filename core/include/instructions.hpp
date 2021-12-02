@@ -99,9 +99,6 @@ void LOOP		(void); unsigned int getLOOPCycles		(void);
 void LOOPZ		(void); unsigned int getLOOPZCycles		(void);
 void LOOPNZ		(void); unsigned int getLOOPNZCycles	(void);
 void JCXZ		(void); unsigned int getJCXZCycles		(void);
-void INT		(void); unsigned int getINTCycles		(void);
-void INT3		(void); // unsigned int getINT3Cycles		(void);
-void INTO		(void); // unsigned int getINTOCycles		(void);
 void IRET		(void); unsigned int getIRETCycles		(void);
 
 /* Processor Control */

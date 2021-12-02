@@ -652,16 +652,12 @@ unsigned int getLOOPCycles		(void) { return (cpu.cx - 1 == 0) ? 5 : 18; }
 unsigned int getLOOPZCycles		(void) { return ((cpu.cx - 1 == 0) && cpu.getFlagStatus(CPU::ZERRO)) ? 6 : 18; }
 unsigned int getLOOPNZCycles	(void) { return ((cpu.cx - 1 == 0) && !cpu.getFlagStatus(CPU::ZERRO)) ? 5 : 19; }
 unsigned int getJCXZCycles		(void) { return cpu.cx == 0 ? 6 : 18; }
-unsigned int getINTCycles		(void)
-{
-	if (cpu.biu.instructionBufferQueue[0] & 0b1)//normal int instruction ends with 0b01
-		return 71;
-	
-	if (cpu.biu.instructionBufferQueue[0] & 0b10)//into instruction ends with 0b10
-		return cpu.getFlagStatus(CPU::OVER) ? 73 : 4;
-
-	return 71;//int3 instruction
-}
+unsigned int getINTCycles		(void) { return 51; }
+unsigned int getINT3Cycles		(void) { return 52; }
+//Only return the value if the interrupt sequence needs to be performed. If not, this instruction will be executed as a normal instruction with clock cycle value of 4
+unsigned int getINTOCycles		(void) { return 53; }
+unsigned int getINTRCycles		(void) { return 61; }
+unsigned int getNMICycles		(void) { return 50; }
 
 unsigned int getIRETCycles		(void) { return 44; }
 

@@ -306,7 +306,7 @@ static void interruptInFullyNestedMode (const unsigned int IRNumber)
 
 	const unsigned int interruptVectorGenerated = genInterruptVectorForIRLine(IRNumber);
 	PICDebug(10,"Generating interrupt vector {:#x} for line {}",interruptVectorGenerated,IRNumber);
-	pic->connectedCPU.requestIntr(interruptVectorGenerated);
+	pic->connectedCPU.interrupt(CPU::INTERRUPT_TYPE::EXTERNAL, interruptVectorGenerated);
 	if (!pic->info.autoEOI)
 		pic->regs[PIC::ISR] |= (1 << IRNumber);
 }
