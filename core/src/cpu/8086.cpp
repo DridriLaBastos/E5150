@@ -343,11 +343,6 @@ bool CPU::clock()
 
 	eu.updateClockFunction();
 	biu.updateClockFunction();
-#ifdef DEBUG_BUILD
-	biu.debug();
-	printFlags();
-	printf("temp t: %d, intr: %d, nmi: %d, into: %d, int3: %d, intn: %d, divide: %d\n",TEMP_TF,INTR,NMI,INTO,INT3,INTN,DIVIDE);
-#endif
 
 	return instructionExecuted;
 }

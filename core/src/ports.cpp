@@ -15,7 +15,9 @@ uint8_t PORTS::read (const uint16_t portAddress) const
 		const PortInfos& portInfo = *found;
 		const unsigned int componentLocalAddress = portAddress & portInfo.addressMask;
 		portInfo.component->read(portAddress & found->addressMask);
-		PORTSDebug(DEBUG_LEVEL_MAX,"R ({}): {:#x} <-- {:#x} (local: {:#b})",portInfo.component->m_name,(unsigned)data,portAddress,componentLocalAddress);
+		#ifdef SEE_PORT_READ
+			PORTSDebug(DEBUG_LEVEL_MAX,"R ({}): {:#x} <-- {:#x} (local: {:#b})",portInfo.component->m_name,(unsigned)data,portAddress,componentLocalAddress);
+		#endif
 	}
 	else
 		PORTSDebug(8,"No device found at port address {:#x}. Result is watever is on the data bus ({:#x})",portAddress,data);
@@ -33,7 +35,9 @@ void PORTS::write(const uint16_t portAddress, const uint8_t data)
 	{
 		const PortInfos& portInfo = *found;
 		const unsigned int componentLocalAddress = portAddress & portInfo.addressMask;
-		PORTSDebug(DEBUG_LEVEL_MAX,"W ({}): {:#x} --> {:#x} (local: {:#b})",portInfo.component->m_name,(unsigned)data,portAddress,componentLocalAddress);
+		#ifdef SEE_PORT_WRITE
+			PORTSDebug(DEBUG_LEVEL_MAX,"W ({}): {:#x} --> {:#x} (local: {:#b})",portInfo.component->m_name,(unsigned)data,portAddress,componentLocalAddress);
+		#endif
 	}
 	else
 		PORTSDebug(8,"No device found at port address {:#x}",portAddress);
