@@ -290,7 +290,6 @@ static unsigned int genInterruptVectorForIRLine (const unsigned int IRNumber)
 //TODO: test this
 static void interruptInFullyNestedMode (const unsigned int IRNumber)
 {
-
 	const unsigned int assertedIRLinePriority = pic->priorities[IRNumber];
 	bool canInterrupt = true;
 

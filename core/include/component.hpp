@@ -9,15 +9,10 @@ namespace E5150
 	class Component
 	{
 		public:
-			Component (const std::string& name, PORTS& ports, const unsigned int portStartAddress, const unsigned int portAddressMask):
+			Component (const std::string& name, PORTS& ports, const uint16_t portStartAddress, const unsigned int portAddressMask):
 				m_addressMask(portAddressMask), m_name(name)
 				{
-					PortInfos info;
-					info.component = this;
-					info.addressMask = portAddressMask;
-					info.startAddress = portStartAddress;
-					info.endAddress = portStartAddress + portAddressMask;
-					ports.connect(info);
+					ports.connect({.addressMask=portAddressMask, .component=this, .endAddress=(uint16_t)(portStartAddress + portAddressMask), .startAddress=portStartAddress});
 				}
 			
 			virtual void write		(const unsigned int localAddress, const uint8_t data) = 0;

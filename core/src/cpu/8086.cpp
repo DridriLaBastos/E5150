@@ -240,7 +240,7 @@ void CPU::interrupt(const CPU::INTERRUPT_TYPE type, const uint8_t interruptVecto
 		#if DEBUG_BUILD
 		default:
 			ERROR("Interrupt type not handled. Program quit\n");
-			*(unsigned int*)0 = 4;//Force error emission (by writing to memory address 0) if an interrupt type is not handled
+			*(volatile unsigned int*)0 = 4;//Force error emission (by writing to memory address 0) if an interrupt type is not handled
 		#endif
 	}
 }

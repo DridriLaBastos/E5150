@@ -7,10 +7,10 @@ namespace E5150 { class Component; }
 
 struct PortInfos
 {
-	unsigned int addressMask;
-	uint16_t startAddress;
-	uint16_t endAddress;
-	E5150::Component* component;
+	const unsigned int addressMask;
+	const uint16_t startAddress;
+	const uint16_t endAddress;
+	E5150::Component* const component;
 };
 
 class PORTS
