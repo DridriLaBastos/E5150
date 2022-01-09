@@ -18,7 +18,7 @@ class PORTS
 	public:
 		uint8_t read (const uint16_t port_number) const;
 		void write(const uint16_t port_number, const uint8_t data);
-		void connect (const PortInfos& portInfos);
+		void connect (const PortInfos&& portInfos);
 
 	private:
 		std::vector<PortInfos> m_portDevices;

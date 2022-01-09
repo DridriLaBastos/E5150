@@ -50,7 +50,7 @@ static bool inBox (const unsigned int begin1, const unsigned int end1, const uns
 	return (begin2 - begin1 > firstIntervalSize) || begin1 > end2;
 }
 
-void PORTS::connect (const PortInfos& portInfos)
+void PORTS::connect (const PortInfos&& portInfos)
 {
 	for (const auto& portDevice: m_portDevices)
 		assert(inBox(portInfos.startAddress,portInfos.endAddress,portDevice.startAddress,portDevice.endAddress));
