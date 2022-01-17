@@ -14,15 +14,16 @@ add_custom_command(OUTPUT third-party/lib/libxed.a third-party/lib/libxed-ild.a 
 add_custom_target(xed DEPENDS third-party/lib/libxed.a)
 
 file(GLOB COMPILED_SOURCES CONFIGURE_DEPENDS "src/*.cpp")
+file(GLOB DEBUGGER_SOURCES CONFIGURE_DEPENDS "debugger/*.cpp")
 file(GLOB INCLUDED_SOURCES CONFIGURE_DEPENDS "src/cpu/*.cpp" "src/floppy/*.cpp")
-file(GLOB HEADERS CONFIGURE_DEPENDS "include/*.hpp")
+file(GLOB HEADERS CONFIGURE_DEPENDS "include/*.hpp" "debugger/*.hpp")
 
 set_source_files_properties(${INCLUDED_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
 
 source_group(TREE ${PROJECT_SOURCE_DIR}/src FILES ${COMPILED_SOURCES} ${INCLUDED_SOURCES})
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${HEADERS})
 
-add_library(core STATIC ${COMPILED_SOURCES} ${INCLUDED_SOURCES} ${HEADERS})
+add_library(core STATIC ${COMPILED_SOURCES} ${DEBUGGER_SOURCES} ${DEBUGGER_SOURCES} ${INCLUDED_SOURCES} ${HEADERS})
 
 if(CMAKE_AR)
 	add_custom_command(TARGET core POST_BUILD

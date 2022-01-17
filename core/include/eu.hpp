@@ -34,6 +34,8 @@ namespace E5150::I8086
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);
 
+			void debugClockPrint(void);
+
 			unsigned int computeEAAndGetComputationClockCount();
 			unsigned int EAAddress;
 			unsigned int repeatCount;

@@ -4,6 +4,8 @@
 #include "arch.hpp"
 #include "util.hpp"
 
+#include "../debugger/debugger.hpp"
+
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
@@ -48,6 +50,7 @@ E5150::Arch::Arch()
 	E5150::Util::_stop = true;
 	E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
 	E5150::Util::undef = (unsigned int)(unsigned long)(&ram);
+	E5150::Debugger::init();
 
 	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
@@ -101,24 +104,16 @@ void E5150::Arch::startSimulation()
 			{
 				currentClock += 1;
 				const bool instructionExecuted = _cpu.clock();
-
-				#ifdef STOP_AT_CLOCK
-					if (E5150::Util::_stop)
-						clockWait();
-				#endif
-
-				#ifdef STOP_AT_INSTRUCTION
-					if (E5150::Util::_stop && instructionExecuted)
-						clockWait();
-				#endif
-
 				_pit.clock();
-
 				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
 				{
 					++fdcClock;
 					_fdc.clock();
 				}
+				
+				#ifdef DEBUG
+				Debugger::wakeUp(instructionExecuted);
+				#endif
 			}
 
 		#if !defined(DEBUG_BUILD)

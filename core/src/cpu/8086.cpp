@@ -94,22 +94,6 @@ void CPU::updateStatusFlags (const unsigned int value, const bool wordSize)
 	testOF(value, wordSize);
 }
 
-static void printRegisters(const CPU& _cpu)
-{
-#if defined(SEE_REGS) ||  defined(SEE_ALL)
-	std::printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
-	std::printf("AX: %#6.4x   bx: %#6.4x   CX: %#6.4x   DX: %#6.4x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
-	std::printf("SI: %#6.4x   DI: %#6.4x   BP: %#6.4x   SP: %#6.4x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
-#endif
-}
-
-static void printFlags(const CPU& _cpu)
-{
-#if defined(SEE_FLAGS) || defined(SEE_ALL)
-	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
-#endif
-}
-
 unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
 { return (base << 4) + offset; }
 
@@ -190,22 +174,6 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 	// Should never be reached but here to silent compiler warning
 	// TODO: launch an exception here ? (probably yes, it is not ok if the program goes here)
 	return 0;
-}
-
-static void printRegisters(void)
-{
-#if defined(SEE_REGS) ||  defined(SEE_ALL)
-	printf("CS: %#6x   DS: %#6x   ES: %#6x   SS: %#6x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
-	printf("AX: %#6x   bx: %#6x   CX: %#6x   DX: %#6x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
-	printf("SI: %#6x   DI: %#6x   BP: %#6x   SP: %#6x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
-#endif
-}
-
-static void printFlags(void)
-{
-#if defined(SEE_FLAGS) || defined(SEE_ALL)
-	printf("%s  %s  %s  %s  %s  %s  %s  %s  %s\n",(cpu.flags & CPU::OVER) ? "OF" : "of", (cpu.flags & CPU::DIR) ? "DF" : "df", (cpu.flags & CPU::INTF) ? "IF" : "if", (cpu.flags & CPU::TRAP) ? "TF" : "tf", (cpu.flags & CPU::SIGN) ? "SF" : "sf", (cpu.flags & CPU::ZERRO) ? "ZF" : "zf", (cpu.flags & CPU::A_CARRY) ? "AF" : "af", (cpu.flags & CPU::PARRITY) ? "PF" : "pf", (cpu.flags & CPU::CARRY) ? "CF" : "cf");
-#endif
 }
 
 void CPU::interrupt(const CPU::INTERRUPT_TYPE type, const uint8_t interruptVector)
@@ -326,13 +294,6 @@ bool CPU::clock()
 	{
 		biu.instructionBufferQueuePop(cpu.eu.instructionLength);
 		instructionExecutedCount += 1;
-		#if defined(SEE_ALL) || defined(SEE_REGS)
-			printRegisters();
-		#endif
-
-		#if defined(SEE_ALL) || defined(SEE_FLAGS)
-			printFlags();
-		#endif
 
 		//TODO: This might optimization by using bit mask to tell which interrupt is triggered
 		const bool shouldInterrupt = (!IRET_DELAY) && (INTR || INTN || INTO || INT3 || DIVIDE || NMI || cpu.getFlagStatus(CPU::FLAGS_T::TRAP));

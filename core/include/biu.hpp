@@ -30,6 +30,8 @@ namespace E5150::I8086
 			void outByte (const unsigned int address, const uint8_t data);
 			void outWord (const unsigned int address, const uint16_t data);
 
+			void debugClockPrint(void);
+
 			std::array<uint8_t, 5> instructionBufferQueue;
 			unsigned int instructionBufferQueuePos;
 	};

@@ -6,7 +6,7 @@
 
 #ifdef DEBUG_BUILD
 	//#define STOP_AT_CLOCK
-	//#define STOP_AT_INSTRUCTION
+	#define STOP_AT_INSTRUCTION
 	//#define SEE_ALL
 #else
 

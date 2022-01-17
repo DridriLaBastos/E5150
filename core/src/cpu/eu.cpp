@@ -669,6 +669,11 @@ static bool EUWaitSuccessfullDecodeClock(void)
 
 EU::EU(): clock(EUWaitSuccessfullDecodeClock) { nextClockFunction = EUWaitSuccessfullDecodeClock; }
 
+void EU::debugClockPrint()
+{
+	
+}
+
 void EU::updateClockFunction() { clock = nextClockFunction; }
 void EU::enterInterruptServiceProcedure(const unsigned int interruptServiceClockCycles)
 {

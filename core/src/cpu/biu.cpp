@@ -8,8 +8,7 @@ enum class BIU_WORKING_MODE
 	FETCH_INSTRUCTION,
 	FETCH_DATA,
 	WAIT_ROOM_IN_QUEUE,
-	WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE,
-	INTERRUPT_DATA_SAVE
+	WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE
 };
 
 //Some status variables are created here because they are related to the internal working of the BIU emulation and thus they don't need to be visible in the header file of the class
@@ -22,36 +21,20 @@ static BIU_WORKING_MODE workingMode = BIU_WORKING_MODE::FETCH_INSTRUCTION;
 static unsigned int IP_OFFSET = 0;
 
 static bool BIUWaitEndOfInterruptDataSaveSequenceClock(void)
-{
-	#ifdef DEBUG_BUILD
-		printf("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE\n");
-	#endif
-	return !CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE;
-}
+{ return !CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE; }
 
 static bool BIUDataAccessClock(void)
 {
-	#ifdef STOP_AT_CLOCK
-		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", EU_DATA_ACCESS_CLOCK_LEFT);
-	#endif
 	EU_DATA_ACCESS_CLOCK_LEFT -= 1;
 	return EU_DATA_ACCESS_CLOCK_LEFT == 0;
 }
 
 static bool BIUWaitPlaceInInstrutionBufferQueueClock(void)
-{
-	#ifdef STOP_AT_CLOCK
-		printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
-	#endif
-	return true;
-}
+{ return true; }
 
 static bool BIUInstructionFetchClock(void)
 {
 	BUS_CYCLE_CLOCK_LEFT -= 1;
-	#ifdef STOP_AT_CLOCK
-		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+IP_OFFSET),cpu.cs,cpu.ip+IP_OFFSET);
-	#endif
 
 	if (BUS_CYCLE_CLOCK_LEFT == 0)
 	{
@@ -62,19 +45,47 @@ static bool BIUInstructionFetchClock(void)
 			cpu.biu.instructionBufferQueuePos += 1;
 			IP_OFFSET += 1;
 
-			#ifdef STOP_AT_CLOCK
+			BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
+			return true;
+		}
+	}
+	return false;
+}
+
+void BIU::debugClockPrint()
+{
+	switch (workingMode)
+	{
+		case BIU_WORKING_MODE::FETCH_INSTRUCTION:
+		{
+			printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+IP_OFFSET),cpu.cs,cpu.ip+IP_OFFSET);
+
+			if ((cpu.biu.instructionBufferQueuePos <= 5) && BUS_CYCLE_CLOCK_LEFT == BUS_CYCLE_CLOCK)
+			{
 				printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
 				printf("Instruction buffer: ");
 				for (uint8_t b: cpu.biu.instructionBufferQueue)
 					printf("%#x ",b);
 				putchar('\n');
-			#endif
-			BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
-			return true;
-		}
+			}
+		} break;
+
+		case BIU_WORKING_MODE::FETCH_DATA:
+			printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", EU_DATA_ACCESS_CLOCK_LEFT);
+			break;
+		
+		case BIU_WORKING_MODE::WAIT_ROOM_IN_QUEUE:
+			printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
+			break;
+
+		case BIU_WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
+			printf("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE\n");
+			break;
+
+	default:
+		break;
 	}
-	return false;
 }
 
 void BIU::clock()
