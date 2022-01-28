@@ -302,7 +302,7 @@ bool CPU::clock()
 		IRET_DELAY = false;
 	}
 
-	eu.updateClockFunction();
+	//eu.updateClockFunction();
 	biu.updateClockFunction();
 
 	return instructionExecuted;

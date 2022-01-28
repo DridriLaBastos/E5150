@@ -45,14 +45,7 @@ static DebuggerState state;
 
 void E5150::Debugger::init()
 {
-	#ifdef STOP_AT_CLOCK
-		state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
-	#elif defined(STOP_AT_INSTRUCTION)
-		state.clockBehaviour = CLOCK_BEHAVIOUR::INSTRUCTION_STOP;
-	#else
-		state.clockBehaviour = CLOCK_BEHAVIOUR::PASS;
-	#endif
-
+	state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
 	state.stopBehaviour  = STOP_BEHAVIOUR::STOP;
 }
 

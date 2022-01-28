@@ -26,10 +26,9 @@ namespace E5150::I8086
 				void clearData(void) { isSigned = 0; }
 			};
 		public:
-			EU(void);
-
 			void updateClockFunction(void);
 			void enterInterruptServiceProcedure(const unsigned int procedureClockCycles);
+			bool clock(void);
 
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);
@@ -45,7 +44,7 @@ namespace E5150::I8086
 			const xed_inst_t* xedInst;
 			bool operandSizeWord;
 			bool repInstructionFinished;
-			bool (*clock)(void);
+			//bool (*clock)(void);
 			InstructionExtraData_t instructionExtraData;
 	};
 }

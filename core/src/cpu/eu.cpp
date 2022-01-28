@@ -6,19 +6,23 @@
 using namespace E5150::I8086;
 static bool EUWaitSuccessfullDecodeClock(void);
 
-static bool (*nextClockFunction)(void) = nullptr;
+enum class EU_WORKING_MODE
+{
+	EXEC_INTERRUPT_SERVICE_PROCEDURE,
+	EXEC_INSTRUCTION,
+	EXEC_REP_INSTRUCTION,
+	DECODE
+};
+
+static EU_WORKING_MODE EUWorkingMode = EU_WORKING_MODE::DECODE;
+static EU_WORKING_MODE EUNextWorkingMode = EUWorkingMode;
+
 static void (*instructionFunction)(void) = nullptr;
 static unsigned int (*repInstructionGetNextClockCount)(const unsigned int) = nullptr;
 static unsigned int INSTRUCTION_CLOCK_LEFT = 0;
 static unsigned int REP_COUNT = 0;
 static unsigned int CURRENT_INSTRUCTION_CS = 0;
 static unsigned int CURRENT_INSTRUCTION_IP = 0;
-
-#ifdef UNIT_TEST
-	#define INSTRUCTION_PRINT std::cerr
-#else
-	#define INSTRUCTION_PRINT std::cout
-#endif
 
 static void doNothing(void) { return; }
 
@@ -27,9 +31,9 @@ static void printCurrentInstruction(void)
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
-	INSTRUCTION_PRINT << std::hex << CURRENT_INSTRUCTION_CS << ":" << CURRENT_INSTRUCTION_IP << " (" << cpu.genAddress(CURRENT_INSTRUCTION_CS,CURRENT_INSTRUCTION_IP) << ")" << std::dec << ": ";
-	INSTRUCTION_PRINT << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " : length = " << xed_decoded_inst_get_length(&cpu.eu.decodedInst) << std::endl;
-	INSTRUCTION_PRINT << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " ";
+	std::cout << std::hex << CURRENT_INSTRUCTION_CS << ":" << CURRENT_INSTRUCTION_IP << " (" << cpu.genAddress(CURRENT_INSTRUCTION_CS,CURRENT_INSTRUCTION_IP) << ")" << std::dec << ": ";
+	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " : length = " << xed_decoded_inst_get_length(&cpu.eu.decodedInst) << std::endl;
+	std::cout << xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&cpu.eu.decodedInst)) << " ";
 	unsigned int realOperandPos = 0;
 	bool foundPtr = false;
 
@@ -42,35 +46,35 @@ static void printCurrentInstruction(void)
 		{
 			if (foundPtr)
 			{
-				INSTRUCTION_PRINT << ":";
+				std::cout << ":";
 				foundPtr = false;
 			}
 			else
 			{
 				if (realOperandPos > 0)
-					INSTRUCTION_PRINT<< ", ";
+					std::cout<< ", ";
 			}
 
 			switch (op_name)
 			{
 			case XED_OPERAND_RELBR:
-				INSTRUCTION_PRINT << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF);
+				std::cout << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF);
 				break;
 
 			case XED_OPERAND_PTR:
-				INSTRUCTION_PRINT << std::hex << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
+				std::cout << std::hex << (xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
 				foundPtr = true;
 				break;
 
 			case XED_OPERAND_REG0:
 			case XED_OPERAND_REG1:
 			case XED_OPERAND_REG2:
-				INSTRUCTION_PRINT << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
+				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
 				break;
 
 			case XED_OPERAND_IMM0:
 			case XED_OPERAND_IMM1:
-				INSTRUCTION_PRINT << std::hex << (xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
+				std::cout << std::hex << (xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst) & 0xFFFF) << std::dec;
 				break;
 
 			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
@@ -79,17 +83,17 @@ static void printCurrentInstruction(void)
 				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&cpu.eu.decodedInst, 0);
 				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&cpu.eu.decodedInst, 0);
 				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&cpu.eu.decodedInst,0);
-				INSTRUCTION_PRINT << ((xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 1) ? "BYTE" : "WORD") << " ";
-				INSTRUCTION_PRINT << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&cpu.eu.decodedInst, 0)) << ":[";
+				std::cout << ((xed_decoded_inst_get_memory_operand_length(&cpu.eu.decodedInst, 0) == 1) ? "BYTE" : "WORD") << " ";
+				std::cout << xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&cpu.eu.decodedInst, 0)) << ":[";
 
 				if (baseReg != XED_REG_INVALID)
-					INSTRUCTION_PRINT << xed_reg_enum_t2str(baseReg);
+					std::cout << xed_reg_enum_t2str(baseReg);
 				
 				if (indexReg != XED_REG_INVALID)
 				{
 					if (baseReg != XED_REG_INVALID)
-						INSTRUCTION_PRINT << " + ";
-					INSTRUCTION_PRINT << xed_reg_enum_t2str(indexReg);
+						std::cout << " + ";
+					std::cout << xed_reg_enum_t2str(indexReg);
 				}
 
 				if ((indexReg != XED_REG_INVALID) || (baseReg != XED_REG_INVALID))
@@ -97,14 +101,14 @@ static void printCurrentInstruction(void)
 					if (memDisplacement != 0)
 					{
 						if (memDisplacement > 0)
-							INSTRUCTION_PRINT << " + " << memDisplacement;
+							std::cout << " + " << memDisplacement;
 						else
-							INSTRUCTION_PRINT << " - " << -memDisplacement;
+							std::cout << " - " << -memDisplacement;
 					}
 				}
 				else
-					INSTRUCTION_PRINT << memDisplacement;
-				INSTRUCTION_PRINT<< "]";
+					std::cout << memDisplacement;
+				std::cout<< "]";
 			}	break;
 
 			default:
@@ -114,8 +118,8 @@ static void printCurrentInstruction(void)
 			++realOperandPos;
 		}
 	}
-		INSTRUCTION_PRINT << " (iform: ' "<< xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)) << "')";
-		INSTRUCTION_PRINT << " (" << cpu.instructionExecutedCount+1 << ")\n";
+		std::cout << " (iform: ' "<< xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)) << "')";
+		std::cout << " (" << cpu.instructionExecutedCount+1 << ")\n";
 }
 
 static bool EUExecInterruptServiceProcedureClock(void)
@@ -136,7 +140,7 @@ static bool EUExecInterruptServiceProcedureClock(void)
 		else
 		{
 			cpu.biu.endInterruptDataSaveSequence();
-			nextClockFunction = EUWaitSuccessfullDecodeClock;
+			EUWorkingMode = EU_WORKING_MODE::DECODE;
 		}
 	}
 
@@ -147,13 +151,12 @@ static bool EUExecInstructionClock(void)
 {
 	#ifdef STOP_AT_CLOCK
 		printCurrentInstruction();
-	printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
+		printf(" clock left : %d\n",INSTRUCTION_CLOCK_LEFT);
 	#endif
 	if (INSTRUCTION_CLOCK_LEFT == 0)
 	{
 		instructionFunction();
-
-		nextClockFunction = EUWaitSuccessfullDecodeClock;
+		EUWorkingMode = EU_WORKING_MODE::DECODE;
 		return true;
 	}
 
@@ -174,8 +177,8 @@ static bool EUExecRepInstructionClock(void)
 		
 		if (cpu.eu.repInstructionFinished)
 		{
-			nextClockFunction = EUWaitSuccessfullDecodeClock;
 			cpu.eu.repInstructionFinished = false;
+			EUWorkingMode = EU_WORKING_MODE::DECODE;
 			return true;
 		}
 		else
@@ -201,6 +204,7 @@ static unsigned int prepareInstructionExecution(void)
 	CURRENT_INSTRUCTION_CS = cpu.cs;
 	CURRENT_INSTRUCTION_IP = cpu.ip;
 	cpu.biu.IPToNextInstruction(cpu.eu.instructionLength);
+	EUWorkingMode = EU_WORKING_MODE::EXEC_INSTRUCTION;
 
 	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
 	{
@@ -422,7 +426,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_MOVS;
 			repInstructionGetNextClockCount = getREP_MOVSCycles;
-			nextClockFunction = EUExecRepInstructionClock;
+			EUWorkingMode = EU_WORKING_MODE::EXEC_REP_INSTRUCTION;
 			return getREP_MOVSCycles(REP_COUNT);
 
 		case XED_ICLASS_CMPSB:
@@ -437,7 +441,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_CMPS;
 			repInstructionGetNextClockCount = getREP_CMPSCycles;
-			nextClockFunction = EUExecRepInstructionClock;
+			EUWorkingMode = EU_WORKING_MODE::EXEC_REP_INSTRUCTION;
 			return getREP_CMPSCycles(REP_COUNT);
 
 		case XED_ICLASS_SCASB:
@@ -452,7 +456,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_SCAS;
 			repInstructionGetNextClockCount = getREP_SCASCycles;
-			nextClockFunction = EUExecRepInstructionClock;
+			EUWorkingMode = EU_WORKING_MODE::EXEC_REP_INSTRUCTION;
 			return getREP_SCASCycles(REP_COUNT);
 
 		case XED_ICLASS_LODSB:
@@ -465,7 +469,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_LODS;
 			repInstructionGetNextClockCount = getREP_LODSCycles;
-			nextClockFunction = EUExecRepInstructionClock;
+			EUWorkingMode = EU_WORKING_MODE::EXEC_REP_INSTRUCTION;
 			return getREP_LODSCycles(REP_COUNT);
 
 		case XED_ICLASS_STOSB:
@@ -478,7 +482,7 @@ static unsigned int prepareInstructionExecution(void)
 			REP_COUNT = 0;
 			instructionFunction = REP_STOS;
 			repInstructionGetNextClockCount = getREP_STOSCycles;
-			nextClockFunction = EUExecRepInstructionClock;
+			EUWorkingMode = EU_WORKING_MODE::EXEC_REP_INSTRUCTION;
 			return getREP_STOSCycles(REP_COUNT);
 
 		case XED_ICLASS_CALL_NEAR:
@@ -644,21 +648,20 @@ static unsigned int prepareInstructionExecution(void)
 	}
 }
 
-static bool EUWaitSuccessfullDecodeClock(void)
+static bool EUDecodeClock(void)
 {
 	xed_decoded_inst_zero_keep_mode(&cpu.eu.decodedInst);
 	const xed_error_enum_t DECODE_STATUS = xed_decode(&cpu.eu.decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);
 
 	if (DECODE_STATUS == XED_ERROR_NONE)
 	{
-		nextClockFunction = EUExecInstructionClock;
 		INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
-		#if defined(STOP_AT_CLOCK) || defined(STOP_AT_INSTRUCTION) || defined(UNIT_TEST)
-			printCurrentInstruction();
-			#ifndef UNIT_TEST//Only display the clock cycles when not unit testing
-				printf("Clock cycles: %d\n",INSTRUCTION_CLOCK_LEFT);
-			#endif
-		#endif
+		// #if defined(STOP_AT_CLOCK) || defined(STOP_AT_INSTRUCTION) || defined(UNIT_TEST)
+		// 	printCurrentInstruction();
+		// 	#ifndef UNIT_TEST//Only display the clock cycles when not unit testing
+		// 		printf("Clock cycles: %d\n",INSTRUCTION_CLOCK_LEFT);
+		// 	#endif
+		// #endif
 		//An instruction function has been decode and the cpu will tell the EU how much clock cycles will be needed
 		if (INSTRUCTION_CLOCK_LEFT == 0)
 			return true;
@@ -667,17 +670,46 @@ static bool EUWaitSuccessfullDecodeClock(void)
 	return false;
 }
 
-EU::EU(): clock(EUWaitSuccessfullDecodeClock) { nextClockFunction = EUWaitSuccessfullDecodeClock; }
+bool EU::clock()
+{
+	switch (EUWorkingMode)
+	{
+		case EU_WORKING_MODE::DECODE:
+			return EUDecodeClock();
+		
+		case EU_WORKING_MODE::EXEC_INSTRUCTION:
+			return EUExecInstructionClock();
+
+		case EU_WORKING_MODE::EXEC_REP_INSTRUCTION:
+			return EUExecRepInstructionClock();
+		
+		case EU_WORKING_MODE::EXEC_INTERRUPT_SERVICE_PROCEDURE:
+			return EUExecInterruptServiceProcedureClock();
+	}
+}
 
 void EU::debugClockPrint()
 {
-	
+	switch (EUWorkingMode)
+	{
+		case EU_WORKING_MODE::EXEC_INSTRUCTION:
+			printCurrentInstruction();
+			printf("Clock cycle: %d\n", INSTRUCTION_CLOCK_LEFT);
+			break;
+
+		default:
+			break;
+	}
 }
 
-void EU::updateClockFunction() { clock = nextClockFunction; }
+void EU::updateClockFunction()
+{
+	EUWorkingMode = EUNextWorkingMode;
+}
+
 void EU::enterInterruptServiceProcedure(const unsigned int interruptServiceClockCycles)
 {
-	nextClockFunction = EUExecInterruptServiceProcedureClock;
+	EUNextWorkingMode = EU_WORKING_MODE::EXEC_INTERRUPT_SERVICE_PROCEDURE;
 	INSTRUCTION_CLOCK_LEFT = interruptServiceClockCycles;
 }
 

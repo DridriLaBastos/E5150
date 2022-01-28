@@ -41,7 +41,8 @@ static bool BIUInstructionFetchClock(void)
 		if (cpu.biu.instructionBufferQueuePos < 5)
 		{
 			const unsigned int fecthAddress = cpu.genAddress(cpu.cs, cpu.ip + IP_OFFSET);
-			cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = ram.read(fecthAddress);
+			const uint8_t instructionByte = ram.read(fecthAddress);
+			cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = instructionByte;
 			cpu.biu.instructionBufferQueuePos += 1;
 			IP_OFFSET += 1;
 
@@ -65,8 +66,10 @@ void BIU::debugClockPrint()
 				printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
 				printf("Instruction buffer: ");
-				for (uint8_t b: cpu.biu.instructionBufferQueue)
-					printf("%#x ",b);
+				std::for_each(cpu.biu.instructionBufferQueue.begin(), cpu.biu.instructionBufferQueue.end(),
+					[](const uint8_t b) { printf("%#x ",b); });
+				// for (uint8_t b: cpu.biu.instructionBufferQueue)
+				// 	printf("%#x ",b);
 				putchar('\n');
 			}
 		} break;
