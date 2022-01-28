@@ -45,7 +45,6 @@ namespace E5150::I8086
 			};
 
 		public:
-			void updateClockFunction(void);
 			void enterInterruptServiceProcedure(const unsigned int procedureClockCycles);
 			bool clock(void);
 

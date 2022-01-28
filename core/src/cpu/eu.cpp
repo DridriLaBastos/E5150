@@ -578,25 +578,6 @@ bool EU::clock()
 	}
 }
 
-// void EU::debugClockPrint()
-// {
-	// switch (workingState.EUWorkingMode)
-	// {
-	// 	case EU::WORKING_MODE::EXEC_INSTRUCTION:
-	// 		printCurrentInstruction();
-	// 		printf("Clock cycle: %d\n", workingState.INSTRUCTION_CLOCK_LEFT);
-	// 		break;
-
-	// 	default:
-	// 		break;
-	// }
-// }
-
-void EU::updateClockFunction()
-{
-	// workingState.EUWorkingMode = EUNextWorkingMode;
-}
-
 void EU::enterInterruptServiceProcedure(const unsigned int interruptServiceClockCycles)
 {
 	EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_INTERRUPT_SERVICE_PROCEDURE;

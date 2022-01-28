@@ -41,44 +41,6 @@ static bool BIUInstructionFetchClock(void)
 const BIU::InternalInfos& BIU::getDebugWorkingState (void)
 { return BIUWorkingState; }
 
-// void BIU::debugClockPrint()
-// {
-	// switch (workingState.workingMode)
-	// {
-	// 	case BIU::WORKING_MODE::FETCH_INSTRUCTION:
-	// 	{
-	// 		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", workingState.BUS_CYCLE_CLOCK - workingState.BUS_CYCLE_CLOCK_LEFT, workingState.BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+workingState.IP_OFFSET),cpu.cs,cpu.ip+workingState.IP_OFFSET);
-
-	// 		if ((cpu.biu.instructionBufferQueuePos <= 5) && workingState.BUS_CYCLE_CLOCK_LEFT == workingState.BUS_CYCLE_CLOCK)
-	// 		{
-	// 			printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
-
-	// 			printf("Instruction buffer: ");
-	// 			std::for_each(cpu.biu.instructionBufferQueue.begin(), cpu.biu.instructionBufferQueue.end(),
-	// 				[](const uint8_t b) { printf("%#x ",b); });
-	// 			// for (uint8_t b: cpu.biu.instructionBufferQueue)
-	// 			// 	printf("%#x ",b);
-	// 			putchar('\n');
-	// 		}
-	// 	} break;
-
-	// 	case BIU::WORKING_MODE::FETCH_DATA:
-	// 		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", workingState.EU_DATA_ACCESS_CLOCK_LEFT);
-	// 		break;
-		
-	// 	case BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE:
-	// 		printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
-	// 		break;
-
-	// 	case BIU::WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
-	// 		printf("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE\n");
-	// 		break;
-
-	// default:
-	// 	break;
-	// }
-// }
-
 void BIU::clock()
 {
 	switch (BIUWorkingState.workingMode)
