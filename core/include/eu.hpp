@@ -8,6 +8,24 @@ namespace E5150::I8086
 	class EU
 	{
 		public:
+			enum class WORKING_MODE
+			{
+				EXEC_INTERRUPT_SERVICE_PROCEDURE,
+				EXEC_INSTRUCTION,
+				EXEC_REP_INSTRUCTION,
+				DECODE
+			};
+
+			struct InternalInfos
+			{
+				WORKING_MODE EUWorkingMode = WORKING_MODE::DECODE;
+				WORKING_MODE EUNextWorkingMode = EUWorkingMode;
+				unsigned int INSTRUCTION_CLOCK_LEFT = 0;
+				unsigned int REP_COUNT = 0;
+				unsigned int CURRENT_INSTRUCTION_CS = 0;
+				unsigned int CURRENT_INSTRUCTION_IP = 0;
+			};
+
 			union InstructionExtraData_t
 			{
 				bool isSigned;
@@ -25,6 +43,7 @@ namespace E5150::I8086
 				
 				void clearData(void) { isSigned = 0; }
 			};
+
 		public:
 			void updateClockFunction(void);
 			void enterInterruptServiceProcedure(const unsigned int procedureClockCycles);
@@ -33,7 +52,7 @@ namespace E5150::I8086
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);
 
-			void debugClockPrint(void);
+			static const InternalInfos& getDebugWorkingState (void);
 
 			unsigned int computeEAAndGetComputationClockCount();
 			unsigned int EAAddress;
@@ -44,7 +63,6 @@ namespace E5150::I8086
 			const xed_inst_t* xedInst;
 			bool operandSizeWord;
 			bool repInstructionFinished;
-			//bool (*clock)(void);
 			InstructionExtraData_t instructionExtraData;
 	};
 }

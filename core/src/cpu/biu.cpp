@@ -3,30 +3,15 @@
 
 using namespace E5150::I8086;
 
-enum class BIU_WORKING_MODE 
-{
-	FETCH_INSTRUCTION,
-	FETCH_DATA,
-	WAIT_ROOM_IN_QUEUE,
-	WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE
-};
-
-//Some status variables are created here because they are related to the internal working of the BIU emulation and thus they don't need to be visible in the header file of the class
-static constexpr unsigned int BUS_CYCLE_CLOCK = 4;
-static unsigned int BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
-static unsigned int EU_DATA_ACCESS_CLOCK_LEFT = 0;
-static bool CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = false;
-static bool UPDATE_WORKING_MODE = false;
-static BIU_WORKING_MODE workingMode = BIU_WORKING_MODE::FETCH_INSTRUCTION;
-static unsigned int IP_OFFSET = 0;
+static BIU::InternalInfos BIUWorkingState;
 
 static bool BIUWaitEndOfInterruptDataSaveSequenceClock(void)
-{ return !CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE; }
+{ return !BIUWorkingState.CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE; }
 
 static bool BIUDataAccessClock(void)
 {
-	EU_DATA_ACCESS_CLOCK_LEFT -= 1;
-	return EU_DATA_ACCESS_CLOCK_LEFT == 0;
+	BIUWorkingState.EU_DATA_ACCESS_CLOCK_LEFT -= 1;
+	return BIUWorkingState.EU_DATA_ACCESS_CLOCK_LEFT == 0;
 }
 
 static bool BIUWaitPlaceInInstrutionBufferQueueClock(void)
@@ -34,118 +19,111 @@ static bool BIUWaitPlaceInInstrutionBufferQueueClock(void)
 
 static bool BIUInstructionFetchClock(void)
 {
-	BUS_CYCLE_CLOCK_LEFT -= 1;
+	BIUWorkingState.BUS_CYCLE_CLOCK_LEFT -= 1;
 
-	if (BUS_CYCLE_CLOCK_LEFT == 0)
+	if (BIUWorkingState.BUS_CYCLE_CLOCK_LEFT == 0)
 	{
 		if (cpu.biu.instructionBufferQueuePos < 5)
 		{
-			const unsigned int fecthAddress = cpu.genAddress(cpu.cs, cpu.ip + IP_OFFSET);
+			const unsigned int fecthAddress = cpu.genAddress(cpu.cs, cpu.ip + BIUWorkingState.IP_OFFSET);
 			const uint8_t instructionByte = ram.read(fecthAddress);
 			cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = instructionByte;
 			cpu.biu.instructionBufferQueuePos += 1;
-			IP_OFFSET += 1;
+			BIUWorkingState.IP_OFFSET += 1;
 
-			BUS_CYCLE_CLOCK_LEFT = BUS_CYCLE_CLOCK;
+			BIUWorkingState.BUS_CYCLE_CLOCK_LEFT = BIUWorkingState.BUS_CYCLE_CLOCK;
 			return true;
 		}
 	}
 	return false;
 }
 
-void BIU::debugClockPrint()
-{
-	switch (workingMode)
-	{
-		case BIU_WORKING_MODE::FETCH_INSTRUCTION:
-		{
-			printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BUS_CYCLE_CLOCK - BUS_CYCLE_CLOCK_LEFT, BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+IP_OFFSET),cpu.cs,cpu.ip+IP_OFFSET);
+const BIU::InternalInfos& BIU::getDebugWorkingState (void)
+{ return BIUWorkingState; }
 
-			if ((cpu.biu.instructionBufferQueuePos <= 5) && BUS_CYCLE_CLOCK_LEFT == BUS_CYCLE_CLOCK)
-			{
-				printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
+// void BIU::debugClockPrint()
+// {
+	// switch (workingState.workingMode)
+	// {
+	// 	case BIU::WORKING_MODE::FETCH_INSTRUCTION:
+	// 	{
+	// 		printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", workingState.BUS_CYCLE_CLOCK - workingState.BUS_CYCLE_CLOCK_LEFT, workingState.BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+workingState.IP_OFFSET),cpu.cs,cpu.ip+workingState.IP_OFFSET);
 
-				printf("Instruction buffer: ");
-				std::for_each(cpu.biu.instructionBufferQueue.begin(), cpu.biu.instructionBufferQueue.end(),
-					[](const uint8_t b) { printf("%#x ",b); });
-				// for (uint8_t b: cpu.biu.instructionBufferQueue)
-				// 	printf("%#x ",b);
-				putchar('\n');
-			}
-		} break;
+	// 		if ((cpu.biu.instructionBufferQueuePos <= 5) && workingState.BUS_CYCLE_CLOCK_LEFT == workingState.BUS_CYCLE_CLOCK)
+	// 		{
+	// 			printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
 
-		case BIU_WORKING_MODE::FETCH_DATA:
-			printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", EU_DATA_ACCESS_CLOCK_LEFT);
-			break;
+	// 			printf("Instruction buffer: ");
+	// 			std::for_each(cpu.biu.instructionBufferQueue.begin(), cpu.biu.instructionBufferQueue.end(),
+	// 				[](const uint8_t b) { printf("%#x ",b); });
+	// 			// for (uint8_t b: cpu.biu.instructionBufferQueue)
+	// 			// 	printf("%#x ",b);
+	// 			putchar('\n');
+	// 		}
+	// 	} break;
+
+	// 	case BIU::WORKING_MODE::FETCH_DATA:
+	// 		printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", workingState.EU_DATA_ACCESS_CLOCK_LEFT);
+	// 		break;
 		
-		case BIU_WORKING_MODE::WAIT_ROOM_IN_QUEUE:
-			printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
-			break;
+	// 	case BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE:
+	// 		printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
+	// 		break;
 
-		case BIU_WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
-			printf("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE\n");
-			break;
+	// 	case BIU::WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
+	// 		printf("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE\n");
+	// 		break;
 
-	default:
-		break;
-	}
-}
+	// default:
+	// 	break;
+	// }
+// }
 
 void BIU::clock()
 {
-	switch (workingMode)
+	switch (BIUWorkingState.workingMode)
 	{
-	case BIU_WORKING_MODE::FETCH_INSTRUCTION:
-		UPDATE_WORKING_MODE = BIUInstructionFetchClock(); return;
+	case BIU::WORKING_MODE::FETCH_INSTRUCTION:
+		BIUWorkingState.UPDATE_WORKING_MODE = BIUInstructionFetchClock(); return;
 	
-	case BIU_WORKING_MODE::FETCH_DATA:
-		UPDATE_WORKING_MODE = BIUDataAccessClock(); return;
+	case BIU::WORKING_MODE::FETCH_DATA:
+		BIUWorkingState.UPDATE_WORKING_MODE = BIUDataAccessClock(); return;
 	
-	case BIU_WORKING_MODE::WAIT_ROOM_IN_QUEUE:
-		UPDATE_WORKING_MODE = BIUWaitPlaceInInstrutionBufferQueueClock(); return;
+	case BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE:
+		BIUWorkingState.UPDATE_WORKING_MODE = BIUWaitPlaceInInstrutionBufferQueueClock(); return;
 	
-	case BIU_WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
-		UPDATE_WORKING_MODE = BIUWaitEndOfInterruptDataSaveSequenceClock(); return;
+	case BIU::WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
+		BIUWorkingState.UPDATE_WORKING_MODE = BIUWaitEndOfInterruptDataSaveSequenceClock(); return;
 	}
-}
-
-void BIU::debug(void)
-{
-	std::for_each(instructionBufferQueue.begin(), instructionBufferQueue.end(), [](const uint8_t& b)
-				  { printf("%#4x ",b); });
-	putchar('\n');
-	for (int i = 0; i < instructionBufferQueuePos; ++i)
-	{ printf("     "); }
-	puts("  ^");
 }
 
 void BIU::updateClockFunction()
 {
 	//If a new bus cycle is about to start a new clock function is used to execute custom functions
-	if (UPDATE_WORKING_MODE)
+	if (BIUWorkingState.UPDATE_WORKING_MODE)
 	{
-		UPDATE_WORKING_MODE = false;
-		workingMode = BIU_WORKING_MODE::FETCH_INSTRUCTION;
+		BIUWorkingState.UPDATE_WORKING_MODE = false;
+		BIUWorkingState.workingMode = BIU::WORKING_MODE::FETCH_INSTRUCTION;
 
 		//No special action are required but the buffer queue is full
 		if (instructionBufferQueuePos >= 5)
-			workingMode = BIU_WORKING_MODE::WAIT_ROOM_IN_QUEUE;
+			BIUWorkingState.workingMode = BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE;
 
 		//Biger priority: the EU request data from memory
-		if (EU_DATA_ACCESS_CLOCK_LEFT > 0)
-			workingMode = BIU_WORKING_MODE::FETCH_DATA;
+		if (BIUWorkingState.EU_DATA_ACCESS_CLOCK_LEFT > 0)
+			BIUWorkingState.workingMode = BIU::WORKING_MODE::FETCH_DATA;
 		
-		if (CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE)
-			workingMode = BIU_WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE;
+		if (BIUWorkingState.CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE)
+			BIUWorkingState.workingMode = BIU::WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE;
 	}
 }
 
-void BIU::startInterruptDataSaveSequence() { CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = true; }
+void BIU::startInterruptDataSaveSequence() { BIUWorkingState.CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = true; }
 void BIU::endInterruptDataSaveSequence()
 {
 	instructionBufferQueuePos = 0;
-	CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = false;
-	UPDATE_WORKING_MODE = true;
+	BIUWorkingState.CPU_EXECUTING_INTERRUPT_DATASAVE_SEQUENCE = false;
+	BIUWorkingState.UPDATE_WORKING_MODE = true;
 }
 
 /**
@@ -168,15 +146,15 @@ void BIU::endControlTransferInstruction (const bool didJump)
 	{
 		cpu.eu.instructionLength  = 5;
 		instructionBufferQueuePos = 5;
-		IP_OFFSET = 0;
+		BIUWorkingState.IP_OFFSET = 0;
 	}
-	UPDATE_WORKING_MODE = true;
+	BIUWorkingState.UPDATE_WORKING_MODE = true;
 }
 
 void BIU::IPToNextInstruction(const unsigned int instructionLength)
 {
 	cpu.ip += instructionLength;
-	IP_OFFSET -= instructionLength;
+	BIUWorkingState.IP_OFFSET -= instructionLength;
 }
 
 void BIU::instructionBufferQueuePop(const unsigned int n)
@@ -186,7 +164,7 @@ void BIU::instructionBufferQueuePop(const unsigned int n)
 	instructionBufferQueuePos -= n;
 }
 
-void BIU::requestMemoryByte(const unsigned int nBytes) noexcept { EU_DATA_ACCESS_CLOCK_LEFT += nBytes * BUS_CYCLE_CLOCK; }
+void BIU::requestMemoryByte(const unsigned int nBytes) noexcept { BIUWorkingState.EU_DATA_ACCESS_CLOCK_LEFT += nBytes * BIUWorkingState.BUS_CYCLE_CLOCK; }
 
 uint8_t BIU::readByte (const unsigned int address) const
 {
