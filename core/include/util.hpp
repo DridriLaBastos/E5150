@@ -1,8 +1,6 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
-#include "config.hpp"
-
 constexpr unsigned int DEBUG_LEVEL_MAX = 10;
 
 namespace E5150

@@ -29,14 +29,37 @@ display_parser.add_argument("-i", "--instructions", action="store_true", help="T
 display_parser.add_argument("-r", "--registers", action="store_true", help="Toggle displaying cpu registers")
 display_parser.add_argument("-f", "--flags", action="store_true", help="Toggle displaying cpu flags")
 
-DEBUG_SERVER_HOST = "0.0.0.0"
+### Quit the debugger
+quit_parser = subparser.add_parser("quit", aliases="q", help="Quit the emulation", description="Quit the emulation")
+
+DEBUG_SERVER_HOST = ''
 DEBUG_SERVER_PORT = 5510
 
-# with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-# 	s.bind((DEBUG_SERVER_HOST, DEBUG_SERVER_PORT))
-# 	s.listen()
-# 	conn, addr = s.accept()
-# 	with conn:
-# 		print(f"Connected by {addr}")
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	s.bind((DEBUG_SERVER_HOST, DEBUG_SERVER_PORT))
+	s.listen()
+	conn, addr = s.accept()
+	print(f"Connection from {addr}")
+	lastCmd = ""
+	while conn:
+		conn.recv(1)
+		goodCommand = False
+		while not goodCommand:
+			userCmd = input(" > ")
 
-parser.parse_args()
+			if len(userCmd) == 0:
+				userCmd = lastCmd
+
+			chunks = userCmd.split(" ")
+
+			try:
+				nm = parser.parse_args(chunks)
+				goodCommand = True
+				lastCmd = userCmd
+			except:
+				pass
+
+		conn.send(b'\x01',0)
+
+

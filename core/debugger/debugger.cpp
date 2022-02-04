@@ -1,4 +1,10 @@
 #include <iostream>
+#include <future>
+
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "util.hpp"
 #include "arch.hpp"
@@ -7,6 +13,8 @@
 using namespace E5150;
 
 static constexpr size_t USER_COMMAND_BUFFER_SIZE = 128;
+static int debuggerSocketFd = -1;
+static sockaddr_in debuggerAddr;
 
 /**
  * \brief An enum specifying how the debugger should react when a stop is needed
@@ -47,6 +55,31 @@ void E5150::Debugger::init()
 {
 	state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
 	state.stopBehaviour  = STOP_BEHAVIOUR::STOP;
+
+	debuggerSocketFd = socket(AF_INET, SOCK_STREAM,0);
+
+	if (debuggerSocketFd == -1)
+	{
+		WARNING("Cannot create connection to debugger. errno error: '{}'", strerror(errno));
+		return;
+	}
+
+	debuggerAddr.sin_family	= AF_INET;
+	debuggerAddr.sin_port	= htons(5510);
+
+	if (inet_aton("127.0.0.1",&debuggerAddr.sin_addr) == 0)
+	{
+		WARNING("Cannot create debugger connection address data. errno message: '{}'", strerror(errno));
+		return;
+	}
+
+	if (connect(debuggerSocketFd, (const sockaddr*)&debuggerAddr, sizeof(debuggerAddr)) != 0)
+	{
+		WARNING("Cannot connect to the debugger. errno message: '{}'", strerror(errno));
+		return;
+	}
+
+	INFO("Connected succesfully to the debugger");
 }
 
 static void printRegisters(void)
@@ -74,7 +107,7 @@ static void printBIUDebugInfo(void)
 {
 	const I8086::BIU::InternalInfos& BIUDebugInfo = I8086::BIU::getDebugWorkingState();
 
-		switch (BIUDebugInfo.workingMode)
+	switch (BIUDebugInfo.workingMode)
 	{
 		case I8086::BIU::WORKING_MODE::FETCH_INSTRUCTION:
 		{
@@ -330,6 +363,15 @@ static void printDebuggerCLI(const bool instructionExecuted)
 
 void Debugger::wakeUp(const bool instructionExecuted)
 {
-	printDebugInfo(instructionExecuted);
-	printDebuggerCLI(instructionExecuted);
+	// printDebugInfo(instructionExecuted);
+	// printDebuggerCLI(instructionExecuted);
+	static uint8_t wakeUpMsg = 1;
+
+	/**
+	 * 1 - 1 octet of data is sent to wake up the debugger
+	 * 2 - 1 octet of data is excpected from the debugger to be synchronized with it
+	 * */
+	const ssize_t sent = send(debuggerSocketFd,(void*)(&wakeUpMsg),sizeof(uint8_t),0);
+	const ssize_t received = recv(debuggerSocketFd,(void*)&wakeUpMsg, sizeof(wakeUpMsg), MSG_WAITALL);
+	printf("send: %d   received: %d\n", sent, received);
 }

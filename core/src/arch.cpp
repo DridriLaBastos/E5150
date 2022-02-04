@@ -111,7 +111,7 @@ void E5150::Arch::startSimulation()
 					_fdc.clock();
 				}
 				
-				#ifdef DEBUG
+				#ifdef DEBUGGER
 				Debugger::wakeUp(instructionExecuted);
 				#endif
 			}

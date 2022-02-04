@@ -1,8 +1,6 @@
 project(libcore)
 
-if(TEST)
-	add_compile_definitions(UNIT_TEST)
-endif(TEST)
+add_compile_definitions(DEBUGGER)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
