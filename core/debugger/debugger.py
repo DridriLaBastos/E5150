@@ -1,6 +1,9 @@
 import argparse
 from audioop import add
+import os
+from signal import SIGUSR1, signal
 import socket
+import sys
 
 cont = True
 parser = argparse.ArgumentParser(description="Debug fonctions parser for the E5150 debugger")
@@ -34,32 +37,41 @@ quit_parser = subparser.add_parser("quit", aliases="q", help="Quit the emulation
 
 DEBUG_SERVER_HOST = ''
 DEBUG_SERVER_PORT = 5510
+instructionExecCount = 0
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	s.bind((DEBUG_SERVER_HOST, DEBUG_SERVER_PORT))
-	s.listen()
-	conn, addr = s.accept()
-	print(f"Connection from {addr}")
-	lastCmd = ""
-	while conn:
-		conn.recv(1)
-		goodCommand = False
-		while not goodCommand:
-			userCmd = input(" > ")
+print("[DEBUGGER]: Running !")
 
-			if len(userCmd) == 0:
-				userCmd = lastCmd
+emulatorPid = int(sys.stdin.readline())
 
-			chunks = userCmd.split(" ")
+print(f"[DEBUGER]: Connected to emulator with pid {emulatorPid}")
 
-			try:
-				nm = parser.parse_args(chunks)
-				goodCommand = True
-				lastCmd = userCmd
-			except:
-				pass
+# with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+# 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+# 	s.bind((DEBUG_SERVER_HOST, DEBUG_SERVER_PORT))
+# 	s.listen()
+# 	conn, addr = s.accept()
+# 	print(f"Connection from {addr}")
+lastCmd = ""
+while True:
+	# instructionExecuted = conn.recv(1)
+	# instructionExecCount += int.from_bytes(instructionExecuted,'big')
+	goodCommand = False
+	while not goodCommand:
+		userCmd = input(" > ")
 
-		conn.send(b'\x01',0)
+		if len(userCmd) == 0:
+			userCmd = lastCmd
+
+		chunks = userCmd.split(" ")
+
+		try:
+			nm = parser.parse_args(chunks)
+			goodCommand = True
+			lastCmd = userCmd
+			os.kill(emulatorPid,SIGUSR1)
+		except:
+			pass
+
+		# conn.send(b'\x01',0)
 
 

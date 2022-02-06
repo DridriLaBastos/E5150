@@ -8,8 +8,10 @@ namespace E5150::Debugger
 		CALL, INTERRUPT, XCHG_BX_BX
 	};
 
+	//TODO: tranform it to a class to have init as a constructor and deinint in destructor
 	void init (void);
-	void wakeUp (const bool instructionExecuted);
+	void deinit (void);
+	void wakeUp (const uint8_t instructionExecuted);
 	void specialBehaviour(const SPECIAL_BEHAVIOUR);
 }
 

@@ -1,10 +1,13 @@
-#include <iostream>
+#include <atomic>
 #include <future>
+#include <iostream>
 
-#include <sys/socket.h>
+#include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "util.hpp"
 #include "arch.hpp"
@@ -15,6 +18,10 @@ using namespace E5150;
 static constexpr size_t USER_COMMAND_BUFFER_SIZE = 128;
 static int debuggerSocketFd = -1;
 static sockaddr_in debuggerAddr;
+static FILE* debuggerFile = nullptr;
+static std::atomic_bool debuggerOK = false;
+
+static void debugerOKSignal(const int) { debuggerOK = true; }
 
 /**
  * \brief An enum specifying how the debugger should react when a stop is needed
@@ -56,30 +63,82 @@ void E5150::Debugger::init()
 	state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
 	state.stopBehaviour  = STOP_BEHAVIOUR::STOP;
 
-	debuggerSocketFd = socket(AF_INET, SOCK_STREAM,0);
+	static int debuggerPipes [2];
 
-	if (debuggerSocketFd == -1)
+	if (pipe(debuggerPipes) < 0)
 	{
-		WARNING("Cannot create connection to debugger. errno error: '{}'", strerror(errno));
+		WARNING("Unable to create communication pipes with the debugger. [ERRNO]: '{}'", strerror(errno));
 		return;
 	}
 
-	debuggerAddr.sin_family	= AF_INET;
-	debuggerAddr.sin_port	= htons(5510);
+	const pid_t debuggerPID = fork();
 
-	if (inet_aton("127.0.0.1",&debuggerAddr.sin_addr) == 0)
+	if (debuggerPID < 0)
 	{
-		WARNING("Cannot create debugger connection address data. errno message: '{}'", strerror(errno));
+		WARNING("Unable to create the debugger subprocess. [ERRNO]: '{}'", strerror(errno));
 		return;
 	}
 
-	if (connect(debuggerSocketFd, (const sockaddr*)&debuggerAddr, sizeof(debuggerAddr)) != 0)
+	if (debuggerPID != 0)
 	{
-		WARNING("Cannot connect to the debugger. errno message: '{}'", strerror(errno));
-		return;
+		INFO("Debugger process created with pid {}", debuggerPID);
+		close(debuggerPipes[0]);
+		debuggerFile = fdopen(debuggerPipes[1],"w");
+	}
+	else
+	{
+		close(debuggerPipes[1]);
+		if (execlp("python3", "/usr/bin/python3", "/Users/adrien/Documents/Informatique/C++/E5150/core/debugger/debugger.py", NULL) < 0)
+		{
+			WARNING("Unable to launch the debugger script. [ERRNO]: {}", strerror(errno));
+			exit(127);
+		}
 	}
 
-	INFO("Connected succesfully to the debugger");
+	// debuggerFile = popen("python3 /Users/adrien/Documents/Informatique/C++/E5150/core/debugger/debugger.py", "w");
+
+	// if (!debuggerFile)
+	// {
+	// 	WARNING("Unable to create a communcication channel to the debugger. [ERRNO]: '{}'", strerror(errno));
+	// 	return;
+	// }
+
+	const std::string emulatorPIDForDebugger = std::to_string(getpid()).append("\n");
+	printf("'%s'\n",emulatorPIDForDebugger.data());
+	fputs(emulatorPIDForDebugger.data(), debuggerFile);
+
+	signal(SIGUSR1,debugerOKSignal);
+
+	// debuggerSocketFd = socket(AF_INET, SOCK_STREAM,0);
+
+	// if (debuggerSocketFd == -1)
+	// {
+	// 	WARNING("Cannot create connection to debugger. errno error: '{}'", strerror(errno));
+	// 	return;
+	// }
+
+	// debuggerAddr.sin_family	= AF_INET;
+	// debuggerAddr.sin_port	= htons(5510);
+
+	// if (inet_aton("127.0.0.1",&debuggerAddr.sin_addr) == 0)
+	// {
+	// 	WARNING("Cannot create debugger connection address data. errno message: '{}'", strerror(errno));
+	// 	return;
+	// }
+
+	// if (connect(debuggerSocketFd, (const sockaddr*)&debuggerAddr, sizeof(debuggerAddr)) != 0)
+	// {
+	// 	WARNING("Cannot connect to the debugger. errno message: '{}'", strerror(errno));
+	// 	return;
+	// }
+
+	// INFO("Connected succesfully to the debugger");
+}
+
+void E5150::Debugger::deinit()
+{
+	if (debuggerFile)
+		pclose(debuggerFile);
 }
 
 static void printRegisters(void)
@@ -361,17 +420,28 @@ static void printDebuggerCLI(const bool instructionExecuted)
 	}
 }
 
-void Debugger::wakeUp(const bool instructionExecuted)
+void Debugger::wakeUp(const uint8_t instructionExecuted)
 {
 	// printDebugInfo(instructionExecuted);
 	// printDebuggerCLI(instructionExecuted);
-	static uint8_t wakeUpMsg = 1;
+	// static uint8_t debugServerAck;
 
-	/**
-	 * 1 - 1 octet of data is sent to wake up the debugger
-	 * 2 - 1 octet of data is excpected from the debugger to be synchronized with it
-	 * */
-	const ssize_t sent = send(debuggerSocketFd,(void*)(&wakeUpMsg),sizeof(uint8_t),0);
-	const ssize_t received = recv(debuggerSocketFd,(void*)&wakeUpMsg, sizeof(wakeUpMsg), MSG_WAITALL);
-	printf("send: %d   received: %d\n", sent, received);
+	// /**
+	//  * 1 - 1 octet of data is sent to wake up the debugger
+	//  * 2 - 1 octet of data is excpected from the debugger to be synchronized with it
+	//  * */
+	// const ssize_t sent = send(debuggerSocketFd,(void*)(&instructionExecuted),sizeof(uint8_t),0);
+	// const ssize_t received = recv(debuggerSocketFd,(void*)&debugServerAck, sizeof(debugServerAck), MSG_WAITALL);
+	// printf("send: %d   received: %d\n", sent, received);
+	
+	static std::string debuggerCmd;
+	while(!debuggerOK)
+	{
+		std::getline(std::cin, debuggerCmd);
+		//getline deletes the last \n so it is added to the string sent to stdin of the debugger so that the debuger knows the command is ended
+		debuggerCmd.append("\n");
+		std::cout << "'" << debuggerCmd << "'\n";
+		fputs(debuggerCmd.data(), debuggerFile);
+	}
+	debuggerOK = false;
 }
