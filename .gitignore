@@ -35,18 +35,8 @@ build
 *.app
 *.bin
 
-# Build Artifacts
-core/third-party/lib
-core/third-party/include
-core/third-party/xed/build
-core/third-party/xed/kits
-
 #Visual Studio Code
 .vscode
 
 # macOS files
 *.DS_Store
-
-# Cmake
-*[Cc][Mm][Aa][Kk][Ee]*
-Makefile

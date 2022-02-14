@@ -1,10 +1,9 @@
-#include <thread>
 #include <signal.h>
 
 #include "arch.hpp"
 #include "util.hpp"
 
-#include "../debugger/debugger.hpp"
+#include "debugger/debugger.hpp"
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
