@@ -7,6 +7,7 @@
 #include <chrono>
 #include <memory>
 #include <vector>
+#include <future>
 #include <utility>
 #include <fstream>
 #include <stdint.h>

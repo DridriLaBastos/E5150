@@ -1,5 +1,4 @@
 import argparse
-from audioop import add
 import os
 from signal import SIGUSR1, signal
 import socket
@@ -39,11 +38,11 @@ DEBUG_SERVER_HOST = ''
 DEBUG_SERVER_PORT = 5510
 instructionExecCount = 0
 
-print("[DEBUGGER]: Running !")
+print(f"[DEBUGGER]: Running !")
 
-emulatorPid = int(sys.stdin.readline())
+emulatorFileCommunication = open(".debugger-com", "r+b", buffering=0)
 
-print(f"[DEBUGER]: Connected to emulator with pid {emulatorPid}")
+print(f"[DEBUGGER] Connected to emulator")
 
 # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 # 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -68,10 +67,6 @@ while True:
 			nm = parser.parse_args(chunks)
 			goodCommand = True
 			lastCmd = userCmd
-			os.kill(emulatorPid,SIGUSR1)
+			emulatorFileCommunication.write(b"\x00")
 		except:
 			pass
-
-		# conn.send(b'\x01',0)
-
-

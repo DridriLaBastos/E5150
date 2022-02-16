@@ -45,21 +45,17 @@ source_group(TREE ${PROJECT_SOURCE_DIR} FILES main.cpp ${CORE_SRC} ${CORE_HEADER
 # 	set(DEBUGGER_INC_DIR "debugger")
 # endif()
 
-add_custom_target(run
-					COMMAND epc
-				)
-
 # Addind the header only files as sources to make theme apparent in IDE, only using source_group isn't enougth if th source file isn't used
 add_executable(epc main.cpp ${CORE_SRC} ${CORE_HEADERS})
-add_dependencies(epc xed asm-test)
+add_dependencies(epc xedlib asm-test)
 
 target_include_directories(epc PRIVATE ${PROJECT_SOURCE_DIR}/core/include PRIVATE ${PROJECT_SOURCE_DIR}/third-party/spdlog/include PRIVATE ${PROJECT_SOURCE_DIR}/third-party/include PRIVATE ${PROJECT_BINARY_DIR}/third-party/include)
 target_link_directories(epc PRIVATE ${PROJECT_BINARY_DIR}/third-party/lib)
-target_link_libraries(epc libxed.a)
+target_link_libraries(epc xed)
 target_precompile_headers(epc PRIVATE ${PROJECT_SOURCE_DIR}/core/include/pch.hpp)
 
 if (ENABLE_DEBUGGER)
-	file(GLOB DEBUGGER_SRC CONFIGURE_DEPEND ${PROJECT_SOURCE_DIR}/debugger/*.cpp)
+	file(GLOB DEBUGGER_SRC CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/debugger/*.cpp)
 	file(GLOB DEBUGGER_HEADERS ${PROJECT_SOURCE_DIR}/debugger/*.hpp)
 
 	set_source_files_properties(${DEBUGGER_HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
@@ -69,3 +65,7 @@ if (ENABLE_DEBUGGER)
 	target_include_directories(epc PRIVATE ${CMAKE_SOURCE_DIR})
 	add_compile_definitions(DEBUGGER)
 endif()
+
+add_custom_target(run ${PROJECT_BINARY_DIR}/epc
+					WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+					DEPENDS epc)
