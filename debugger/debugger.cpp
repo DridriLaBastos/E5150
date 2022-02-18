@@ -1,5 +1,6 @@
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <cstdio>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "util.hpp"
 #include "arch.hpp"
@@ -7,9 +8,11 @@
 
 using namespace E5150;
 
-#define DEBUGGER_COMMUNICATION_FILE_NAME ".debugger-com"
+constexpr char* EMULATOR_TO_DEBUGGER_FIFO_FILENAME = ".ed.fifo";
+constexpr char* DEBUGGER_TO_EMULATOR_FIFO_FILENAME = ".de.fifo";
 
-static std::fstream debuggerCommunicationStream;
+static int toDebugger = -1;
+static int fromDebugger = -1;
 
 /**
  * \brief An enum specifying how the debugger should react when a stop is needed
@@ -51,18 +54,26 @@ void E5150::Debugger::init()
 	state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
 	state.stopBehaviour  = STOP_BEHAVIOUR::STOP;
 
-	int debuggerPipeFD [2];
-
-	//umask(0);
-	if (mkfifo(DEBUGGER_COMMUNICATION_FILE_NAME, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+	if (mkfifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
 	{
 		if (errno != EEXIST)
 		{
-			WARNING("Cannot initiate channel communication with the debugger. [ERRNO]: '{}'", strerror(errno));
+			WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", strerror(errno));
 			return;
 		}
 
-		INFO("Communication file exists. This usually means that the program was not properly closed previously");
+		INFO("Read channel file exists. This usually means that the program was not properly closed previously");
+	}
+
+	if (mkfifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+	{
+		if (errno != EEXIST)
+		{
+			WARNING("Cannot initiate receive channel communication with the debugger. [ERRNO]: '{}'", strerror(errno));
+			return;
+		}
+
+		INFO("Write channel file exists. This usually means that the program was not properly closed previously");
 	}
 
 	const pid_t emulatorPID = getpid();
@@ -77,6 +88,23 @@ void E5150::Debugger::init()
 	if (debuggerPID != 0)
 	{
 		INFO("Debugger process created with pid {}", debuggerPID);
+		toDebugger = open(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
+		if (toDebugger < 0)
+		{
+			INFO("Unable to open send to debugger channel. [ERRNO]: '{}'", strerror(errno));
+			deinit();
+			return;
+		}
+
+		fromDebugger = open(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, O_RDONLY);
+		if (fromDebugger < 0)
+		{
+			INFO("Unable to open receive from debugger channel. [ERRNO]: '{}'", strerror(errno));
+			deinit();
+			return;
+		}
+
+		write(toDebugger, &emulatorPID,4);
 	}
 	else
 	{
@@ -86,22 +114,15 @@ void E5150::Debugger::init()
 			exit(127);
 		}
 	}
-
-	debuggerCommunicationStream.open(DEBUGGER_COMMUNICATION_FILE_NAME);
-
-	if (!debuggerCommunicationStream.is_open())
-	{
-		WARNING("Cannot connect to debugger communication channel. [ERRNO]: '{}'", strerror(errno));
-		deinit();
-		return;
-	}
 }
 
 void E5150::Debugger::deinit()
 {
-	debuggerCommunicationStream.clear();
-	debuggerCommunicationStream.close();
-	remove(DEBUGGER_COMMUNICATION_FILE_NAME);
+	close(toDebugger);
+	close(fromDebugger);
+
+	remove(EMULATOR_TO_DEBUGGER_FIFO_FILENAME);
+	remove(DEBUGGER_TO_EMULATOR_FIFO_FILENAME);
 }
 
 static void printRegisters(void)
@@ -387,8 +408,10 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 {	
 	static uint8_t debuggerStatus;
 
+	write(toDebugger,&instructionExecuted,1);
+
 	do
 	{
-		debuggerCommunicationStream >> debuggerStatus;
+		read(fromDebugger, &debuggerStatus,1);
 	} while (debuggerStatus);
 }

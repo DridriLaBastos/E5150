@@ -1,15 +1,15 @@
 import argparse
+import logging
 import os
-from signal import SIGUSR1, signal
-import socket
-import sys
+import signal
+from sys import getsizeof
 
 cont = True
 parser = argparse.ArgumentParser(description="Debug fonctions parser for the E5150 debugger")
 
 ### Continue command arguments
 
-subparser = parser.add_subparsers(title="functions")
+subparser = parser.add_subparsers(title="functions", dest="command")
 continue_parser = subparser.add_parser("continue", aliases=["c", "cont"], description="Continue the execution of the emulation", help="Continue the emulation")
 continue_args = continue_parser.add_mutually_exclusive_group()
 continue_args.add_argument("-i", "--pass-instructions", type=int, default=-1, help="The number of instructions to execute before stoping again", metavar="#INSTRUCTIONS")
@@ -30,33 +30,28 @@ display_parser = subparser.add_parser("display", aliases="d", help="Change emula
 display_parser.add_argument("-i", "--instructions", action="store_true", help="Toggle displaying executed instruction")
 display_parser.add_argument("-r", "--registers", action="store_true", help="Toggle displaying cpu registers")
 display_parser.add_argument("-f", "--flags", action="store_true", help="Toggle displaying cpu flags")
+display_parser.add_argument("-l", "--log-level",metavar="LEVEL",type=int,help="The debugging message log level. Higher means more log and smaller means less log. The value must be positive")
 
 ### Quit the debugger
 quit_parser = subparser.add_parser("quit", aliases="q", help="Quit the emulation", description="Quit the emulation")
 
-DEBUG_SERVER_HOST = ''
-DEBUG_SERVER_PORT = 5510
 instructionExecCount = 0
 
 print(f"[DEBUGGER]: Running !")
 
-emulatorFileCommunication = open(".debugger-com", "r+b", buffering=0)
+fromEmulator = open("/Users/adrien/Documents/Informatique/C++/E5150/build/make/macos/.ed.fifo", "rb", buffering=0)
+toEmulator = open("/Users/adrien/Documents/Informatique/C++/E5150/build/make/macos/.de.fifo", "wb", buffering=0)
+emulatorPID = int.from_bytes(fromEmulator.read(4), byteorder="little")
 
-print(f"[DEBUGGER] Connected to emulator")
+print(f"[DEBUGGER] Connected to emulator (PID {emulatorPID})")
 
-# with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-# 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-# 	s.bind((DEBUG_SERVER_HOST, DEBUG_SERVER_PORT))
-# 	s.listen()
-# 	conn, addr = s.accept()
-# 	print(f"Connection from {addr}")
 lastCmd = ""
+dataToEmulator = None
 while True:
-	# instructionExecuted = conn.recv(1)
-	# instructionExecCount += int.from_bytes(instructionExecuted,'big')
 	goodCommand = False
+	instructionExecCount += int.from_bytes(fromEmulator.read(1),byteorder='little')
 	while not goodCommand:
-		userCmd = input(" > ")
+		userCmd = input(f"({instructionExecCount}) > ")
 
 		if len(userCmd) == 0:
 			userCmd = lastCmd
@@ -67,6 +62,7 @@ while True:
 			nm = parser.parse_args(chunks)
 			goodCommand = True
 			lastCmd = userCmd
-			emulatorFileCommunication.write(b"\x00")
+			toEmulator.write(b"\x00")
+			print(nm)
 		except:
 			pass
