@@ -2,6 +2,7 @@
 
 #include "cpu/biu.cpp"
 #include "cpu/eu.cpp"
+#include "cpu/decoder.cpp"
 
 #include "cpu/instructions_logic.cpp"
 #include "cpu/instructions_arithmetic.cpp"

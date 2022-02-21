@@ -2,6 +2,7 @@
 #define __EU_HPP__
 
 #include "util.hpp"
+#include "decoder.hpp"
 #include "instructions.hpp"
 namespace E5150::I8086
 {
@@ -63,6 +64,8 @@ namespace E5150::I8086
 			bool operandSizeWord;
 			bool repInstructionFinished;
 			InstructionExtraData_t instructionExtraData;
+			Decoder mDecoder;
+
 	};
 }
 
