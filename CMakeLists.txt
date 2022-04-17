@@ -18,41 +18,28 @@ if (NOT MSVC)
 	add_compile_options(-Wno-switch)
 endif()
 
-set(CMAKE_XCODE_SCHEME_WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/e5150)
-set(CMAKE_XCODE_SCHEME_WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/e5150)
-
 #Maybe using a configuration file later
 #configure_file(config.hpp.in config.hpp)
 
 file(GLOB CORE_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/*.cpp")
+file(GLOB CPU_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/cpu/*.cpp")
+file(GLOB FLOPPY_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/floppy/*.cpp")
 
 file(GLOB CORE_HEADERS "${PROJECT_SOURCE_DIR}/core/include/*.hpp")
-file(GLOB CPU_HEADERS "${PROJECT_SOURCE_DIR}/core/src/cpu/*.cpp")
-file(GLOB FLOPPY_HEADERS "${PROJECT_SOURCE_DIR}/core/src/floppy/*.cpp")
-
-set_source_files_properties(${CORE_HEADERS} ${DEBUGGER_HEADERS} ${CPU_HEADERS} ${FLOPPY_HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
-# source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${DEBUGGER_SRC} ${CORE_SRC} ${DEBUGGER_HEADERS} ${DEBUGGER_HEADERS} main.cpp)
+set_source_files_properties(${CORE_HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
 
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES main.cpp ${CORE_SRC} ${CORE_HEADERS})
 
-# if (ENABLE_DEBUGGER)
-# 	add_subdirectory(debugger)
-
-# 	set(Python3_USE_STATIC_LIBS TRUE)
-# 	find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-# 	add_compile_definitions(DEBUGGER)
-# 	file(GLOB DEBUGGER_SRC CONFIGURE_DEPENDS "debugger/*.cpp")
-# 	set(DEBUGGER_INC_DIR "debugger")
-# endif()
+set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
 
 # Addind the header only files as sources to make theme apparent in IDE, only using source_group isn't enougth if th source file isn't used
-add_executable(epc main.cpp ${CORE_SRC} ${CORE_HEADERS})
+add_executable(epc main.cpp ${EMULATOR_SRC} ${EMULATOR_HEADERS})
 add_dependencies(epc xedlib asm-test)
 
-target_include_directories(epc PRIVATE ${PROJECT_SOURCE_DIR}/core/include PRIVATE ${PROJECT_SOURCE_DIR}/third-party/spdlog/include PRIVATE ${PROJECT_SOURCE_DIR}/third-party/include PRIVATE ${PROJECT_BINARY_DIR}/third-party/include)
-target_link_directories(epc PRIVATE ${PROJECT_BINARY_DIR}/third-party/lib)
+target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/spdlog/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/include PUBLIC ${PROJECT_BINARY_DIR}/third-party/include)
+target_link_directories(epc PUBLIC ${PROJECT_BINARY_DIR}/third-party/lib)
 target_link_libraries(epc xed)
-target_precompile_headers(epc PRIVATE ${PROJECT_SOURCE_DIR}/core/include/pch.hpp)
+target_precompile_headers(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include/pch.hpp)
 
 if (ENABLE_DEBUGGER)
 	file(GLOB DEBUGGER_SRC CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/debugger/*.cpp)
@@ -62,7 +49,7 @@ if (ENABLE_DEBUGGER)
 	source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${DEBUGGER_SRC} ${DEBUGGER_HEARDERS})
 
 	target_sources(epc PRIVATE ${DEBUGGER_SRC} ${DEBUGGER_HEADERS})
-	target_include_directories(epc PRIVATE ${CMAKE_SOURCE_DIR})
+	target_include_directories(epc PUBLIC ${CMAKE_SOURCE_DIR})
 	add_compile_definitions(DEBUGGER)
 endif()
 

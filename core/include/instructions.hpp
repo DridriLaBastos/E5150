@@ -1,8 +1,6 @@
 #ifndef INSTRUCTIONS_HPP
 #define INSTRUCTIONS_HPP
 
-#include "8086.hpp"
-
 /* Data Transfer */
 
 void MOV	(void); unsigned int getMOVCycles	(void);
