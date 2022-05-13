@@ -8,8 +8,8 @@
 
 using namespace E5150;
 
-constexpr char* EMULATOR_TO_DEBUGGER_FIFO_FILENAME = ".ed.fifo";
-constexpr char* DEBUGGER_TO_EMULATOR_FIFO_FILENAME = ".de.fifo";
+constexpr char EMULATOR_TO_DEBUGGER_FIFO_FILENAME[] = ".ed.fifo";
+constexpr char DEBUGGER_TO_EMULATOR_FIFO_FILENAME[] = ".de.fifo";
 
 static int toDebugger = -1;
 static int fromDebugger = -1;
@@ -108,7 +108,7 @@ void E5150::Debugger::init()
 	}
 	else
 	{
-		if (execlp("python3", "/usr/bin/python3", "/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py", NULL) < 0)
+		if (execlp("python3", "/usr/bin/python3", "/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py", EMULATOR_TO_DEBUGGER_FIFO_FILENAME, DEBUGGER_TO_EMULATOR_FIFO_FILENAME, NULL) < 0)
 		{
 			WARNING("Unable to launch the debugger script. [ERRNO]: {}", strerror(errno));
 			exit(127);
