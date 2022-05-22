@@ -7,6 +7,7 @@ project(E5150
 
 add_subdirectory(third-party)
 add_subdirectory(test)
+add_subdirectory(debugger/communication)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

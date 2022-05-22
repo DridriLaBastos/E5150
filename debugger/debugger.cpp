@@ -5,6 +5,7 @@
 #include "util.hpp"
 #include "arch.hpp"
 #include "debugger.hpp"
+#include "communication/command.h"
 
 using namespace E5150;
 
@@ -104,7 +105,9 @@ void E5150::Debugger::init()
 			return;
 		}
 
-		write(toDebugger, &emulatorPID,4);
+		const uint8_t sizeofPID_t = sizeof(pid_t);
+		write(toDebugger, &sizeofPID_t,1);
+		write(toDebugger, &emulatorPID,sizeofPID_t);
 	}
 	else
 	{
@@ -404,14 +407,54 @@ static void printDebuggerCLI(const bool instructionExecuted)
 	}
 }
 
+#define SEND_COMMAND_RECEIVED_STATUS_TO_DEBUGGER(commandReceivedStatus) static const COMMAND_RECEIVED_STATUS toSend = commandReceivedStatus;  write(toDebugger, &toSend, sizeof(COMMAND_RECEIVED_STATUS))
+#define SEND_COMMAND_RECEIVED_SUCCESS_TO_DEBUGGER() SEND_COMMAND_RECEIVED_STATUS_TO_DEBUGGER(COMMAND_RECEIVED_SUCCESS)
+#define SEND_COMMAND_RECEIVED_FAILURE_TO_DEBUGGER() SEND_COMMAND_RECEIVED_STATUS_TO_DEBUGGER(COMMAND_RECEIVED_FAILURE)
+
+static void handleContinueCommand()
+{
+	static CONTINUE_TYPE continueType;
+	static unsigned int continueValue;
+
+	read(fromDebugger, &continueType, sizeof(CONTINUE_TYPE));
+	read(fromDebugger, &continueValue, sizeof(unsigned int));
+
+	DEBUG("continue command type: {}   value {}", (CONTINUE_TYPE)receiveBuffer[0], (unsigned int)receiveBuffer[sizeof(CONTINUE_TYPE)]);
+}
+
 void Debugger::wakeUp(const uint8_t instructionExecuted)
 {	
-	static uint8_t debuggerStatus;
+	static COMMAND_TYPE commandType;
+	static uint8_t shouldStop;
 
 	write(toDebugger,&instructionExecuted,1);
 
 	do
 	{
-		read(fromDebugger, &debuggerStatus,1);
-	} while (debuggerStatus);
+		read(fromDebugger, &commandType,sizeof(COMMAND_TYPE));
+		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
+
+		write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus));
+
+		switch (commandType)
+		{
+			case COMMAND_TYPE_CONTINUE:
+				INFO("Get command continue");
+				//handleContinueCommand();
+				break;
+			
+			case COMMAND_TYPE_STEP:
+				INFO("Get command step");
+				break;
+			
+			case COMMAND_TYPE_DISPLAY:
+				INFO("Get command display");
+				break;
+
+			default:
+				WARNING("Unknown response from debugger, behaviour will be unpredicatable");
+				break;
+		}
+		read(fromDebugger,&shouldStop,1);
+	} while (!shouldStop);
 }
