@@ -42,14 +42,15 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, command: str) -> bool:
 	chunks = command.split(" ")
 	try:
 		result = parser.parse_args(chunks)
-	except Exception as e:
-		print(e)
-
+	except:
+		pass
+	
+	print(result)
 	if result.command == "continue":
 		return _com.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks, result.pass_bus_cycles)
 	elif result.command == "step":
 		return _com.sendStepCommandInfo()
 	elif result.command == "display":
-		return _com.sendDisplayCommandInfo()
+		return _com.sendDisplayCommandInfo(result.flags, result.instructions, result.registers, -1 if result.log_level is None else result.log_level)
 
 	return False

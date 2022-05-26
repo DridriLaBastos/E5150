@@ -22,16 +22,11 @@ typedef enum : uint8_t
 typedef enum : uint8_t
 { CONTINUE_TYPE_CLOCK, CONTINUE_TYPE_INSTRUCTION, CONTINUE_TYPE_BUS, CONTINUE_TYPE_INFINITE } CONTINUE_TYPE;
 
-/**
- * @brief Register the file descriptor to talk between the emulator and the debugger
- * 
- * @param toDebugger descriptor for writing from the emulator to the debugger
- * @param toEmulator descriptor for writing from the debugger to the emulator
- */
-void registerCommunicationFifo(const int fromEmulator, const int toEmulator);
+typedef enum : uint8_t
+{ DISPLAY_TYPE_INSTRUCTIONS, DISPLAY_TYPE_REGISTERS, DISPLAY_TYPE_FLAGS, DISPLAY_TYPE_LOGLEVEL } DISPLAY_TYPE;
 
 int sendContinueCommandInfo(const int instructionCounts, const int clocCounts, const int busCycleCounts);
 int sendStepCommandInfo(void);
-int sendDsiplayCommandInfo(void);
+int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel);
 
 #endif//__COMMAND_HPP__

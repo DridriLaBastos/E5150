@@ -1,6 +1,9 @@
 project(emulator_python_communication
         LANGUAGES C)
 
-file(GLOB COMMUNICATION_DYLIB_SRC CONFIGURATION_DEPENDS *.c)
+if(APPLE OR UNIX)
+	set(PLATFORM_DEPENDANT communication_unix.c)
+endif(APPLE OR UNIX)
 
-add_library(decom SHARED ${COMMUNICATION_DYLIB_SRC})
+
+add_library(decom SHARED command.c ${PLATFORM_DEPENDANT})

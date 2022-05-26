@@ -1,24 +1,15 @@
 #include <stdbool.h>
 #include <stdio.h>
-#include <unistd.h>
 
 #include "command.h"
-
-static int fromEmulator = -1;
-static int toEmulator = -1;
-
-void registerCommunicationFifos (const int _fromEmulator, const int _toEmulator)
-{
-	fromEmulator = _fromEmulator;
-	toEmulator = _toEmulator;
-}
+#include "communication.h"
 
 static int sendCommandToEmulatorAndGetStatus(const COMMAND_TYPE commandType)
 {
 	static COMMAND_RECEIVED_STATUS commandReceivedStatus;
 
-	write(toEmulator, &commandType, sizeof(COMMAND_TYPE));
-	read(fromEmulator,&commandReceivedStatus, sizeof(COMMAND_RECEIVED_STATUS));
+	writeToEmulator(&commandType, sizeof(COMMAND_TYPE));
+	readFromEmulator(&commandReceivedStatus, sizeof(COMMAND_RECEIVED_STATUS));
 
 	return commandReceivedStatus;
 }
@@ -32,18 +23,17 @@ static int debuggerToEmulator_SendContinueCommandInfo(const CONTINUE_TYPE contin
 	if (!sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_CONTINUE))
 	{ return false; }
 
-	//write(toEmulator, &continueType,sizeof(CONTINUE_TYPE));
-	//write(toEmulator, &value, sizeof(unsigned int));
+	writeToEmulator(&continueType,sizeof(CONTINUE_TYPE));
+	writeToEmulator(&value, sizeof(unsigned int));
 	return true;
 }
 
 int sendContinueCommandInfo(const int instructionCounts, const int clockCounts, const int busCycleCounts)
 {
-	/*if (instructionCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INSTRUCTION, instructionCounts); }
+	if (instructionCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INSTRUCTION, instructionCounts); }
 	if (clockCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_CLOCK, clockCounts); }
 	if (busCycleCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_BUS, busCycleCounts); }
-	return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INFINITE, -1);*/
-	return sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_CONTINUE);
+	return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INFINITE, -1);
 }
 
 int sendStepCommandInfo(void)
@@ -51,8 +41,12 @@ int sendStepCommandInfo(void)
 	return sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_STEP);
 }
 
-int sendDisplayCommandInfo(void)
+int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel)
 {
 	sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_DISPLAY);
+	// writeToEmulator(&toggleFlags, sizeof(toggleFlags));
+	// writeToEmulator(&toggleInstructions, sizeof(toggleInstructions));
+	// writeToEmulator(&toggleRegisters, sizeof(toggleRegisters));
+	// writeToEmulator(&changeLogLevel, sizeof(changeLogLevel));
 	return false;
 }

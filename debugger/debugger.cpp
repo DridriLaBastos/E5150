@@ -1,11 +1,13 @@
 #include <cstdio>
 #include <fcntl.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "util.hpp"
 #include "arch.hpp"
 #include "debugger.hpp"
 #include "communication/command.h"
+#include "debuggerCommandExecStatus.hpp"
 
 using namespace E5150;
 
@@ -14,6 +16,22 @@ constexpr char DEBUGGER_TO_EMULATOR_FIFO_FILENAME[] = ".de.fifo";
 
 static int toDebugger = -1;
 static int fromDebugger = -1;
+static pid_t debuggerPID = -1;
+
+static struct {
+	COMMAND_TYPE commandType;
+	unsigned int commandSubtype;
+	unsigned int targetValue;
+	unsigned int currentValue;
+
+	void clear (void)
+	{
+		commandType = COMMAND_TYPE_ERROR;
+		commandSubtype = 0;
+		targetValue = 0;
+		currentValue = 0;
+	}
+} commandExecutionContext;
 
 /**
  * \brief An enum specifying how the debugger should react when a stop is needed
@@ -45,7 +63,7 @@ struct DebuggerState
 {
 	STOP_BEHAVIOUR  stopBehaviour;
 	CLOCK_BEHAVIOUR clockBehaviour;
-	PRINT_BEHAVIOUR printBehaviour;
+	unsigned int printBehaviour;
 };
 
 static DebuggerState state;
@@ -54,6 +72,7 @@ void E5150::Debugger::init()
 {
 	state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
 	state.stopBehaviour  = STOP_BEHAVIOUR::STOP;
+	commandExecutionContext.commandType = COMMAND_TYPE_ERROR;
 
 	if (mkfifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
 	{
@@ -78,7 +97,7 @@ void E5150::Debugger::init()
 	}
 
 	const pid_t emulatorPID = getpid();
-	const pid_t debuggerPID = fork();
+	debuggerPID = fork();
 
 	if (debuggerPID < 0)
 	{
@@ -126,6 +145,8 @@ void E5150::Debugger::deinit()
 
 	remove(EMULATOR_TO_DEBUGGER_FIFO_FILENAME);
 	remove(DEBUGGER_TO_EMULATOR_FIFO_FILENAME);
+
+	kill(debuggerPID, SIGKILL);
 }
 
 static void printRegisters(void)
@@ -138,15 +159,6 @@ static void printRegisters(void)
 static void printFlags(void)
 {
 	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
-}
-
-static void conditionnalyPrintInstruction(void)
-{
-	if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS)
-		printRegisters();
-				
-	if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_FLAGS)
-		printFlags();
 }
 
 static void printBIUDebugInfo(void)
@@ -302,114 +314,14 @@ static void printEUDebugInfo(void)
 	}
 }
 
-static void printDebugInfo (const bool instructionExecuted)
+static void conditionnalyPrintInstruction(void)
 {
-	switch (state.clockBehaviour)
-	{
-		case CLOCK_BEHAVIOUR::PASS:
-			break;
-		
-		case CLOCK_BEHAVIOUR::ALWAYS_STOP:
-		{
-			printBIUDebugInfo();
-			printEUDebugInfo();
-			// cpu.biu.debugClockPrint();
-			//cpu.eu.debugClockPrint();
-		}
-
-		case CLOCK_BEHAVIOUR::INSTRUCTION_STOP:
-		{
-			if (instructionExecuted)
-				conditionnalyPrintInstruction();
-		} break;
-	}
+	if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS)
+		printRegisters();
+				
+	if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_FLAGS)
+		printFlags();
 }
-
-static int parseCommand(const std::string& userInput)
-{
-	const bool step = (userInput == "s") || (userInput == "step") || (userInput.empty());
-	if (step)
-	{
-		state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
-		return true;
-	}
-
-	const bool istep = (userInput == "i") || (userInput == "istep");
-	if (istep)
-	{
-		state.clockBehaviour = CLOCK_BEHAVIOUR::INSTRUCTION_STOP;
-		return true;
-	}
-
-	const bool cont = (userInput == "c") || (userInput == "continue");
-	if (cont)
-	{
-		state.clockBehaviour = CLOCK_BEHAVIOUR::PASS;
-		E5150::Util::CURRENT_DEBUG_LEVEL = 0;
-		return true;
-	}
-
-	const bool quit = (userInput == "q") || (userInput == "quit");
-	if (quit)
-	{
-		state.stopBehaviour = STOP_BEHAVIOUR::PASS;
-		E5150::Util::_continue = false;
-		return true;
-	}
-
-	const bool help = (userInput == "h") || (userInput == "help");
-	if (help)
-	{
-		puts("This is the debugger cli for E5150. You can type a command to perform what you want");
-		puts("This screen while show a bref description of available commands");
-		puts(" 'c', 'continue' continue the emulation without stopping until a special condition is raised");
-		puts(" 's', 'step'     continue the emulation stopping at each clock");
-		puts(" 'i', 'istep'    continue the emulation stopping at each instructions");
-		puts(" 'h', 'help'     display this text and wait for another command");
-		puts(" 'q', 'quit'     ends the emulation");
-		puts("");
-		return false;
-	}
-
-	WARNING("Command not recognized. Type 'c' or 'continue' to continue. Type 'h' or 'help' to display available commands");
-	return false;
-}
-
-static void debuggerCLI(void)
-{
-	if (state.stopBehaviour == STOP_BEHAVIOUR::PASS)
-		return;
-
-	static std::string userInput;
-
-	do
-	{
-		std::cout << " > ";
-		std::getline(std::cin,userInput);
-		std::transform(userInput.begin(), userInput.end(), userInput.begin(), ::tolower);
-		/* code */
-	} while (!parseCommand(userInput));
-}
-
-static void printDebuggerCLI(const bool instructionExecuted)
-{
-	switch (state.clockBehaviour)
-	{
-		case CLOCK_BEHAVIOUR::PASS:
-			break;
-
-		case CLOCK_BEHAVIOUR::INSTRUCTION_STOP:
-			if (!instructionExecuted) { break; }
-	
-		default://CLOCK_BEHAVIOUR::ALWAYS_STOP
-			debuggerCLI();
-			break;
-	}
-}
-
-#define SEND_COMMAND_RECEIVED_STATUS_TO_DEBUGGER(commandReceivedStatus) static const COMMAND_RECEIVED_STATUS toSend = commandReceivedStatus;  write(toDebugger, &toSend, sizeof(COMMAND_RECEIVED_STATUS))
-#define SEND_COMMAND_RECEIVED_SUCCESS_TO_DEBUGGER() SEND_COMMAND_RECEIVED_STATUS_TO_DEBUGGER(COMMAND_RECEIVED_SUCCESS)
-#define SEND_COMMAND_RECEIVED_FAILURE_TO_DEBUGGER() SEND_COMMAND_RECEIVED_STATUS_TO_DEBUGGER(COMMAND_RECEIVED_FAILURE)
 
 static void handleContinueCommand()
 {
@@ -419,19 +331,74 @@ static void handleContinueCommand()
 	read(fromDebugger, &continueType, sizeof(CONTINUE_TYPE));
 	read(fromDebugger, &continueValue, sizeof(unsigned int));
 
-	DEBUG("continue command type: {}   value {}", (CONTINUE_TYPE)receiveBuffer[0], (unsigned int)receiveBuffer[sizeof(CONTINUE_TYPE)]);
+	if (continueType == CONTINUE_TYPE_BUS) { continueValue *= 4; }
+
+	INFO("continue command type: {}   value {}", continueType, continueValue);
+	commandExecutionContext.commandType = COMMAND_TYPE_CONTINUE;
+	commandExecutionContext.commandSubtype = (unsigned int)continueType;
+	commandExecutionContext.targetValue = continueValue;
+	commandExecutionContext.currentValue = 0;
+}
+
+static void handleDisplayCommand()
+{
+	static int displayFlags[4];
+
+	//read(fromDebugger,&displayFlags[0], sizeof(int));
+	// read(fromDebugger,&displayFlags[1], sizeof(int));
+	// read(fromDebugger,&displayFlags[2], sizeof(int));
+	// read(fromDebugger,&displayFlags[3], sizeof(int));
+
+	// if (displayFlags[0]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_FLAGS; }
+	// if (displayFlags[1]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_INSTRUCTION; }
+	// if (displayFlags[2]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_REGISTERS; }
+	// if (displayFlags[3] > -1)
+	// {
+	// 	if (displayFlags[3] > DEBUG_LEVEL_MAX)
+	// 	{
+	// 		INFO("Log level too high set to highest value {}", DEBUG_LEVEL_MAX);
+	// 		displayFlags[3] = DEBUG_LEVEL_MAX;
+	// 	}
+	// 	E5150::Util::CURRENT_DEBUG_LEVEL = displayFlags[3];
+	// }
+
+	INFO("print behaviour (log level={}){}{}{}",
+		E5150::Util::CURRENT_DEBUG_LEVEL,
+		state.printBehaviour & PRINT_BEHAVIOUR::PRINT_FLAGS ? " print flags" : "",
+		state.printBehaviour & PRINT_BEHAVIOUR::PRINT_INSTRUCTION ? " print instructions" : "",
+		state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS ? " print registers" : "");
 }
 
 void Debugger::wakeUp(const uint8_t instructionExecuted)
 {	
 	static COMMAND_TYPE commandType;
 	static uint8_t shouldStop;
+	static uint64_t instructionExecutedToSend = 0;
+	instructionExecutedToSend += instructionExecuted;
 
-	write(toDebugger,&instructionExecuted,1);
+	if (commandExecutionContext.commandType != COMMAND_TYPE_ERROR)
+	{
+		switch(commandExecutionContext.commandType)
+		{
+			case COMMAND_TYPE_CONTINUE:
+			{
+				commandExecutionContext.currentValue += commandExecutionContext.commandSubtype == CONTINUE_TYPE_INSTRUCTION ? instructionExecuted : 1;
+			} break;
+		}
+		if (commandExecutionContext.currentValue < commandExecutionContext.targetValue)
+		{ return; }
+	}
+
+	commandExecutionContext.clear();
+
+	conditionnalyPrintInstruction();
+	write(toDebugger,&instructionExecutedToSend,8);
+	instructionExecutedToSend = 0;
 
 	do
 	{
 		read(fromDebugger, &commandType,sizeof(COMMAND_TYPE));
+		printf("REACHED WITH %d\n",commandType);
 		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
 		write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus));
@@ -439,8 +406,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 		switch (commandType)
 		{
 			case COMMAND_TYPE_CONTINUE:
-				INFO("Get command continue");
-				//handleContinueCommand();
+				handleContinueCommand();
 				break;
 			
 			case COMMAND_TYPE_STEP:
@@ -448,7 +414,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 				break;
 			
 			case COMMAND_TYPE_DISPLAY:
-				INFO("Get command display");
+				handleDisplayCommand();
 				break;
 
 			default:

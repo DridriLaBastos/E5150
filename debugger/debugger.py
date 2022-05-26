@@ -7,8 +7,8 @@ parser = argparse.ArgumentParser(description="Debugger CLI of E5150")
 parser.add_argument("read_fifo_filename", help="Named pipe filename to read data from the emulator")
 parser.add_argument("write_fifo_filename", help="Named pipe filename to write data to the emulator")
 instructionExecCount = 0
-fromEmulator = None
-toEmulator = None
+fromEmulator:FileIO = None
+toEmulator:FileIO = None
 
 class DebuggerShell(cmd.Cmd):
 	intro = ""
@@ -16,18 +16,34 @@ class DebuggerShell(cmd.Cmd):
 	lastCmd = ""
 	use_rawinput = True
 
+	###########################
+	# Override core functions #
+	###########################
 	def cmdloop(self) -> None:
 		global instructionExecCount
-		instructionExecCount += int.from_bytes(fromEmulator.read(1),byteorder="little")
+		instructionExecCount += int.from_bytes(fromEmulator.read(8),byteorder="little")
 		self.prompt = f"({instructionExecCount}) > "
 		return super().cmdloop()
 	
 	def postcmd(self, stop: bool, line: str) -> bool:
-		toEmulator.write(b'\x01' if stop else b'\x00')
+		if super().lastcmd:
+			toEmulator.write(b'\x01' if stop else b'\x00')
 		return super().postcmd(stop, line)
 	
+	###########################
+	#    Utility functions    #
+	###########################
+
 	def _parse(self, cmd: str):
-		return commands.parse(fromEmulator,toEmulator,cmd)
+		try:
+			return commands.parse(fromEmulator,toEmulator,cmd)
+		except:
+			pass
+		return False
+
+	###########################
+	#    Command functions    #
+	###########################
 	
 	def do_continue(self, arg: str):
 		"""continue the execution of the emulation"""
@@ -45,6 +61,24 @@ class DebuggerShell(cmd.Cmd):
 		"""Show this help"""
 		return super().do_help(arg) if not arg else self._parse(arg + " --help")
 
+def shellLoop():
+	global instructionExecCount
+	global fromEmulator
+	global toEmulator
+	exitLoop = False
+	lastExecutedCmd = None
+	instructionExecCount += int.from_bytes(fromEmulator.read(8),byteorder="little")
+	while not exitLoop:
+		cmd = input(f"({instructionExecCount}) > ")
+
+		if not cmd and lastExecutedCmd:
+			cmd = lastExecutedCmd
+
+		exitLoop = commands.parse(fromEmulator,toEmulator,cmd)
+		lastExecutedCmd = cmd
+
+	toEmulator.write(b'\x01' if exitLoop else b'\x00')
+
 if __name__ == "__main__":
 	args = parser.parse_args()
 	print("[E5150 DEBUGGER]: Debugger is running!")
@@ -57,5 +91,6 @@ if __name__ == "__main__":
 	print(f"[E5150 DEBUGGER]: Connected to emulator with PID {emulatorPID}")
 
 	shell = DebuggerShell()
+
 	while True:
 		shell.cmdloop()
