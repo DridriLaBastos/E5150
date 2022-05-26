@@ -17,6 +17,7 @@ constexpr char DEBUGGER_TO_EMULATOR_FIFO_FILENAME[] = ".de.fifo";
 static int toDebugger = -1;
 static int fromDebugger = -1;
 static pid_t debuggerPID = -1;
+static uint8_t shouldStop;
 
 static struct {
 	COMMAND_TYPE commandType;
@@ -147,6 +148,8 @@ void E5150::Debugger::deinit()
 	remove(DEBUGGER_TO_EMULATOR_FIFO_FILENAME);
 
 	kill(debuggerPID, SIGKILL);
+	waitpid(debuggerPID,NULL,0);
+	shouldStop = 1;
 }
 
 static void printRegisters(void)
@@ -372,7 +375,6 @@ static void handleDisplayCommand()
 void Debugger::wakeUp(const uint8_t instructionExecuted)
 {	
 	static COMMAND_TYPE commandType;
-	static uint8_t shouldStop;
 	static uint64_t instructionExecutedToSend = 0;
 	instructionExecutedToSend += instructionExecuted;
 
@@ -394,11 +396,11 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 	conditionnalyPrintInstruction();
 	write(toDebugger,&instructionExecutedToSend,8);
 	instructionExecutedToSend = 0;
-
+	
 	do
 	{
-		read(fromDebugger, &commandType,sizeof(COMMAND_TYPE));
-		printf("REACHED WITH %d\n",commandType);
+		/*read(fromDebugger, &commandType,sizeof(COMMAND_TYPE));
+		//printf("REACHED WITH %d\n",commandType);
 		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
 		write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus));
@@ -420,7 +422,8 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 			default:
 				WARNING("Unknown response from debugger, behaviour will be unpredicatable");
 				break;
-		}
+		}*/
 		read(fromDebugger,&shouldStop,1);
 	} while (!shouldStop);
+	printf("REACHED");
 }
