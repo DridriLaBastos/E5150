@@ -333,17 +333,21 @@ static void handleContinueCommand()
 
 	if (continueType == CONTINUE_TYPE_BUS) { continueValue *= 4; }
 
-	INFO("continue command type: {}   value {}", continueType, continueValue);
 	commandExecutionContext.commandType = COMMAND_TYPE_CONTINUE;
 	commandExecutionContext.commandSubtype = (unsigned int)continueType;
 	commandExecutionContext.targetValue = continueValue;
 	commandExecutionContext.currentValue = 0;
 }
 
+static void handleStepCommand()
+{
+	INFO("COMMAND STEP");
+}
+
 static void handleDisplayCommand()
 {
 	static int displayFlags[4];
-
+	INFO("COMMAND DISPLAY");
 	//read(fromDebugger,&displayFlags[0], sizeof(int));
 	// read(fromDebugger,&displayFlags[1], sizeof(int));
 	// read(fromDebugger,&displayFlags[2], sizeof(int));
@@ -399,11 +403,10 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 	
 	do
 	{
-		/*read(fromDebugger, &commandType,sizeof(COMMAND_TYPE));
-		//printf("REACHED WITH %d\n",commandType);
+		if (read(fromDebugger, &commandType,sizeof(COMMAND_TYPE)) < 0) { break; }
 		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
-		write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus));
+		if(write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus)) < 0) { break; }
 
 		switch (commandType)
 		{
@@ -412,7 +415,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 				break;
 			
 			case COMMAND_TYPE_STEP:
-				INFO("Get command step");
+				handleStepCommand();
 				break;
 			
 			case COMMAND_TYPE_DISPLAY:
@@ -420,11 +423,9 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 				break;
 
 			default:
-				WARNING("Unknown response from debugger, behaviour will be unpredicatable");
+				WARNING("Unknown response from debugger, behaviour may be unpredicatable");
 				break;
-		}*/
-		status = read(fromDebugger,&shouldStop,1);
-		if (status < 0) { shouldStop = 1; }
+		}
+		if (read(fromDebugger,&shouldStop,1) < 0) { break; }
 	} while (!shouldStop);
-	printf("REACHED");
 }

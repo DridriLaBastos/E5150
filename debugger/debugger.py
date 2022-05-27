@@ -12,9 +12,8 @@ toEmulator:FileIO = None
 
 class DebuggerShell(cmd.Cmd):
 	intro = ""
-	prompt = ""
-	lastCmd = ""
 	use_rawinput = True
+	debugger_cmd_parse_ok = False
 
 	###########################
 	# Override core functions #
@@ -26,7 +25,7 @@ class DebuggerShell(cmd.Cmd):
 		return super().cmdloop()
 	
 	def postcmd(self, stop: bool, line: str) -> bool:
-		if super().lastcmd:
+		if commands.parseOK:
 			toEmulator.write(b'\x01' if stop else b'\x00')
 		return super().postcmd(stop, line)
 	

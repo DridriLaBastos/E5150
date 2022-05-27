@@ -44,9 +44,9 @@ int sendStepCommandInfo(void)
 int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel)
 {
 	sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_DISPLAY);
-	// writeToEmulator(&toggleFlags, sizeof(toggleFlags));
-	// writeToEmulator(&toggleInstructions, sizeof(toggleInstructions));
-	// writeToEmulator(&toggleRegisters, sizeof(toggleRegisters));
-	// writeToEmulator(&changeLogLevel, sizeof(changeLogLevel));
+	writeToEmulator(&toggleFlags, sizeof(toggleFlags));
+	writeToEmulator(&toggleInstructions, sizeof(toggleInstructions));
+	writeToEmulator(&toggleRegisters, sizeof(toggleRegisters));
+	writeToEmulator(&changeLogLevel, sizeof(changeLogLevel));
 	return false;
 }
