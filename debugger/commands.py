@@ -1,4 +1,5 @@
 import argparse
+import chunk
 import ctypes
 from io import FileIO
 
@@ -42,12 +43,10 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, command: str) -> bool:
 	if not _com:
 		_com = ctypes.CDLL('/Users/adrien/Documents/Informatique/C++/E5150/build/debugger/communication/libdecom.dylib')
 		_com.registerCommunicationFifos(fromEmulator.fileno(), toEmulator.fileno())
-	chunks = command.split(" ")
+	chunks = command.split()
 	parseOK = False
-
 	result = parser.parse_args(chunks)
 	parseOK = True
-	# print(result)
 	if result.command == "continue":
 		return _com.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks, result.pass_bus_cycles)
 	elif result.command == "step":
