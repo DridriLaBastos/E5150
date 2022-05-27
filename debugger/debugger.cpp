@@ -7,7 +7,6 @@
 #include "arch.hpp"
 #include "debugger.hpp"
 #include "communication/command.h"
-#include "debuggerCommandExecStatus.hpp"
 
 using namespace E5150;
 
@@ -17,7 +16,6 @@ constexpr char DEBUGGER_TO_EMULATOR_FIFO_FILENAME[] = ".de.fifo";
 static int toDebugger = -1;
 static int fromDebugger = -1;
 static pid_t debuggerPID = -1;
-static uint8_t shouldStop;
 
 static struct {
 	COMMAND_TYPE commandType;
@@ -149,7 +147,6 @@ void E5150::Debugger::deinit()
 
 	kill(debuggerPID, SIGKILL);
 	waitpid(debuggerPID,NULL,0);
-	shouldStop = 1;
 }
 
 static void printRegisters(void)
@@ -376,6 +373,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 {	
 	static COMMAND_TYPE commandType;
 	static uint64_t instructionExecutedToSend = 0;
+	static uint8_t shouldStop;
 	instructionExecutedToSend += instructionExecuted;
 
 	if (commandExecutionContext.commandType != COMMAND_TYPE_ERROR)
@@ -394,7 +392,9 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 	commandExecutionContext.clear();
 
 	conditionnalyPrintInstruction();
-	write(toDebugger,&instructionExecutedToSend,8);
+	int status = write(toDebugger,&instructionExecutedToSend,8);
+
+	if (status < 0) { return; }
 	instructionExecutedToSend = 0;
 	
 	do
@@ -423,7 +423,8 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 				WARNING("Unknown response from debugger, behaviour will be unpredicatable");
 				break;
 		}*/
-		read(fromDebugger,&shouldStop,1);
+		status = read(fromDebugger,&shouldStop,1);
+		if (status < 0) { shouldStop = 1; }
 	} while (!shouldStop);
 	printf("REACHED");
 }
