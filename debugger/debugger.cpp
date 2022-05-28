@@ -16,6 +16,7 @@ constexpr char DEBUGGER_TO_EMULATOR_FIFO_FILENAME[] = ".de.fifo";
 static int toDebugger = -1;
 static int fromDebugger = -1;
 static pid_t debuggerPID = -1;
+static unsigned int savedLogLevel = 0;
 
 static struct {
 	COMMAND_TYPE commandType;
@@ -331,12 +332,12 @@ static void handleContinueCommand()
 	read(fromDebugger, &continueType, sizeof(CONTINUE_TYPE));
 	read(fromDebugger, &continueValue, sizeof(unsigned int));
 
-	if (continueType == CONTINUE_TYPE_BUS) { continueValue *= 4; }
-
 	commandExecutionContext.commandType = COMMAND_TYPE_CONTINUE;
 	commandExecutionContext.commandSubtype = (unsigned int)continueType;
 	commandExecutionContext.targetValue = continueValue;
 	commandExecutionContext.currentValue = 0;
+	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
+	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = 0;
 }
 
 static void handleStepCommand()
@@ -358,16 +359,16 @@ static void handleDisplayCommand()
 	// if (displayFlags[2]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_REGISTERS; }
 	// if (displayFlags[3] > -1)
 	// {
-	// 	if (displayFlags[3] > DEBUG_LEVEL_MAX)
+	// 	if (displayFlags[3] > EMULATION_MAX_LOG_LEVEL)
 	// 	{
-	// 		INFO("Log level too high set to highest value {}", DEBUG_LEVEL_MAX);
-	// 		displayFlags[3] = DEBUG_LEVEL_MAX;
+	// 		INFO("Log level too high set to highest value {}", EMULATION_MAX_LOG_LEVEL);
+	// 		displayFlags[3] = EMULATION_MAX_LOG_LEVEL;
 	// 	}
-	// 	E5150::Util::CURRENT_DEBUG_LEVEL = displayFlags[3];
+	// 	E5150::Util::CURRENT_EMULATOR_LOG_LEVEL = displayFlags[3];
 	// }
 
 	INFO("print behaviour (log level={}){}{}{}",
-		E5150::Util::CURRENT_DEBUG_LEVEL,
+		E5150::Util::CURRENT_EMULATION_LOG_LEVEL,
 		state.printBehaviour & PRINT_BEHAVIOUR::PRINT_FLAGS ? " print flags" : "",
 		state.printBehaviour & PRINT_BEHAVIOUR::PRINT_INSTRUCTION ? " print instructions" : "",
 		state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS ? " print registers" : "");
@@ -378,6 +379,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 	static COMMAND_TYPE commandType;
 	static uint64_t instructionExecutedToSend = 0;
 	static uint8_t shouldStop;
+	static unsigned int savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 	instructionExecutedToSend += instructionExecuted;
 
 	if (commandExecutionContext.commandType != COMMAND_TYPE_ERROR)
@@ -391,6 +393,8 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 		}
 		if (commandExecutionContext.currentValue < commandExecutionContext.targetValue)
 		{ return; }
+		
+		E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel;
 	}
 
 	commandExecutionContext.clear();

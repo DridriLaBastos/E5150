@@ -7,7 +7,7 @@
 #include "floppy.hpp"
 #include "component.hpp"
 
-#define FDCDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("FDC: " __VA_ARGS__)
+#define FDCEmulationLog(REQUIRED_LOG_LEVEL,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("FDC: " __VA_ARGS__)
 
 namespace E5150
 {
@@ -20,7 +20,7 @@ namespace E5150
 			FDC(PIC& pic,PORTS& ports);
 
 			void waitClock (const unsigned int clock)
-			{ passClock += clock; debug<DEBUG_LEVEL_MAX>("FDC will wait {} clock(s)",passClock); }
+			{ passClock += clock; FDCEmulationLog(EMULATION_MAX_LOG_LEVEL, "FDC will wait {} clock(s)",passClock); }
 			void waitMicro (const unsigned int microseconds) { waitClock(microseconds*8); }
 			void waitMilli (const unsigned int milliseconds) { waitMicro(milliseconds*1000); }
 

@@ -250,7 +250,7 @@ void CPU::handleInterrupts(void)
 		INTR = false;
 		if (!cpu.getFlagStatus(CPU::FLAGS_T::INTF))
 		{
-			debug<DEBUG_LEVEL_MAX>("INTEL 8088: INTERRUPT: interrupt request while IF is disabled");
+			EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("INTEL 8088: INTERRUPT: interrupt request while IF is disabled");
 			return;
 		}
 		INTERRUPT_SEQUENCE_CLOCK_COUNT = 61;
@@ -269,15 +269,8 @@ bool CPU::interruptSequence()
 {
 	push(flags);
 	cpu.eu.farCall(biu.readWord(INTERRUPT_VECTOR*4 + 2), biu.readWord(INTERRUPT_VECTOR*4));
-	#ifdef DEBUG_BUILD
-	printf("Interrupt (%#2x) data saved: %#4x:%#4x\n",INTERRUPT_VECTOR,cs,ip);
-	#endif
 	TEMP_TF = getFlagStatus(CPU::FLAGS_T::TRAP);
 	clearFlags(CPU::FLAGS_T::INTF | CPU::FLAGS_T::TRAP);
-
-	#ifdef DEBUG_BUILD
-	printf("New cs:ip from %#x: %#4x:%#4x\n",INTERRUPT_VECTOR*4,cs,ip);
-	#endif
 
 	return NMI || TEMP_TF;
 }

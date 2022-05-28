@@ -1,8 +1,7 @@
 #include "pic.hpp"
 
-#define PICDebug(REQUIRED_DEBUG_LEVEL,...) debug<REQUIRED_DEBUG_LEVEL>("PIC: " __VA_ARGS__)
+#define PICEmulationLog(REQUIRED_LOG_LEVEL,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("PIC: " __VA_ARGS__)
 
-//Houlala
 using namespace E5150;
 static PIC* pic = nullptr;
 
@@ -65,7 +64,7 @@ static void nonSpecificEOI(void)
 	if (inServiceInterruptFound)
 	{
 		pic->regs[PIC::ISR] &= ~(1 << highestPriorityIRLineFound);
-		PICDebug(DEBUG_LEVEL_MAX,"Clearing interrupt line {} (ISR: {:#b})",highestPriorityIRLineFound,pic->regs[PIC::ISR]);
+		PICEmulationLog(EMULATION_MAX_LOG_LEVEL,"Clearing interrupt line {} (ISR: {:#b})",highestPriorityIRLineFound,pic->regs[PIC::ISR]);
 	}
 }
 
@@ -124,7 +123,7 @@ static void handleOCW2 (const uint8_t ocw2)
 		break;
 
 	default:
-		PICDebug(1,"Only no operation, and non-specific EOI are implemented");
+		PICEmulationLog(1,"Only no operation, and non-specific EOI are implemented");
 		break;
 	}
 }
@@ -151,7 +150,7 @@ static void handleICW1(const uint8_t icw1)
 	pic->info.singleMode = isInSingleMode(icw1);
 	pic->info.levelTriggered = isInLevelTriggeredMode(icw1);
 
-	PICDebug(7,"ICW1: ICW4 needed | {} mode | {} triggered mode", (pic->info.singleMode ? "single" : "cascade"), (pic->info.levelTriggered ? "level" : "edge"));
+	PICEmulationLog(7,"ICW1: ICW4 needed | {} mode | {} triggered mode", (pic->info.singleMode ? "single" : "cascade"), (pic->info.levelTriggered ? "level" : "edge"));
 
 	reInit();
 }
@@ -160,7 +159,7 @@ static unsigned int extractFirstInterruptVectorFromICW2 (const uint8_t icw2) { r
 static void handleICW2(const uint8_t icw2)
 {
 	pic->info.firstInterruptVector = extractFirstInterruptVectorFromICW2(icw2);
-	PICDebug(7,"ICW2: interrupt vector from {:#x} to {:#x}",pic->info.firstInterruptVector,pic->info.firstInterruptVector+7);
+	PICEmulationLog(7,"ICW2: interrupt vector from {:#x} to {:#x}",pic->info.firstInterruptVector,pic->info.firstInterruptVector+7);
 }
 
 static void handleICW3 (const uint8_t icw3)
@@ -184,7 +183,7 @@ static void handleICW4 (const uint8_t icw4)
 		pic->info.bufferedMode = PIC::BUFFERED_MODE::NON;
 	
 	pic->info.specialFullyNestedMode = isInSpecialFullyNestedMode(icw4);
-	PICDebug(7,"ICW4: 8086/8088 mode | {} eoi | {} | {}special fully nested mode",pic->info.autoEOI ? "auto" : "normal", "no description available", (pic->info.specialFullyNestedMode) ? "" : "not ");
+	PICEmulationLog(7,"ICW4: 8086/8088 mode | {} eoi | {} | {}special fully nested mode",pic->info.autoEOI ? "auto" : "normal", "no description available", (pic->info.specialFullyNestedMode) ? "" : "not ");
 }
 
 static void handleInitSequence(const uint8_t icw)
@@ -194,7 +193,7 @@ static void handleInitSequence(const uint8_t icw)
 		//Wether the pic is initialized or not, if it receive an icw1, it restart its initialization sequence
 		case PIC::INIT_STATUS::UNINITIALIZED:
 		case PIC::INIT_STATUS::INITIALIZED:
-			PICDebug(7,"Starting initialization sequence");
+			PICEmulationLog(7,"Starting initialization sequence");
 			handleICW1(icw);
 			pic->initStatus = PIC::INIT_STATUS::ICW2;
 			break;
@@ -218,7 +217,7 @@ static void handleInitSequence(const uint8_t icw)
 		case PIC::INIT_STATUS::ICW4:
 			handleICW4(icw);
 			pic->initStatus = PIC::INIT_STATUS::INITIALIZED;
-			PICDebug(7,"Fully initialized");
+			PICEmulationLog(7,"Fully initialized");
 			break;
 	}
 }
@@ -242,14 +241,14 @@ static void writeA0_0 (const uint8_t data)
 				handleOCW2(data);
 		}
 		else
-			PICDebug(5,"Not initialized, OCW data not writen");
+			PICEmulationLog(5,"Not initialized, OCW data not writen");
 	}
 }
 
 static void handleOCW1 (const uint8_t ocw1)
 {
 	pic->regs[PIC::IMR] = ocw1;
-	PICDebug(7,"OCW1: Interrupt mask: {:b}",ocw1);
+	PICEmulationLog(7,"OCW1: Interrupt mask: {:b}",ocw1);
 }
 
 static void writeA0_1 (uint8_t data)
@@ -261,7 +260,7 @@ static void writeA0_1 (uint8_t data)
 		if (pic->initStatus == PIC::INIT_STATUS::INITIALIZED)
 			handleOCW1(data);
 		else
-			PICDebug(5,"Not initialized, OCW data not writen");
+			PICEmulationLog(5,"Not initialized, OCW data not writen");
 	}
 }
 
@@ -298,13 +297,13 @@ static void interruptInFullyNestedMode (const unsigned int IRNumber)
 	{
 		if (pic->regs[PIC::ISR] & (1 << i))
 		{
-			PICDebug(DEBUG_LEVEL_MAX,"IR {} with priority {} masks IR {} with priority {} (ISR: {:#b})",i,pic->priorities[i],IRNumber,pic->priorities[IRNumber],pic->regs[PIC::ISR]);
+			PICEmulationLog(EMULATION_MAX_LOG_LEVEL,"IR {} with priority {} masks IR {} with priority {} (ISR: {:#b})",i,pic->priorities[i],IRNumber,pic->priorities[IRNumber],pic->regs[PIC::ISR]);
 			return;
 		}
 	}
 
 	const unsigned int interruptVectorGenerated = genInterruptVectorForIRLine(IRNumber);
-	PICDebug(10,"Generating interrupt vector {:#x} for line {}",interruptVectorGenerated,IRNumber);
+	PICEmulationLog(10,"Generating interrupt vector {:#x} for line {}",interruptVectorGenerated,IRNumber);
 	pic->connectedCPU.interrupt(CPU::INTERRUPT_TYPE::EXTERNAL, interruptVectorGenerated);
 	if (!pic->info.autoEOI)
 		pic->regs[PIC::ISR] |= (1 << IRNumber);
@@ -314,7 +313,7 @@ static void interruptInFullyNestedMode (const unsigned int IRNumber)
 void E5150::PIC::assertInterruptLine(const E5150::PIC::IR_LINE IRLine,const Component* caller)
 {
 	if (caller != nullptr)
-		PICDebug(DEBUG_LEVEL_MAX,"Interrupt request on line {} for {}",IRLine,caller->m_name);
+		PICEmulationLog(EMULATION_MAX_LOG_LEVEL,"Interrupt request on line {} for {}",IRLine,caller->m_name);
 	pic = this;
 	//If the pic is fully initialized
 	if (initStatus == INIT_STATUS::INITIALIZED)
@@ -328,8 +327,8 @@ void E5150::PIC::assertInterruptLine(const E5150::PIC::IR_LINE IRLine,const Comp
 			interruptInFullyNestedMode(IRLine);
 		}
 		else
-			PICDebug(DEBUG_LEVEL_MAX,"Interrupt request on line {} masked (IMR: {:b})",IRLine,regs[IMR]);
+			PICEmulationLog(EMULATION_MAX_LOG_LEVEL,"Interrupt request on line {} masked (IMR: {:b})",IRLine,regs[IMR]);
 	}
 	else
-		PICDebug(8, "Interrupt request (on line {}) while FDC is not initialized does nothing", IRLine);
+		PICEmulationLog(8, "Interrupt request (on line {}) while FDC is not initialized does nothing", IRLine);
 }

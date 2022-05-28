@@ -12,7 +12,6 @@ continue_parser = subparser.add_parser("continue", aliases=["cont", "c"], descri
 continue_args = continue_parser.add_mutually_exclusive_group()
 continue_args.add_argument("-i", "--pass-instructions", type=int, default=-1, help="The number of instructions to execute before stoping again", metavar="#INSTRUCTIONS")
 continue_args.add_argument("-c", "--pass-clocks", type=int, default=-1, help="The number of clock to executes before stoping again", metavar="#CLOCKS")
-continue_args.add_argument("-b", "--pass-bus_cycles", type=int, default=-1, help="The number of bus cycles to pass before stoping again", metavar="#BUS_CYCLES")
 
 ### Step command arguments
 
@@ -20,7 +19,6 @@ step_parser = subparser.add_parser("step", aliases=["s"], help="one step into th
 step_args = step_parser.add_mutually_exclusive_group()
 step_args.add_argument("-i", "--instruction", action="store_true", help="Execute one instruction and stop after the instruction ends")
 step_args.add_argument("-c", "--clock", action="store_true", help="Execute one clock")
-step_args.add_argument("-b", "--bus-cycle", action="store_true", help="Execute one bus cycle and stop abefore a new one begins")
 
 ### Display command arguments
 
@@ -48,7 +46,7 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, command: str) -> bool:
 	result = parser.parse_args(chunks)
 	parseOK = True
 	if result.command == "continue":
-		return _com.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks, result.pass_bus_cycles)
+		return _com.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks)
 	elif result.command == "step":
 		return _com.sendStepCommandInfo()
 	elif result.command == "display":

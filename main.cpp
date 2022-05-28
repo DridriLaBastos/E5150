@@ -3,8 +3,9 @@
 /* Exemple de fonctionnement */
 int main (void)
 {
-#ifdef DEBUG_BUILD
-	spdlog::set_level(spdlog::level::trace);
+#ifdef DEBUGGER
+	INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
+	spdlog::set_level(spdlog::level::debug);
 #endif
 	E5150::Arch arch;
 

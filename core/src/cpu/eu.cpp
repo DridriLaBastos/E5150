@@ -24,7 +24,7 @@ static bool EUExecInterruptServiceProcedureClock(void)
 	{
 		if (cpu.interruptSequence())
 		{
-			debug<DEBUG_LEVEL_MAX>("[EU] New interrupt detected while servicing an interrupt");
+			EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("[EU] New interrupt detected while servicing an interrupt");
 			cpu.handleInterrupts();
 		}
 		else

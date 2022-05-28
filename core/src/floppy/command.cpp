@@ -64,7 +64,7 @@ void E5150::FDC_COMMAND::ReadData::configurationEnd()
 	E5150::FDC::instance->makeDataRegisterInReadMode();
 
 	if ((E5150::FDC::instance->configurationDatas[5] != 0) && (E5150::FDC::instance->configurationDatas[8] != 0x0F))
-		FDCDebug(DEBUG_LEVEL_MAX," READ DATA: DTL (configuration word 9) should be 0xFF when N (configuration word 6) is non 0");
+		FDCEmulationLog(EMULATION_MAX_LOG_LEVEL," READ DATA: DTL (configuration word 9) should be 0xFF when N (configuration word 6) is non 0");
 }
 
 void E5150::FDC_COMMAND::ReadData::finish(const unsigned int st1Flags)
@@ -184,8 +184,8 @@ void E5150::FDC_COMMAND::Recalibrate::exec()
 
 	if (!floppyToApply->isReady())
 	{
-		FDCDebug(5,"Floppy {} not ready", floppyToApply->driverNumber);
-		FDCDebug(6,"RECALIBRATE COMMAND: Termination with ready line state change");
+		FDCEmulationLog(5,"Floppy {} not ready", floppyToApply->driverNumber);
+		FDCEmulationLog(6,"RECALIBRATE COMMAND: Termination with ready line state change");
 		finish(E5150::FDC::ST0_FLAGS::NR | E5150::FDC::ST0_FLAGS::IC1 | E5150::FDC::ST0_FLAGS::IC2);
 		return;
 	}
@@ -198,7 +198,7 @@ void E5150::FDC_COMMAND::Recalibrate::exec()
 	
 	if (stepCount == 77)
 	{
-		FDCDebug(4,"RECALIBRATE COMMAND: Termination with 77 step issued without track0 found");
+		FDCEmulationLog(4,"RECALIBRATE COMMAND: Termination with 77 step issued without track0 found");
 		finish(E5150::FDC::ST0_FLAGS::SE | E5150::FDC::ST0_FLAGS::EC);
 	}
 
@@ -209,7 +209,7 @@ void E5150::FDC_COMMAND::Recalibrate::exec()
 
 	if (!stepSuccess)
 	{
-		FDCDebug(6,"RECALIBRATE COMMAND: Abnormal termination");
+		FDCEmulationLog(6,"RECALIBRATE COMMAND: Abnormal termination");
 		finish(E5150::FDC::ST0_FLAGS::SE | E5150::FDC::ST0_FLAGS::IC1);
 	}
 	else
@@ -252,9 +252,9 @@ void E5150::FDC_COMMAND::Specify::configurationEnd()
 	const unsigned int HUTTimerMSValue = millisecondsFromHUTTimer();
 	const unsigned int HLTTimerMSValue = millisecondsFromHLTTimer();
 
-	FDCDebug(1,"SRT Value set to {}ms",SRTTimerMSValue*2);
-	FDCDebug(1,"HUT Value set to {}ms",HUTTimerMSValue*2);
-	FDCDebug(1,"HLT Value set to {}ms",HLTTimerMSValue*2);
+	FDCEmulationLog(1,"SRT Value set to {}ms",SRTTimerMSValue*2);
+	FDCEmulationLog(1,"HUT Value set to {}ms",HUTTimerMSValue*2);
+	FDCEmulationLog(1,"HLT Value set to {}ms",HLTTimerMSValue*2);
 	generalConfigurationEnd<DONT_CHECK_MFM,DONT_SET_FDD_HEAD,COMMAND_MODE_AFTER_CONFIGURE>();
 }
 
@@ -310,8 +310,8 @@ void E5150::FDC_COMMAND::Seek::exec()
 {
 	if (!floppyToApply->isReady())
 	{
-		FDCDebug(5,"Floppy {} not ready", floppyToApply->driverNumber);
-		FDCDebug(6,"SEEK COMMAND: Termination with ready line state change");
+		FDCEmulationLog(5,"Floppy {} not ready", floppyToApply->driverNumber);
+		FDCEmulationLog(6,"SEEK COMMAND: Termination with ready line state change");
 		finish(E5150::FDC::ST0_FLAGS::NR | E5150::FDC::ST0_FLAGS::IC1 | E5150::FDC::ST0_FLAGS::IC2);
 		return;
 	}
@@ -332,7 +332,7 @@ void E5150::FDC_COMMAND::Seek::exec()
 
 	if (!stepSuccess)
 	{
-		FDCDebug(6,"SEEK COMMAND: Abnormal termination");
+		FDCEmulationLog(6,"SEEK COMMAND: Abnormal termination");
 		finish(E5150::FDC::ST0_FLAGS::SE | E5150::FDC::ST0_FLAGS::IC1);
 	}
 	else

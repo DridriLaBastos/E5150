@@ -82,14 +82,14 @@ void E5150::FDC::switchToCommandMode (void)
 	selectedCommand = nullptr;
 	makeDataRegisterReady();
 	makeDataRegisterInWriteMode();
-	FDCDebug(7,"switched to command mode");
+	FDCEmulationLog(7,"switched to command mode");
 }
 
 void E5150::FDC::switchToExecutionMode (void)
 {
 	phase = FDC::PHASE::EXECUTION;
 	makeDataRegisterNotReady();
-	FDCDebug(7,"switched to execution mode");
+	FDCEmulationLog(7,"switched to execution mode");
 }
 
 void E5150::FDC::switchToResultMode (void)
@@ -97,7 +97,7 @@ void E5150::FDC::switchToResultMode (void)
 	phase = FDC::PHASE::RESULT;
 	makeDataRegisterReady();
 	makeDataRegisterInReadMode();
-	FDCDebug(7,"switched to result mode");
+	FDCEmulationLog(7,"switched to result mode");
 }
 
 void E5150::FDC::interruptPIC() const
@@ -153,7 +153,7 @@ static void writeDataRegister(const uint8_t data)
 	{
 		if (E5150::FDC::instance->isBusy())
 		{
-			FDCDebug(1,"New command issued while another command is being processed. Nothing done");
+			FDCEmulationLog(1,"New command issued while another command is being processed. Nothing done");
 			return;
 		}
 		
@@ -171,7 +171,7 @@ static void writeDataRegister(const uint8_t data)
 		
 		selectedCommand = commands[commandIndex];
 		
-		FDCDebug(5,"Selecting command '{}'",selectedCommand->m_name);
+		FDCEmulationLog(5,"Selecting command '{}'",selectedCommand->m_name);
 		selectedCommand->configurationBegin();
 	}
 
@@ -202,17 +202,17 @@ void E5150::FDC::write	(const unsigned int localAddress, const uint8_t data)
 					return;
 				}
 				else
-					FDCDebug(1,"Data register {}", dataRegisterReady() ? "not in write mode" : "not ready");
+					FDCEmulationLog(1,"Data register {}", dataRegisterReady() ? "not in write mode" : "not ready");
 			}
 			else
-				FDCDebug(1,"Status register not read before writing to data register");
+				FDCEmulationLog(1,"Status register not read before writing to data register");
 		}
 
 		default:
-			FDCDebug(1,"Cannot write at address {:b}. Address should be 10b(0x3F2) for DOR or 100b (0x3F5) for data register",localAddress);
+			FDCEmulationLog(1,"Cannot write at address {:b}. Address should be 10b(0x3F2) for DOR or 100b (0x3F5) for data register",localAddress);
 	}
 
-	FDCDebug(1,"Writing not done");
+	FDCEmulationLog(1,"Writing not done");
 }
 
 static void switchPhase (void)
@@ -278,16 +278,16 @@ uint8_t E5150::FDC::read	(const unsigned int localAddress)
 				if (dataRegisterIsInReadMode())
 					return readDataRegister();
 				else
-					FDCDebug(1,"Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");
+					FDCEmulationLog(1,"Data regisrer {}.",dataRegisterReady() ? "in write mode" : "not ready");
 			}
 			else
-				FDCDebug(1,"Status register not read before reading data register");
+				FDCEmulationLog(1,"Status register not read before reading data register");
 		} break;
 		
 		default:
-			FDCDebug(1,"Cannot read address {:b}. Address should be 10b (0x3F2) for DOR, 100b (0x3F4) or 101b (0x3F5) for status/data register",localAddress);
+			FDCEmulationLog(1,"Cannot read address {:b}. Address should be 10b (0x3F2) for DOR, 100b (0x3F4) or 101b (0x3F5) for status/data register",localAddress);
 	}
 
-	FDCDebug(1,"Value outputed will be undetermined");
+	FDCEmulationLog(1,"Value outputed will be undetermined");
 	return E5150::Util::undef;
 }

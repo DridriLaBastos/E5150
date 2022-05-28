@@ -3,7 +3,9 @@
 #include "arch.hpp"
 #include "util.hpp"
 
+#ifdef DEBUGGER
 #include "debugger/debugger.hpp"
+#endif
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
 static constexpr unsigned int BASE_CLOCK = 14318181;
@@ -22,7 +24,7 @@ static void stop(const int signum)
 
 bool E5150::Util::_continue;
 bool E5150::Util::_stop;
-unsigned int E5150::Util::CURRENT_DEBUG_LEVEL;
+unsigned int E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 unsigned int E5150::Util::undef;
 
 /* All the componentns will be globaly accessable for any other component */
@@ -50,35 +52,17 @@ E5150::Arch::Arch()
 
 	E5150::Util::_continue = true;
 	E5150::Util::_stop = true;
-	E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
+	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = EMULATION_MAX_LOG_LEVEL;
 	E5150::Util::undef = (unsigned int)(unsigned long)(&ram);
+#ifdef DEBUGGER
 	Debugger::init();
+#endif
 
 	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
 	signal(SIGQUIT, stop);
 	signal(SIGABRT, stop);
 	signal(SIGINT, stop);
-}
-
-static void clockWait()
-{
-	if (E5150::Util::_stop)
-	{
-		if (E5150::Util::CURRENT_DEBUG_LEVEL == 0)
-			E5150::Util::CURRENT_DEBUG_LEVEL = DEBUG_LEVEL_MAX;
-
-		std::string tmp;
-		std::getline(std::cin, tmp);
-		if (tmp == "q")
-			E5150::Util::_continue = false;
-		
-		if (tmp == "c")
-		{
-			E5150::Util::CURRENT_DEBUG_LEVEL = 0;
-			E5150::Util::_stop=false;
-		}
-	}
 }
 
 void E5150::Arch::startSimulation()

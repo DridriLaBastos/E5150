@@ -12,7 +12,7 @@ uint8_t RAM::read(const unsigned int address) const
 	const uint8_t data = m_ram[address];
 	dataBus = data;
 #ifdef SEE_RAM_READ
-	if (E5150::Util::CURRENT_DEBUG_LEVEL == DEBUG_LEVEL_MAX)
+	if (E5150::Util::CURRENT_EMULATOR_LOG_LEVEL == EMULATION_MAX_LOG_LEVEL)
 		printf("%#4x --> %#5x\n", data, address);
 #endif
 	return data;
@@ -22,7 +22,7 @@ void RAM::write(const unsigned int address, const uint8_t data)
 	m_ram[address] = data;
 	dataBus = data;
 #ifdef SEE_RAM_WRITE
-	if (E5150::Util::CURRENT_DEBUG_LEVEL >= DEBUG_LEVEL_MAX)
+	if (E5150::Util::CURRENT_EMULATOR_LOG_LEVEL >= EMULATION_MAX_LOG_LEVEL)
 		printf("%#5x <-- %#4x\n", address, data);
 #endif
 }

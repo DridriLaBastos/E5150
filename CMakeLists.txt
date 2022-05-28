@@ -7,7 +7,6 @@ project(E5150
 
 add_subdirectory(third-party)
 add_subdirectory(test)
-add_subdirectory(debugger/communication)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -43,6 +42,8 @@ target_link_libraries(epc xed)
 target_precompile_headers(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include/pch.hpp)
 
 if (ENABLE_DEBUGGER)
+	add_subdirectory(debugger/communication)
+	add_compile_definitions(DEBUGGER)
 	file(GLOB DEBUGGER_SRC CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/debugger/*.cpp)
 	file(GLOB DEBUGGER_HEADERS ${PROJECT_SOURCE_DIR}/debugger/*.hpp)
 
@@ -50,8 +51,7 @@ if (ENABLE_DEBUGGER)
 	source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${DEBUGGER_SRC} ${DEBUGGER_HEARDERS})
 
 	target_sources(epc PRIVATE ${DEBUGGER_SRC} ${DEBUGGER_HEADERS})
-	target_include_directories(epc PUBLIC ${CMAKE_SOURCE_DIR})
-	add_compile_definitions(DEBUGGER)
+	target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR})
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

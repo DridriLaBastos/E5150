@@ -1,5 +1,7 @@
 #include "pit.hpp"
 
+#define PITEmulationLog(REQUIRED_LOG_LEVEL,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("PIT: " __VA_ARGS__)
+
 /* Declaration of all the modes so that their addresses can be taken when setting a mode */
 E5150::PIT::MODE0 E5150::PIT::mode0;
 E5150::PIT::MODE1 E5150::PIT::mode1;
@@ -202,7 +204,7 @@ void E5150::PIT::MODE0::enable (Counter& counter)
 	counter.mode = this;
 	counter.outputValue = OUTPUT_VALUE::LOW;
 	counter.isCounting = false;
-	DEBUG("PIT: COUNTER{}: MODE0: set", counter.index);
+	PITEmulationLog(EMULATION_MAX_LOG_LEVEL, "PIT: COUNTER{}: MODE0: set", counter.index);
 }
 
 //TODO: is it relevant to emulate the behaviour of the gate input ?

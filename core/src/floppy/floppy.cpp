@@ -1,7 +1,7 @@
 #include "floppy.hpp"
 
-#define FLPDebug(REQUIRED_DEBUG_LEVEL,DEBUG_MSG,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: " DEBUG_MSG,driverNumber,##__VA_ARGS__)
-#define EXTERNAL_FLPDebug(REQUIRED_DEBUG_LEVEL,DEBUG_MSG,...) debug<REQUIRED_DEBUG_LEVEL>("FLOPPY {}: " DEBUG_MSG,flp->driverNumber,##__VA_ARGS__)
+#define FLPEmulationLog(REQUIRED_LOG_LEVEL,LOG_MSG,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("FLOPPY {}: " LOG_MSG,driverNumber,##__VA_ARGS__)
+#define EXTERNAL_FLPEmulationLog(REQUIRED_LOG_LEVEL,LOG_MSG,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("FLOPPY {}: " LOG_MSG,flp->driverNumber,##__VA_ARGS__)
 
 unsigned int E5150::Floppy100::floppyNumber = 0;
 
@@ -38,7 +38,6 @@ void E5150::Floppy100::open(const std::string& path)
 const ID E5150::Floppy100::getID (void) const
 {
 	const ID ret (inserted ? currentID.cylinder:0,0,1,inserted ? 512:0);
-	DEBUG("c:{} h:{} r:{} n:{}",ret.cylinder,ret.headAddress,ret.record,ret.number);
 	return ret;
 }
 
@@ -59,7 +58,7 @@ bool E5150::Floppy100::select (void)
 	if (!status.motorStoped)
 	{
 		status.selected = true;
-		FLPDebug(DEBUG_LEVEL_MAX,"Selected");
+		FLPEmulationLog(EMULATION_MAX_LOG_LEVEL,"Selected");
 
 		if (status.headUnloaded)
 			loadHeads();
@@ -67,7 +66,7 @@ bool E5150::Floppy100::select (void)
 		return true;
 	}
 	else
-		FLPDebug(8,"Not selected because motor is not spinning");
+		FLPEmulationLog(8,"Not selected because motor is not spinning");
 	
 	return false;
 }
@@ -77,7 +76,7 @@ void E5150::Floppy100::unselect (void)
 	status.selected = false;
 	status.headUnloaded = true;
 
-	FLPDebug(DEBUG_LEVEL_MAX,"Unselected");
+	FLPEmulationLog(EMULATION_MAX_LOG_LEVEL,"Unselected");
 }
 
 void E5150::Floppy100::motorOn(void)
@@ -87,7 +86,7 @@ void E5150::Floppy100::motorOn(void)
 
 	if (status.motorStoped)
 	{
-		FLPDebug(10,"Motor start spinning");
+		FLPEmulationLog(10,"Motor start spinning");
 		timing.lastTimeMotorStartRequest = Clock::now();
 	}
 
@@ -100,7 +99,7 @@ void E5150::Floppy100::motorOff(void)
 		return;
 	
 	if (!status.motorStoped)
-		FLPDebug(DEBUG_LEVEL_MAX,"Motor stop spinning");
+		FLPEmulationLog(EMULATION_MAX_LOG_LEVEL,"Motor stop spinning");
 	status.motorStoped = true;
 }
 
@@ -119,7 +118,7 @@ bool E5150::Floppy100::headLoaded() const
 
 	if (status.headUnloaded)
 	{
-		FLPDebug(4,"Head is not loaded");
+		FLPEmulationLog(4,"Head is not loaded");
 		return false;
 	}
 
@@ -131,7 +130,7 @@ bool E5150::Floppy100::headLoaded() const
 	const bool headLoadFinish = (Clock::now() - timing.lastTimeHeadLoadRequest) >= timers.headLoad;
 
 	if (!headLoadFinish)
-		FLPDebug(4,"Head loading isn't finish yet\n"
+		FLPEmulationLog(4,"Head loading isn't finish yet\n"
 				"\tYou should wait {}ms after selecting the drive for the head to be loaded",timers.headLoad.count());
 
 	return headLoadFinish;
@@ -143,7 +142,7 @@ static bool motorAtFullSpeed(const E5150::Floppy100* const flp)
 static bool correctHeadAddress (const E5150::Floppy100* const flp)
 {
 	if (flp->status.headAddress)
-		EXTERNAL_FLPDebug(DEBUG_LEVEL_MAX,"Single sided. Head address can only be 0 but found {}",flp->status.headAddress);
+		EXTERNAL_FLPEmulationLog(EMULATION_MAX_LOG_LEVEL,"Single sided. Head address can only be 0 but found {}",flp->status.headAddress);
 	
 	return !flp->status.headAddress;
 }
@@ -188,11 +187,11 @@ bool E5150::Floppy100::step(const bool direction, const Milliseconds& timeSinceL
 		return true;
 
 	if (!status.selected)
-		FLPDebug(5,"Step while not selected");
+		FLPEmulationLog(5,"Step while not selected");
 
 	if (!firstStep && (timeSinceLastStep < timers.trackToTrack))
 	{
-		FLPDebug(4,"timestep of {} ms, should be {} ms", timeSinceLastStep.count(), timers.trackToTrack.count());
+		FLPEmulationLog(4,"timestep of {} ms, should be {} ms", timeSinceLastStep.count(), timers.trackToTrack.count());
 		return false;
 	}
 

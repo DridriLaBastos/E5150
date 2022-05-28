@@ -20,12 +20,12 @@ typedef enum : uint8_t
 }COMMAND_TYPE;
 
 typedef enum : uint8_t
-{ CONTINUE_TYPE_CLOCK, CONTINUE_TYPE_INSTRUCTION, CONTINUE_TYPE_BUS, CONTINUE_TYPE_INFINITE } CONTINUE_TYPE;
+{ CONTINUE_TYPE_CLOCK, CONTINUE_TYPE_INSTRUCTION, CONTINUE_TYPE_INFINITE } CONTINUE_TYPE;
 
 typedef enum : uint8_t
 { DISPLAY_TYPE_INSTRUCTIONS, DISPLAY_TYPE_REGISTERS, DISPLAY_TYPE_FLAGS, DISPLAY_TYPE_LOGLEVEL } DISPLAY_TYPE;
 
-int sendContinueCommandInfo(const int instructionCounts, const int clocCounts, const int busCycleCounts);
+int sendContinueCommandInfo(const int instructionCounts, const int clocCounts);
 int sendStepCommandInfo(void);
 int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel);
 

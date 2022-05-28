@@ -28,11 +28,10 @@ static int debuggerToEmulator_SendContinueCommandInfo(const CONTINUE_TYPE contin
 	return true;
 }
 
-int sendContinueCommandInfo(const int instructionCounts, const int clockCounts, const int busCycleCounts)
+int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 {
 	if (instructionCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INSTRUCTION, instructionCounts); }
 	if (clockCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_CLOCK, clockCounts); }
-	if (busCycleCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_BUS, busCycleCounts); }
 	return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INFINITE, -1);
 }
 
