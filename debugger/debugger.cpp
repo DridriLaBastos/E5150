@@ -401,6 +401,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 
 	conditionnalyPrintInstruction();
 	int status = write(toDebugger,&instructionExecutedToSend,8);
+	instructionExecutedToSend = 0;
 
 	if (status < 0) { return; }
 	instructionExecutedToSend = 0;

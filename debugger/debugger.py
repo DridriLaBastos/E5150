@@ -58,7 +58,11 @@ class DebuggerShell(cmd.Cmd):
 	
 	def do_help(self, arg: str) -> bool:
 		"""Show this help"""
-		return super().do_help(arg) if not arg else self._parse(arg + " --help")
+		if not arg:
+			self._parse("--help")
+		else:
+			self._parse(arg + " --help")
+		return False
 
 def shellLoop():
 	global instructionExecCount

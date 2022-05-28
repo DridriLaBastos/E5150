@@ -288,7 +288,7 @@ bool CPU::clock()
 		biu.instructionBufferQueuePop(cpu.eu.instructionLength);
 		instructionExecutedCount += 1;
 
-		//TODO: This might optimization by using bit mask to tell which interrupt is triggered
+		//TODO: This might be optimized by using bit mask to tell which interrupt is triggered
 		const bool shouldInterrupt = (!IRET_DELAY) && (INTR || INTN || INTO || INT3 || DIVIDE || NMI || cpu.getFlagStatus(CPU::FLAGS_T::TRAP));
 		if (shouldInterrupt)
 			handleInterrupts();
