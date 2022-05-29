@@ -25,8 +25,15 @@ typedef enum : uint8_t
 typedef enum : uint8_t
 { DISPLAY_TYPE_INSTRUCTIONS, DISPLAY_TYPE_REGISTERS, DISPLAY_TYPE_FLAGS, DISPLAY_TYPE_LOGLEVEL } DISPLAY_TYPE;
 
+typedef enum : uint8_t
+{
+	STEP_TYPE_INSTRUCTION = 1 << 0,
+	STEP_TYPE_CLOCK = 1 << 1,
+	STEP_TYPE_PASS = 1 << 2
+} STEP_TYPE;
+
 int sendContinueCommandInfo(const int instructionCounts, const int clockCounts);
-int sendStepCommandInfo(void);
+int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag);
 int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel);
 
 #endif//__COMMAND_HPP__

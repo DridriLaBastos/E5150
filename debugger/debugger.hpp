@@ -11,7 +11,7 @@ namespace E5150::Debugger
 	//TODO: tranform it to a class to have init as a constructor and deinint in destructor
 	void init (void);
 	void deinit (void);
-	void wakeUp (const uint8_t instructionExecuted);
+	void wakeUp (const uint8_t instructionExecuted, const bool instructionDecoded);
 	void specialBehaviour(const SPECIAL_BEHAVIOUR);
 }
 

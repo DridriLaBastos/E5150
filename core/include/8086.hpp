@@ -49,7 +49,7 @@ class CPU
 	public:
 		CPU(void);
 
-		bool clock (void);
+		unsigned int clock (void);
 		/**
 		 * @brief Perform the interrupt sequence
 		 * 

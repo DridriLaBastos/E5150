@@ -277,13 +277,13 @@ bool CPU::interruptSequence()
 
 void CPU::iretDelay(void) { IRET_DELAY = true; }
 
-bool CPU::clock()
+unsigned int CPU::clock()
 {
 	if (!CPU_HLT)
 		cpu.biu.clock();
-	const bool instructionExecuted = cpu.eu.clock();
+	const unsigned int EUStatus = cpu.eu.clock();
 
-	if (instructionExecuted)
+	if (EUStatus & 1)
 	{
 		biu.instructionBufferQueuePop(cpu.eu.instructionLength);
 		instructionExecutedCount += 1;
@@ -297,7 +297,7 @@ bool CPU::clock()
 
 	biu.updateClockFunction();
 
-	return instructionExecuted;
+	return EUStatus;
 }
 
 void CPU::hlt(void) { CPU_HLT = true; }

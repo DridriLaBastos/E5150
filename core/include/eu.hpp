@@ -46,7 +46,7 @@ namespace E5150::I8086
 
 		public:
 			void enterInterruptServiceProcedure(const unsigned int procedureClockCycles);
-			bool clock(void);
+			unsigned int clock(void);
 
 			void farCall (const uint16_t seg, const uint16_t offset);
 			void farRet (void);
@@ -63,6 +63,10 @@ namespace E5150::I8086
 			bool operandSizeWord;
 			bool repInstructionFinished;
 			InstructionExtraData_t instructionExtraData;
+		
+		public:
+			static constexpr unsigned int STATUS_INSTRUCTION_EXECUTED = 1 << 0;
+			static constexpr unsigned int STATUS_INSTRUCTION_DECODED  = 1 << 1;
 	};
 }
 

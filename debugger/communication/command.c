@@ -4,7 +4,7 @@
 #include "command.h"
 #include "communication.h"
 
-static int sendCommandToEmulatorAndGetStatus(const COMMAND_TYPE commandType)
+static COMMAND_RECEIVED_STATUS sendCommandToEmulatorAndGetStatus(const COMMAND_TYPE commandType)
 {
 	static COMMAND_RECEIVED_STATUS commandReceivedStatus;
 
@@ -35,10 +35,29 @@ int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 	return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INFINITE, -1);
 }
 
-int sendStepCommandInfo(void)
+///////////////////////////////////////////////////////////////////////////////////////////
+////                                  STEP
+///////////////////////////////////////////////////////////////////////////////////////////
+
+int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag)
 {
-	return sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_STEP);
+	printf("reached with   i %d   c %d   p %d\n",instructionFlag,clockFlag,passFlag);
+	if(sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_STEP))
+	{
+		uint8_t stepFlags = 0;
+
+		if (instructionFlag) { stepFlags |= STEP_TYPE_INSTRUCTION; }
+		if (clockFlag) { stepFlags |= STEP_TYPE_CLOCK; }
+		if (passFlag) { stepFlags |= STEP_TYPE_PASS; }
+
+		writeToEmulator(&stepFlags,1);
+	}
+	return true;
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////
+////                                DISPLAY
+///////////////////////////////////////////////////////////////////////////////////////////
 
 int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel)
 {

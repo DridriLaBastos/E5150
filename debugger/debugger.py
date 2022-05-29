@@ -29,6 +29,9 @@ class DebuggerShell(cmd.Cmd):
 			toEmulator.write(b'\x01' if stop else b'\x00')
 		return super().postcmd(stop, line)
 	
+	def default(self, line: str) -> None:
+		return self._parse(line)
+	
 	###########################
 	#    Utility functions    #
 	###########################

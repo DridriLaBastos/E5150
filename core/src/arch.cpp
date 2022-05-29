@@ -89,7 +89,7 @@ void E5150::Arch::startSimulation()
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
 				currentClock += 1;
-				const bool instructionExecuted = _cpu.clock();
+				const unsigned int EUStatus = _cpu.clock();
 				_pit.clock();
 				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
 				{
@@ -98,7 +98,7 @@ void E5150::Arch::startSimulation()
 				}
 				
 				#ifdef DEBUGGER
-				Debugger::wakeUp(instructionExecuted);
+				Debugger::wakeUp(EUStatus & I8086::EU::STATUS_INSTRUCTION_EXECUTED, EUStatus & I8086::EU::STATUS_INSTRUCTION_DECODED);
 				#endif
 			}
 

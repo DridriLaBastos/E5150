@@ -21,8 +21,8 @@ static unsigned int savedLogLevel = 0;
 static struct {
 	COMMAND_TYPE commandType;
 	unsigned int commandSubtype;
-	unsigned int targetValue;
-	unsigned int currentValue;
+	int targetValue;
+	int currentValue;
 
 	void clear (void)
 	{
@@ -317,11 +317,14 @@ static void printEUDebugInfo(void)
 
 static void conditionnalyPrintInstruction(void)
 {
-	if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS)
+	//if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS)
 		printRegisters();
-				
-	if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_FLAGS)
+
+	//if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_FLAGS)
 		printFlags();
+
+	//if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_INSTRUCTION)
+		printCurrentInstruction(cpu.eu.getDebugWorkingState());
 }
 
 static void handleContinueCommand()
@@ -342,7 +345,16 @@ static void handleContinueCommand()
 
 static void handleStepCommand()
 {
-	INFO("COMMAND STEP");
+	uint8_t stepFlags;
+	read(fromDebugger,&stepFlags,1);
+
+	if ((stepFlags & STEP_TYPE_CLOCK) && (stepFlags & STEP_TYPE_PASS))
+	{ INFO("Using pass flag with clock has no effects"); }
+
+	commandExecutionContext.commandType = COMMAND_TYPE_STEP;
+	commandExecutionContext.commandSubtype = stepFlags;
+	commandExecutionContext.targetValue = 0;
+	commandExecutionContext.currentValue = -1;
 }
 
 static void handleDisplayCommand()
@@ -374,7 +386,18 @@ static void handleDisplayCommand()
 		state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS ? " print registers" : "");
 }
 
-void Debugger::wakeUp(const uint8_t instructionExecuted)
+static bool isControlTransferIn( const xed_iclass_enum_t& iclass )
+{
+	return	(iclass == XED_ICLASS_CALL_FAR) || (iclass == XED_ICLASS_CALL_NEAR) ||
+			(iclass == XED_ICLASS_JMP) || (iclass == XED_ICLASS_JMP_FAR) ||
+			(iclass == XED_ICLASS_JZ)|| (iclass == XED_ICLASS_JL)|| (iclass == XED_ICLASS_JLE)|| (iclass == XED_ICLASS_JB)|| (iclass == XED_ICLASS_JBE)|| (iclass == XED_ICLASS_JP)|| (iclass == XED_ICLASS_JO)|| (iclass == XED_ICLASS_JS)|| (iclass == XED_ICLASS_JNZ)|| (iclass == XED_ICLASS_JNL)|| (iclass == XED_ICLASS_JNLE)|| (iclass == XED_ICLASS_JNB)|| (iclass == XED_ICLASS_JNBE)|| (iclass == XED_ICLASS_JNP)|| (iclass == XED_ICLASS_JNS)|| (iclass == XED_ICLASS_JCXZ) ||
+			(iclass == XED_ICLASS_INT) || (iclass == XED_ICLASS_INT1) || (iclass == XED_ICLASS_INT3) || (iclass == XED_ICLASS_INTO);
+}
+
+static bool isControlTranferOut(const xed_iclass_enum_t& iclass)
+{ return (iclass == XED_ICLASS_RET_FAR) || (iclass == XED_ICLASS_RET_NEAR) || (iclass == XED_ICLASS_IRET); }
+
+void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {	
 	static COMMAND_TYPE commandType;
 	static uint64_t instructionExecutedToSend = 0;
@@ -390,21 +413,36 @@ void Debugger::wakeUp(const uint8_t instructionExecuted)
 			{
 				commandExecutionContext.currentValue += commandExecutionContext.commandSubtype == CONTINUE_TYPE_INSTRUCTION ? instructionExecuted : 1;
 			} break;
+
+			case (COMMAND_TYPE_STEP):
+			{
+				if (commandExecutionContext.commandSubtype & STEP_TYPE_INSTRUCTION)
+				{
+					if (instructionDecoded & (commandExecutionContext.commandSubtype & STEP_TYPE_PASS))
+					{
+						const xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&cpu.eu.decodedInst);
+						commandExecutionContext.currentValue -= isControlTransferIn(iclass);
+						commandExecutionContext.currentValue += isControlTranferOut(iclass);
+					}
+					else
+					{ commandExecutionContext.currentValue += instructionDecoded; }
+				}
+				else
+				{ commandExecutionContext.currentValue += 1; }
+			}
 		}
+
 		if (commandExecutionContext.currentValue < commandExecutionContext.targetValue)
 		{ return; }
 		
 		E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel;
 	}
 
-	commandExecutionContext.clear();
-
 	conditionnalyPrintInstruction();
-	int status = write(toDebugger,&instructionExecutedToSend,8);
-	instructionExecutedToSend = 0;
 
-	if (status < 0) { return; }
+	if(write(toDebugger,&instructionExecutedToSend,8) < 0) { return; }
 	instructionExecutedToSend = 0;
+	commandExecutionContext.clear();
 	
 	do
 	{

@@ -34,10 +34,10 @@ static bool EUExecInterruptServiceProcedureClock(void)
 		}
 	}
 
-	return false;
+	return 0;
 }
 
-static bool EUExecInstructionClock(void)
+static unsigned int EUExecInstructionClock(void)
 {
 	#ifdef STOP_AT_CLOCK
 		printCurrentInstruction();
@@ -47,11 +47,11 @@ static bool EUExecInstructionClock(void)
 	{
 		instructionFunction();
 		EUWorkingState.EUWorkingMode = EU::WORKING_MODE::DECODE;
-		return true;
+		return E5150::I8086::EU::STATUS_INSTRUCTION_EXECUTED;
 	}
 
 	EUWorkingState.INSTRUCTION_CLOCK_LEFT -= 1;
-	return false;
+	return 0;
 }
 
 static bool EUExecRepInstructionClock(void)
@@ -69,7 +69,7 @@ static bool EUExecRepInstructionClock(void)
 		{
 			cpu.eu.repInstructionFinished = false;
 			EUWorkingState.EUWorkingMode = EU::WORKING_MODE::DECODE;
-			return true;
+			return E5150::I8086::EU::STATUS_INSTRUCTION_EXECUTED;
 		}
 		else
 		{
@@ -78,7 +78,7 @@ static bool EUExecRepInstructionClock(void)
 	}
 
 	EUWorkingState.INSTRUCTION_CLOCK_LEFT -= 1;
-	return false;
+	return 0;
 }
 
 //TODO: How to handle LOCK, WAIT and ESC
@@ -538,7 +538,7 @@ static unsigned int prepareInstructionExecution(void)
 	}
 }
 
-static bool EUDecodeClock(void)
+static unsigned int EUDecodeClock(void)
 {
 	xed_decoded_inst_zero_keep_mode(&cpu.eu.decodedInst);
 	const xed_error_enum_t DECODE_STATUS = xed_decode(&cpu.eu.decodedInst,cpu.biu.instructionBufferQueue.data(),cpu.biu.instructionBufferQueuePos);
@@ -553,14 +553,13 @@ static bool EUDecodeClock(void)
 		// 	#endif
 		// #endif
 		//An instruction function has been decode and the cpu will tell the EU how much clock cycles will be needed
-		if (EUWorkingState.INSTRUCTION_CLOCK_LEFT == 0)
-			return true;
+		return E5150::I8086::EU::STATUS_INSTRUCTION_DECODED | (E5150::I8086::EU::STATUS_INSTRUCTION_EXECUTED & (EUWorkingState.INSTRUCTION_CLOCK_LEFT == 0));
 	}
 
-	return false;
+	return 0;
 }
 
-bool EU::clock()
+unsigned int EU::clock()
 {
 	switch (EUWorkingState.EUWorkingMode)
 	{
