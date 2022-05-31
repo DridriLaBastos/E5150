@@ -153,7 +153,7 @@ class CPU
 		E5150::I8086::BIU biu;
 		E5150::I8086::EU eu;
 
-		unsigned int instructionExecutedCount;
+		uint64_t instructionExecutedCount;
 };
 
 #endif

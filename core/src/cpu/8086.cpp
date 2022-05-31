@@ -283,7 +283,7 @@ unsigned int CPU::clock()
 		cpu.biu.clock();
 	const unsigned int EUStatus = cpu.eu.clock();
 
-	if (EUStatus & 1)
+	if (EUStatus & E5150::I8086::EU::STATUS_INSTRUCTION_EXECUTED)
 	{
 		biu.instructionBufferQueuePop(cpu.eu.instructionLength);
 		instructionExecutedCount += 1;

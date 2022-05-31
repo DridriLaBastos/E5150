@@ -41,7 +41,6 @@ int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 
 int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag)
 {
-	printf("reached with   i %d   c %d   p %d\n",instructionFlag,clockFlag,passFlag);
 	if(sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_STEP))
 	{
 		uint8_t stepFlags = 0;

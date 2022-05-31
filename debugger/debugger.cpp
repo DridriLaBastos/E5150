@@ -21,17 +21,17 @@ static unsigned int savedLogLevel = 0;
 static struct {
 	COMMAND_TYPE commandType;
 	unsigned int commandSubtype;
-	int targetValue;
-	int currentValue;
+	unsigned int passInstructionCurrent;
+	unsigned int passInstructionTarget;
 
 	void clear (void)
 	{
 		commandType = COMMAND_TYPE_ERROR;
 		commandSubtype = 0;
-		targetValue = 0;
-		currentValue = 0;
+		passInstructionCurrent = 0;
+		passInstructionTarget = 0;
 	}
-} commandExecutionContext;
+} passCommandExecutionContext;
 
 /**
  * \brief An enum specifying how the debugger should react when a stop is needed
@@ -72,7 +72,7 @@ void E5150::Debugger::init()
 {
 	state.clockBehaviour = CLOCK_BEHAVIOUR::ALWAYS_STOP;
 	state.stopBehaviour  = STOP_BEHAVIOUR::STOP;
-	commandExecutionContext.commandType = COMMAND_TYPE_ERROR;
+	passCommandExecutionContext.clear();
 
 	if (mkfifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
 	{
@@ -296,7 +296,7 @@ static void printCurrentInstruction(const I8086::EU::InternalInfos& workingState
 		}
 	}
 		std::cout << " (iform: ' "<< xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)) << "')";
-		std::cout << " (" << cpu.instructionExecutedCount+1 << ")\n";
+		std::cout << " (" << cpu.instructionExecutedCount << ")\n";
 }
 
 static void printEUDebugInfo(void)
@@ -335,10 +335,10 @@ static void handleContinueCommand()
 	read(fromDebugger, &continueType, sizeof(CONTINUE_TYPE));
 	read(fromDebugger, &continueValue, sizeof(unsigned int));
 
-	commandExecutionContext.commandType = COMMAND_TYPE_CONTINUE;
-	commandExecutionContext.commandSubtype = (unsigned int)continueType;
-	commandExecutionContext.targetValue = continueValue;
-	commandExecutionContext.currentValue = 0;
+	passCommandExecutionContext.commandType = COMMAND_TYPE_CONTINUE;
+	passCommandExecutionContext.commandSubtype = (unsigned int)continueType;
+	passCommandExecutionContext.passInstructionTarget = 0;
+	passCommandExecutionContext.passInstructionCurrent = continueValue;
 	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = 0;
 }
@@ -351,10 +351,10 @@ static void handleStepCommand()
 	if ((stepFlags & STEP_TYPE_CLOCK) && (stepFlags & STEP_TYPE_PASS))
 	{ INFO("Using pass flag with clock has no effects"); }
 
-	commandExecutionContext.commandType = COMMAND_TYPE_STEP;
-	commandExecutionContext.commandSubtype = stepFlags;
-	commandExecutionContext.targetValue = 0;
-	commandExecutionContext.currentValue = -1;
+	passCommandExecutionContext.commandType = COMMAND_TYPE_STEP;
+	passCommandExecutionContext.commandSubtype = stepFlags;
+	passCommandExecutionContext.passInstructionTarget = 0;
+	passCommandExecutionContext.passInstructionCurrent = 1;
 }
 
 static void handleDisplayCommand()
@@ -400,39 +400,44 @@ static bool isControlTranferOut(const xed_iclass_enum_t& iclass)
 void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {	
 	static COMMAND_TYPE commandType;
-	static uint64_t instructionExecutedToSend = 0;
 	static uint8_t shouldStop;
 	static unsigned int savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
-	instructionExecutedToSend += instructionExecuted;
 
-	if (commandExecutionContext.commandType != COMMAND_TYPE_ERROR)
+	if (passCommandExecutionContext.commandType != COMMAND_TYPE_ERROR)
 	{
-		switch(commandExecutionContext.commandType)
+		switch(passCommandExecutionContext.commandType)
 		{
 			case COMMAND_TYPE_CONTINUE:
 			{
-				commandExecutionContext.currentValue += commandExecutionContext.commandSubtype == CONTINUE_TYPE_INSTRUCTION ? instructionExecuted : 1;
+				if (passCommandExecutionContext.commandSubtype != CONTINUE_TYPE_INFINITE)
+				{
+					passCommandExecutionContext.passInstructionCurrent -= passCommandExecutionContext.commandSubtype == CONTINUE_TYPE_INSTRUCTION ? instructionExecuted : 1;
+				}
 			} break;
 
 			case (COMMAND_TYPE_STEP):
 			{
-				if (commandExecutionContext.commandSubtype & STEP_TYPE_INSTRUCTION)
+				if (passCommandExecutionContext.commandSubtype & STEP_TYPE_INSTRUCTION)
 				{
-					if (instructionDecoded & (commandExecutionContext.commandSubtype & STEP_TYPE_PASS))
+					if (instructionDecoded & (passCommandExecutionContext.commandSubtype & STEP_TYPE_PASS))
 					{
 						const xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&cpu.eu.decodedInst);
-						commandExecutionContext.currentValue -= isControlTransferIn(iclass);
-						commandExecutionContext.currentValue += isControlTranferOut(iclass);
+						passCommandExecutionContext.passInstructionCurrent += isControlTransferIn(iclass);
+						passCommandExecutionContext.passInstructionCurrent -= isControlTranferOut(iclass);
 					}
 					else
-					{ commandExecutionContext.currentValue += instructionDecoded; }
+					{ passCommandExecutionContext.passInstructionCurrent -= instructionExecuted; }
 				}
 				else
-				{ commandExecutionContext.currentValue += 1; }
+				{ passCommandExecutionContext.passInstructionCurrent -= 1; }
 			}
 		}
 
-		if (commandExecutionContext.currentValue < commandExecutionContext.targetValue)
+		//The debugger continues to pass instructions until the desired amount of instructions to pass have been reached. Then the debugger waits for a new instruction to be decoded to pause again because if not, it is the instruction that was executed that will be displayed when pausing. To stop again, the debugger needs to be sure that the desired amount of instructions have been passed AND that a new instruction have been decoded.
+		//The only exception to this behaviour is when the debugger need to pass throught clock ticks. When the right amount of clock ticks has elapsed the debugger stops again whereever the cpu is
+		const bool continueCommandExecution = (passCommandExecutionContext.passInstructionCurrent > passCommandExecutionContext.passInstructionTarget) || (!instructionDecoded && passCommandExecutionContext.commandSubtype != CONTINUE_TYPE_CLOCK);
+
+		if (continueCommandExecution)
 		{ return; }
 		
 		E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel;
@@ -440,9 +445,8 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 
 	conditionnalyPrintInstruction();
 
-	if(write(toDebugger,&instructionExecutedToSend,8) < 0) { return; }
-	instructionExecutedToSend = 0;
-	commandExecutionContext.clear();
+	passCommandExecutionContext.clear();
+	if(write(toDebugger,&cpu.instructionExecutedCount,8) < 0) { return; }
 	
 	do
 	{
