@@ -1,18 +1,26 @@
 #ifndef DEBUGGER_HPP
 #define DEBUGGER_HPP
 
-namespace E5150::Debugger
+namespace E5150
 {
-	enum class SPECIAL_BEHAVIOUR
+	struct Debugger
 	{
-		CALL, INTERRUPT, XCHG_BX_BX
-	};
+		static void init (void);
+		static void deinit (void);
+		static void wakeUp (const uint8_t instructionExecuted, const bool instructionDecoded);
+		static void setClockLevelEmulatorInfo(const bool clockLevelInfo){ mClockLevelEmulatorInfo = clockLevelInfo; }
+		template<typename ...Args>
+		static void CLOCK_LEVEL_EMULATOR_INFO(const Args&&... args)
+		{
+			#ifdef DEBUGGER
+				if (mClockLevelEmulatorInfo)
+					printf(std::forward<Args>(args)...);
+			#endif
+		};
 
-	//TODO: tranform it to a class to have init as a constructor and deinint in destructor
-	void init (void);
-	void deinit (void);
-	void wakeUp (const uint8_t instructionExecuted, const bool instructionDecoded);
-	void specialBehaviour(const SPECIAL_BEHAVIOUR);
+		private:
+			static bool mClockLevelEmulatorInfo;
+	};
 }
 
 #endif

@@ -6,21 +6,19 @@ import commands
 parser = argparse.ArgumentParser(description="Debugger CLI of E5150")
 parser.add_argument("read_fifo_filename", help="Named pipe filename to read data from the emulator")
 parser.add_argument("write_fifo_filename", help="Named pipe filename to write data to the emulator")
-instructionExecCount = 0
 fromEmulator:FileIO = None
 toEmulator:FileIO = None
 
 class DebuggerShell(cmd.Cmd):
 	intro = ""
 	use_rawinput = True
-	debugger_cmd_parse_ok = False
 
 	###########################
 	# Override core functions #
 	###########################
 	def cmdloop(self) -> None:
 		global instructionExecCount
-		instructionExecCount += int.from_bytes(fromEmulator.read(8),byteorder="little")
+		instructionExecCount = int.from_bytes(fromEmulator.read(8),byteorder="little")
 		self.prompt = f"({instructionExecCount}) > "
 		return super().cmdloop()
 	
