@@ -28,8 +28,7 @@ void EMULATION_INFO_LOG(Args&&... args)
 #ifdef DEBUGGER
 	static_assert(REQUIRED_LOG_LEVEL > 0, "Log level of 0 is reserved for no log at all");
 	if (REQUIRED_LOG_LEVEL <= E5150::Util::CURRENT_EMULATION_LOG_LEVEL)
-	{
-		printf("%d/%d   ", REQUIRED_LOG_LEVEL, E5150::Util::CURRENT_EMULATION_LOG_LEVEL ); DEBUG(args...); }
+		DEBUG(args...);
 #endif
 }
 
