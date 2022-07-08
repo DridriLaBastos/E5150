@@ -34,11 +34,11 @@ set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
 
 # Addind the header only files as sources to make theme apparent in IDE, only using source_group isn't enougth if th source file isn't used
 add_executable(epc main.cpp ${EMULATOR_SRC} ${EMULATOR_HEADERS})
-add_dependencies(epc xedlib asm-test)
+add_dependencies(epc asm-test)
 
 target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/spdlog/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/include PUBLIC ${PROJECT_BINARY_DIR}/third-party/include)
 target_link_directories(epc PUBLIC ${PROJECT_BINARY_DIR}/third-party/lib)
-target_link_libraries(epc xed)
+target_link_libraries(epc xed ${XED_LIB_PATH})
 target_precompile_headers(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include/pch.hpp)
 
 if (ENABLE_DEBUGGER)

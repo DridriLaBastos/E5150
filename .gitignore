@@ -43,3 +43,6 @@ build
 
 # macOS files
 *.DS_Store
+
+# Cmake build folders
+cmake-build*
