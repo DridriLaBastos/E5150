@@ -115,11 +115,11 @@ static unsigned int prepareInstructionExecution(void)
 			return getXCHGCycles();
 
 		case XED_ICLASS_IN:
-			instructionFunction = IN;
+			instructionFunction = _IN;
 			return getINCycles();
 
 		case XED_ICLASS_OUT:
-			instructionFunction = OUT;
+			instructionFunction = _OUT;
 			return getOUTCycles();
 
 		case XED_ICLASS_XLAT:

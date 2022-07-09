@@ -7,8 +7,9 @@ void MOV	(void); unsigned int getMOVCycles	(void);
 void PUSH	(void); unsigned int getPUSHCycles	(void);
 void POP	(void); unsigned int getPOPCycles	(void);
 void XCHG	(void); unsigned int getXCHGCycles	(void);
-void IN		(void); unsigned int getINCycles	(void);
-void OUT	(void); unsigned int getOUTCycles	(void);
+//For an unknonw reason, msvc doesn't want to let me use the names OUT ans IN
+void _IN	(void); unsigned int getINCycles	(void);
+void _OUT	(void); unsigned int getOUTCycles	(void);
 void XLAT	(void); unsigned int getXLATCycles	(void);
 void LEA	(void); unsigned int getLEACycles	(void);
 void LDS	(void); unsigned int getLDSCycles	(void);

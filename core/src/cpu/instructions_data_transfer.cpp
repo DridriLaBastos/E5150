@@ -135,7 +135,7 @@ void XCHG()
 	}
 }
 
-void IN()
+void _IN()
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -153,7 +153,7 @@ void IN()
 		cpu.al = cpu.biu.inByte(iaddr);
 }
 
-void OUT()
+void _OUT()
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));

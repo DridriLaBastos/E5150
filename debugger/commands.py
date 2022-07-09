@@ -1,5 +1,4 @@
 import argparse
-from ast import alias
 import chunk
 import ctypes
 from io import FileIO

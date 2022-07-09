@@ -19,7 +19,7 @@ static void stop(const int signum)
 #ifdef DEBUGGER
 	E5150::Debugger::deinit();
 #endif
-	INFO("Simulation stopped by 'signal {}'", signum);
+	E5150_INFO("Simulation stopped by 'signal {}'", signum);
 }
 
 bool E5150::Util::_continue;
@@ -42,13 +42,13 @@ E5150::FDC E5150::Arch::_fdc(pic,ports);
 
 E5150::Arch::Arch()
 {
-	INFO("Welcome to E5150, the emulator of an IBM PC 5150");
+	E5150_INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	#ifndef STOP_AT_INSTRUCTION
-		INFO("Configured : {} clk per block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
+		E5150_INFO("Configured : {} clk per block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
 	#endif
-	INFO("This program use the library Intel XED to decode the instructions");
-	INFO("This library is accessible at : https://intelxed.github.io");
-	INFO("xed version : {}\n",xed_get_version());
+	E5150_INFO("This program use the library Intel XED to decode the instructions");
+	E5150_INFO("This library is accessible at : https://intelxed.github.io");
+	E5150_INFO("xed version : {}\n",xed_get_version());
 
 	E5150::Util::_continue = true;
 	E5150::Util::_stop = true;
@@ -58,11 +58,11 @@ E5150::Arch::Arch()
 	Debugger::init();
 #endif
 
-	signal(SIGKILL, stop);
+	/*signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
 	signal(SIGQUIT, stop);
 	signal(SIGABRT, stop);
-	signal(SIGINT, stop);
+	signal(SIGINT, stop);*/
 }
 
 void E5150::Arch::startSimulation()
@@ -137,7 +137,7 @@ void E5150::Arch::startSimulation()
 	}
 	catch (const std::exception& e)
 	{ ERROR(e.what()); }
-	INFO("Simulation quit !");
+	E5150_INFO("Simulation quit !");
 
 	#ifdef DEBUGGER
 		Debugger::deinit();

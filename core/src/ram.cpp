@@ -33,7 +33,8 @@ void RAM::load (const std::string path, size_t pos)
 
 	if (!stream.is_open())
 	{
-		WARNING("cannot open file '{}'",path);
+
+		E5150_WARNING("cannot open file '{}'",path);
 	}
 	else
 	{

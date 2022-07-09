@@ -4,7 +4,7 @@
 int main (void)
 {
 #ifdef DEBUGGER
-	INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
+	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
 #endif
 	E5150::Arch arch;

@@ -5,13 +5,13 @@
 
 #define COMMUNICATION_TEST_VALUE 0xFFAABBCC
 
-typedef enum : uint8_t
+typedef enum
 {
 	COMMAND_RECEIVED_FAILURE = 0,
 	COMMAND_RECEIVED_SUCCESS
 } COMMAND_RECEIVED_STATUS;
 
-typedef enum : uint8_t
+typedef enum
 {
 	COMMAND_TYPE_CONTINUE=0,
 	COMMAND_TYPE_STEP,
@@ -19,13 +19,13 @@ typedef enum : uint8_t
 	COMMAND_TYPE_ERROR,
 }COMMAND_TYPE;
 
-typedef enum : uint8_t
+typedef enum
 { CONTINUE_TYPE_CLOCK, CONTINUE_TYPE_INSTRUCTION, CONTINUE_TYPE_INFINITE } CONTINUE_TYPE;
 
-typedef enum : uint8_t
+typedef enum
 { DISPLAY_TYPE_INSTRUCTIONS, DISPLAY_TYPE_REGISTERS, DISPLAY_TYPE_FLAGS, DISPLAY_TYPE_LOGLEVEL } DISPLAY_TYPE;
 
-typedef enum : uint8_t
+typedef enum
 {
 	STEP_TYPE_INSTRUCTION = 1 << 0,
 	STEP_TYPE_CLOCK = 1 << 1,

@@ -38,8 +38,12 @@ build
 #Visual Studio Code
 .vscode
 
-#Jet Brain
+# Jet Brain
 .idea
+
+# Windows
+.vs
+.out
 
 # macOS files
 *.DS_Store

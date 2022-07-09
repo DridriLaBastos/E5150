@@ -20,7 +20,7 @@ void E5150::Floppy100::open(const std::string& path)
 
 	if (path.empty())
 	{
-		WARNING("FLOPPY[{}]: empty path will leave the drive empty",driverNumber);
+		E5150_WARNING("FLOPPY[{}]: empty path will leave the drive empty",driverNumber);
 		return;
 	}
 
@@ -29,7 +29,7 @@ void E5150::Floppy100::open(const std::string& path)
 
 	if (!inserted)
 	{
-		WARNING("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
+		E5150_WARNING("FLOPPY[{}]: enable to open '{}'",driverNumber,path);
 		return;
 	}
 }

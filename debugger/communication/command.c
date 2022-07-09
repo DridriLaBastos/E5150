@@ -8,7 +8,7 @@ static COMMAND_RECEIVED_STATUS sendCommandToEmulatorAndGetStatus(const COMMAND_T
 {
 	static COMMAND_RECEIVED_STATUS commandReceivedStatus;
 
-	writeToEmulator(&commandType, sizeof(COMMAND_TYPE));
+	writeToEmulator(&commandType, sizeof(commandType));
 	readFromEmulator(&commandReceivedStatus, sizeof(COMMAND_RECEIVED_STATUS));
 
 	return commandReceivedStatus;
@@ -23,8 +23,8 @@ static int debuggerToEmulator_SendContinueCommandInfo(const CONTINUE_TYPE contin
 	if (!sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_CONTINUE))
 	{ return false; }
 
-	writeToEmulator(&continueType,sizeof(CONTINUE_TYPE));
-	writeToEmulator(&value, sizeof(unsigned int));
+	writeToEmulator(&continueType,sizeof(continueType));
+	writeToEmulator(&value, sizeof(value));
 	return true;
 }
 
