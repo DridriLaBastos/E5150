@@ -1,12 +1,10 @@
-#include <cstdio>
-#include <fcntl.h>
-#include <unistd.h>
-#include <signal.h>
+#include <array>
 
 #include "util.hpp"
 #include "arch.hpp"
 #include "debugger.hpp"
 #include "communication/command.h"
+#include "platform.h"
 
 using namespace E5150;
 
@@ -41,26 +39,26 @@ void E5150::Debugger::init()
 {
 	context.clear();
 
-	if (mkfifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+	if (const PLATFORM_CODE code = createFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_FIFO_CREATION_SUCCESS)
 	{
-		if (errno != EEXIST)
+		if (code == PLATFORM_FIFO_CREATION_ERROR)
 		{
-			WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", strerror(errno));
+			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", getPlatformErrorDescription());
 			return;
 		}
 
-		INFO("Read channel file exists. This usually means that the program was not properly closed previously");
+		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
 	}
 
-	if (mkfifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, S_IRWXU | S_IRWXG | S_IRWXO) != 0)
+	if (const PLATFORM_CODE code = createFifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME); code != PLATFORM_FIFO_CREATION_SUCCESS)
 	{
-		if (errno != EEXIST)
+		if (code == PLATFORM_FIFO_CREATION_ERROR)
 		{
-			WARNING("Cannot initiate receive channel communication with the debugger. [ERRNO]: '{}'", strerror(errno));
+			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", getPlatformErrorDescription());
 			return;
 		}
 
-		INFO("Write channel file exists. This usually means that the program was not properly closed previously");
+		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
 	}
 
 	const pid_t emulatorPID = getpid();
@@ -97,9 +95,18 @@ void E5150::Debugger::init()
 	}
 	else
 	{
-		if (execlp("python3", "/usr/bin/python3", "/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py", EMULATOR_TO_DEBUGGER_FIFO_FILENAME, DEBUGGER_TO_EMULATOR_FIFO_FILENAME, NULL) < 0)
+		const char* debuggerArgs [] =
 		{
-			WARNING("Unable to launch the debugger script. [ERRNO]: {}", strerror(errno));
+			PYTHON3_EXECUTABLE_PATH,
+			PYTHON3_EXECUTABLE_PATH,
+			EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
+			DEBUGGER_TO_EMULATOR_FIFO_FILENAME
+		};
+
+		//if (execlp("python3", "/usr/bin/python3", "/usr/bin/python3", EMULATOR_TO_DEBUGGER_FIFO_FILENAME, DEBUGGER_TO_EMULATOR_FIFO_FILENAME, NULL) < 0)
+		if (createProcess(nullptr, debuggerArgs, 4) == PLATFORM_ERROR)
+		{
+			E5150_WARNING("Unable to launch the debugger script. [ERRNO]: {}", getPlatformErrorDescription());
 			exit(127);
 		}
 	}

@@ -37,20 +37,14 @@ add_executable(epc main.cpp ${EMULATOR_SRC} ${EMULATOR_HEADERS})
 add_dependencies(epc asm-test)
 
 target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/spdlog/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/include PUBLIC ${PROJECT_BINARY_DIR}/third-party/include)
-target_link_directories(epc PUBLIC ${PROJECT_BINARY_DIR}/third-party/lib)
 target_link_libraries(epc xed ${XED_LIB_PATH})
 target_precompile_headers(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include/pch.hpp)
 
 if (ENABLE_DEBUGGER)
-	add_subdirectory(debugger/communication)
+	add_subdirectory(debugger)
 	add_compile_definitions(DEBUGGER)
-	file(GLOB DEBUGGER_SRC CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/debugger/*.cpp)
-	file(GLOB DEBUGGER_HEADERS ${PROJECT_SOURCE_DIR}/debugger/*.hpp)
 
-	set_source_files_properties(${DEBUGGER_HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
-	source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${DEBUGGER_SRC} ${DEBUGGER_HEARDERS})
-
-	target_sources(epc PRIVATE ${DEBUGGER_SRC} ${DEBUGGER_HEADERS})
+	target_sources(epc PRIVATE $<TARGET_OBJECTS:debugger>)
 	target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR})
 endif()
 
