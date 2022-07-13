@@ -16,7 +16,13 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 
 	message("Found ${CPU_COUNT} cpus for building xed")
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags="-flto" --opt=3 --verbose=3 --install-dir=${PROJECT_BINARY_DIR} --no-amd --no-via --no-encoder install)
+	set(XED_BUILD_OUTPUT_FLAG prefix)
+
+	if(WIN32)
+	set(XED_BUILD_OUTPUT_FLAG install-dir)
+	endif()
+
+	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags="-flto" --opt=3 --${XED_BUILD_OUTPUT_FLAG}=${PROJECT_BINARY_DIR} --no-amd --no-via --no-encoder install)
 
 	find_library(XED_LIB_PATH ${XED_LIB_NAME}
 			PATHS ${PROJECT_BINARY_DIR}/lib

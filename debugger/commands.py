@@ -54,7 +54,7 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, command: str) -> bool:
 	global _com
 	global parseOK
 	if not _com:
-		_com = ctypes.CDLL('/Users/adrien/Documents/Informatique/C++/E5150/build/debugger/communication/libdecom.dylib')
+		_com = ctypes.CDLL('/Users/adrien/Documents/Informatique/C++/E5150/build/libdecom.dylib')
 		_com.registerCommunicationFifos(fromEmulator.fileno(), toEmulator.fileno())
 	chunks = command.split()
 	parseOK = False

@@ -89,10 +89,9 @@ if __name__ == "__main__":
 
 	fromEmulator = open(args.read_fifo_filename, "rb", buffering=0)
 	toEmulator = open(args.write_fifo_filename, "wb", buffering=0)
-	sizeof_pid_t = int.from_bytes(fromEmulator.read(1), byteorder="little")
-	emulatorPID = int.from_bytes(fromEmulator.read(sizeof_pid_t), byteorder="little")
+	emulatorPID = int.from_bytes(fromEmulator.read(1), byteorder="little")
 
-	print(f"[E5150 DEBUGGER]: Connected to emulator with PID {emulatorPID}")
+	print(f"[E5150 DEBUGGER]: Connected to emulator")
 
 	shell = DebuggerShell()
 

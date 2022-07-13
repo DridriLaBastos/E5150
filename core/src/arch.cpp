@@ -1,10 +1,10 @@
-#include <signal.h>
+#include <csignal>
 
 #include "arch.hpp"
 #include "util.hpp"
 
 #ifdef DEBUGGER
-#include "debugger/debugger.hpp"
+#include "debugger.hpp"
 #endif
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
@@ -58,11 +58,11 @@ E5150::Arch::Arch()
 	Debugger::init();
 #endif
 
-	/*signal(SIGKILL, stop);
+	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
 	signal(SIGQUIT, stop);
 	signal(SIGABRT, stop);
-	signal(SIGINT, stop);*/
+	signal(SIGINT, stop);
 }
 
 void E5150::Arch::startSimulation()
@@ -136,7 +136,7 @@ void E5150::Arch::startSimulation()
 		}
 	}
 	catch (const std::exception& e)
-	{ ERROR(e.what()); }
+	{ E5150_ERROR(e.what()); }
 	E5150_INFO("Simulation quit !");
 
 	#ifdef DEBUGGER

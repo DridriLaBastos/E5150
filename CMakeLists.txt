@@ -32,20 +32,34 @@ source_group(TREE ${PROJECT_SOURCE_DIR} FILES main.cpp ${CORE_SRC} ${CORE_HEADER
 
 set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
 
-# Addind the header only files as sources to make theme apparent in IDE, only using source_group isn't enougth if th source file isn't used
+# Addind the header only files as sources to make theme appear in IDE, only using source_group isn't enougth if th source file isn't used
 add_executable(epc main.cpp ${EMULATOR_SRC} ${EMULATOR_HEADERS})
 add_dependencies(epc asm-test)
 
 target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/spdlog/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/include PUBLIC ${PROJECT_BINARY_DIR}/third-party/include)
-target_link_libraries(epc xed ${XED_LIB_PATH})
-target_precompile_headers(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include/pch.hpp)
+target_link_libraries(epc ${XED_LIB_PATH})
+target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/core/include/pch.hpp>)
 
 if (ENABLE_DEBUGGER)
-	add_subdirectory(debugger)
-	add_compile_definitions(DEBUGGER)
+	set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
 
-	target_sources(epc PRIVATE $<TARGET_OBJECTS:debugger>)
-	target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR})
+	if(UNIX)
+		set(PLATFORM_SRC ${DEBUGGER_SRC_PATH}/platform/platform_unix.c)
+	elseif(WIN32)
+		set(PLATFORM_SRC ${DEBUGGER_SRC_PATH}/platform/platform_win32.c)
+	else()
+		message(FATAL_ERROR "Architecture not recognized, cannot build debugger platform dependent code.")
+	endif()
+
+	find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${PLATFORM_SRC})
+	target_compile_definitions(epc PRIVATE PYTHON3_EXECUTABLE_PATH="${Python3_EXECUTABLE}")
+	target_compile_definitions(epc PRIVATE DEBUGGER)
+	target_include_directories(epc PRIVATE ${DEBUGGER_SRC_PATH})
+
+	add_library(decom SHARED ${DEBUGGER_SRC_PATH}/communication/command.c ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
+	target_include_directories(decom PRIVATE ${DEBUGGER_SRC_PATH})
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

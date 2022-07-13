@@ -1,19 +1,20 @@
-#include <array>
-
 #include "util.hpp"
 #include "arch.hpp"
 #include "debugger.hpp"
 #include "communication/command.h"
-#include "platform.h"
+
+extern "C" {
+	#include "platform.h"
+}
 
 using namespace E5150;
 
 static constexpr char EMULATOR_TO_DEBUGGER_FIFO_FILENAME[] = ".ed.fifo";
 static constexpr char DEBUGGER_TO_EMULATOR_FIFO_FILENAME[] = ".de.fifo";
 
-static int toDebugger = -1;
-static int fromDebugger = -1;
-static pid_t debuggerPID = -1;
+static fifo_t toDebugger = -1;
+static fifo_t fromDebugger = -1;
+static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
 
 static struct
@@ -39,89 +40,74 @@ void E5150::Debugger::init()
 {
 	context.clear();
 
-	if (const PLATFORM_CODE code = createFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_FIFO_CREATION_SUCCESS)
+	if (const PLATFORM_CODE code = fifoCreate(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_SUCCESS)
 	{
-		if (code == PLATFORM_FIFO_CREATION_ERROR)
+		if (code == PLATFORM_ERROR)
 		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", getPlatformErrorDescription());
+			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", platformGetErrorDescription());
 			return;
 		}
 
 		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
 	}
 
-	if (const PLATFORM_CODE code = createFifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME); code != PLATFORM_FIFO_CREATION_SUCCESS)
+	if (const PLATFORM_CODE code = fifoCreate(DEBUGGER_TO_EMULATOR_FIFO_FILENAME); code != PLATFORM_SUCCESS)
 	{
-		if (code == PLATFORM_FIFO_CREATION_ERROR)
+		if (code == PLATFORM_ERROR)
 		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", getPlatformErrorDescription());
+			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", platformGetErrorDescription());
 			return;
 		}
 
 		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
 	}
 
-	const pid_t emulatorPID = getpid();
-	debuggerPID = fork();
+	const char* debuggerArgs [] = {
+		PYTHON3_EXECUTABLE_PATH,
+		"/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py",
+		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
+		DEBUGGER_TO_EMULATOR_FIFO_FILENAME
+	};
 
-	if (debuggerPID < 0)
+	const PLATFORM_CODE code = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
+
+	if (code == PLATFORM_ERROR)
 	{
-		WARNING("Unable to create the debugger subprocess. [ERRNO]: '{}'", strerror(errno));
+		E5150_WARNING("Unable to create the debugger subprocess. [ERRNO]: '{}'", strerror(errno));
 		return;
 	}
 
-	if (debuggerPID != 0)
+	//E5150_INFO("Debugger process created with pid {}", debuggerPID);
+	toDebugger = fifoOpen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, FIFO_OPEN_WRONLY);
+	if (toDebugger < 0)
 	{
-		INFO("Debugger process created with pid {}", debuggerPID);
-		toDebugger = open(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
-		if (toDebugger < 0)
-		{
-			INFO("Unable to open send to debugger channel. [ERRNO]: '{}'", strerror(errno));
-			deinit();
-			return;
-		}
-
-		fromDebugger = open(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, O_RDONLY);
-		if (fromDebugger < 0)
-		{
-			INFO("Unable to open receive from debugger channel. [ERRNO]: '{}'", strerror(errno));
-			deinit();
-			return;
-		}
-
-		const uint8_t sizeofPID_t = sizeof(pid_t);
-		write(toDebugger, &sizeofPID_t,1);
-		write(toDebugger, &emulatorPID,sizeofPID_t);
+		E5150_INFO("Unable to open send to debugger channel. [ERRNO]: '{}'", platformGetErrorDescription());
+		deinit();
+		return;
 	}
-	else
+
+	fromDebugger = fifoOpen(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, FIFO_OPEN_RDONLY);
+	if (fromDebugger < 0)
 	{
-		const char* debuggerArgs [] =
-		{
-			PYTHON3_EXECUTABLE_PATH,
-			PYTHON3_EXECUTABLE_PATH,
-			EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
-			DEBUGGER_TO_EMULATOR_FIFO_FILENAME
-		};
-
-		//if (execlp("python3", "/usr/bin/python3", "/usr/bin/python3", EMULATOR_TO_DEBUGGER_FIFO_FILENAME, DEBUGGER_TO_EMULATOR_FIFO_FILENAME, NULL) < 0)
-		if (createProcess(nullptr, debuggerArgs, 4) == PLATFORM_ERROR)
-		{
-			E5150_WARNING("Unable to launch the debugger script. [ERRNO]: {}", getPlatformErrorDescription());
-			exit(127);
-		}
+		E5150_INFO("Unable to open receive from debugger channel. [ERRNO]: '{}'", platformGetErrorDescription());
+		deinit();
+		return;
 	}
+	const uint8_t debuggerSynchronizationData = 0xDE;
+	fifoWrite(toDebugger,&debuggerSynchronizationData,1);
 }
 
 void E5150::Debugger::deinit()
 {
-	close(toDebugger);
-	close(fromDebugger);
+	fifoClose(toDebugger);
+	fifoClose(fromDebugger);
 
+	//Those are stdc calls
 	remove(EMULATOR_TO_DEBUGGER_FIFO_FILENAME);
 	remove(DEBUGGER_TO_EMULATOR_FIFO_FILENAME);
 
-	kill(debuggerPID, SIGKILL);
-	waitpid(debuggerPID,NULL,0);
+	processKill(debuggerProcess);
+	processWait(-1);
 }
 
 static void printRegisters(void)
@@ -303,8 +289,8 @@ static void conditionnalyPrintInstruction(void)
 static void handleContinueCommand()
 {
 	context.type = COMMAND_TYPE_CONTINUE;
-	read(fromDebugger, &context.subtype, sizeof(CONTINUE_TYPE));
-	read(fromDebugger, &context.count, sizeof(unsigned int));
+	fifoRead(fromDebugger, &context.subtype, sizeof(CONTINUE_TYPE));
+	fifoRead(fromDebugger, &context.count, sizeof(unsigned int));
 
 	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = 0;
@@ -313,10 +299,10 @@ static void handleContinueCommand()
 static void handleStepCommand()
 {
 	uint8_t stepFlags;
-	read(fromDebugger,&stepFlags,1);
+	fifoRead(fromDebugger,&stepFlags,1);
 
 	if ((stepFlags & STEP_TYPE_CLOCK) && (stepFlags & STEP_TYPE_PASS))
-	{ INFO("Using pass flag with clock has no effects"); }
+	{ E5150_INFO("Using pass flag with clock has no effects"); }
 
 	context.type = COMMAND_TYPE_STEP;
 	context.subtype = stepFlags;
@@ -326,11 +312,11 @@ static void handleStepCommand()
 static void handleDisplayCommand()
 {
 	static int displayFlags[4];
-	INFO("COMMAND DISPLAY");
-	//read(fromDebugger,&displayFlags[0], sizeof(int));
-	// read(fromDebugger,&displayFlags[1], sizeof(int));
-	// read(fromDebugger,&displayFlags[2], sizeof(int));
-	// read(fromDebugger,&displayFlags[3], sizeof(int));
+	E5150_INFO("COMMAND DISPLAY");
+	//fifoRead(fromDebugger,&displayFlags[0], sizeof(int));
+	// fifoRead(fromDebugger,&displayFlags[1], sizeof(int));
+	// fifoRead(fromDebugger,&displayFlags[2], sizeof(int));
+	// fifoRead(fromDebugger,&displayFlags[3], sizeof(int));
 
 	// if (displayFlags[0]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_FLAGS; }
 	// if (displayFlags[1]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_INSTRUCTION; }
@@ -339,7 +325,7 @@ static void handleDisplayCommand()
 	// {
 	// 	if (displayFlags[3] > EMULATION_MAX_LOG_LEVEL)
 	// 	{
-	// 		INFO("Log level too high set to highest value {}", EMULATION_MAX_LOG_LEVEL);
+	// 		E5150_INFO("Log level too high set to highest value {}", EMULATION_MAX_LOG_LEVEL);
 	// 		displayFlags[3] = EMULATION_MAX_LOG_LEVEL;
 	// 	}
 	// 	E5150::Util::CURRENT_EMULATOR_LOG_LEVEL = displayFlags[3];
@@ -440,7 +426,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	
 	do
 	{
-		if (read(fromDebugger, &commandType,sizeof(COMMAND_TYPE)) < 0) { break; }
+		if (fifoRead(fromDebugger, &commandType,sizeof(COMMAND_TYPE)) < 0) { break; }
 		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
 		if(write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus)) < 0) { break; }
@@ -460,9 +446,9 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				break;
 
 			default:
-				WARNING("Unknown response from debugger, behaviour may be unpredicatable");
+				E5150_WARNING("Unknown response from debugger, behaviour may be unpredicatable");
 				break;
 		}
-		if (read(fromDebugger,&shouldStop,1) < 0) { break; }
+		if (fifoRead(fromDebugger,&shouldStop,1) < 0) { break; }
 	} while (!shouldStop);
 }

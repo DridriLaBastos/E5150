@@ -1,8 +1,7 @@
 #ifndef __COMMUNICATION_H__
 #define __COMMUNICATION_H__
 
-#include <stdint.h>
-#include <stdlib.h>
+#include "platform.h"
 
 /**
  * @brief Register the file descriptor to talk between the emulator and the debugger
@@ -10,7 +9,7 @@
  * @param toDebugger descriptor for writing from the emulator to the debugger
  * @param toEmulator descriptor for writing from the debugger to the emulator
  */
-void registerCommunicationFifos(const int fromEmulator, const int toEmulator);
+void registerCommunicationFifos(const fifo_t fromEmulator, const fifo_t toEmulator);
 
 /**
  * @brief Platform independant function to write data to the emulator
