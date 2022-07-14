@@ -95,7 +95,10 @@ void E5150::Debugger::init()
 		return;
 	}
 	const uint8_t debuggerSynchronizationData = 0xDE;
-	fifoWrite(toDebugger,&debuggerSynchronizationData,1);
+	if (fifoWrite(toDebugger, &debuggerSynchronizationData, 1) == PLATFORM_ERROR)
+	{
+		E5150_WARNING("Unable to write send data to the debugger : '{}'", platformGetErrorDescription());
+	}
 }
 
 void E5150::Debugger::deinit()
