@@ -64,12 +64,13 @@ void E5150::Debugger::init()
 
 	const char* debuggerArgs [] = {
 		PYTHON3_EXECUTABLE_PATH,
-		"/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py",
+		"\"D:/Adrien COURNAND/Documents/Informatique/C++/E5150/debugger/debugger.py\"",
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
 		DEBUGGER_TO_EMULATOR_FIFO_FILENAME
 	};
 
 	const PLATFORM_CODE code = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
+
 
 	if (code == PLATFORM_ERROR)
 	{

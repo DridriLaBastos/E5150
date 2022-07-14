@@ -14,8 +14,8 @@ enum PLATFORM_CODE
 typedef int fifo_t;
 typedef int process_t;
 
-extern int FIFO_OPEN_RDONLY;
-extern int FIFO_OPEN_WRONLY;
+extern const int FIFO_OPEN_RDONLY;
+extern const int FIFO_OPEN_WRONLY;
 
 enum PLATFORM_CODE processCreate(const char* processArgs [], const size_t processCommandLineArgsCount);
 enum PLATFORM_CODE processWait(const process_t process);
