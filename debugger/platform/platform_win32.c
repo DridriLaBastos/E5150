@@ -24,7 +24,7 @@ typedef struct MapEntry_t {
 	HANDLE handle;
 } MapEntry;
 
-static MapEntry* map = NULL;
+static MapEntry map[] = NULL;
 static unsigned int mapCount = 0;
 
 static int mapFindIndex(const char* id)

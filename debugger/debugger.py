@@ -6,6 +6,7 @@ import commands
 parser = argparse.ArgumentParser(description="Debugger CLI of E5150")
 parser.add_argument("read_fifo_filename", help="Named pipe filename to read data from the emulator")
 parser.add_argument("write_fifo_filename", help="Named pipe filename to write data to the emulator")
+parser.add_argument("platform", help="'window' for windows platform, 'unix' for unix platform")
 fromEmulator:FileIO = None
 toEmulator:FileIO = None
 
@@ -87,8 +88,11 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	print("[E5150 DEBUGGER]: Debugger is running!")
 
-	fromEmulator = open(args.read_fifo_filename, "rb", buffering=0)
-	toEmulator = open(args.write_fifo_filename, "wb", buffering=0)
+	fromEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//pipe/'}{args.read_fifo_filename}"
+	toEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//pipe/'}{args.write_fifo_filename}"
+
+	fromEmulator = open(fromEmulatorFifoFileName, "rb", buffering=0)
+	toEmulator = open(toEmulatorFifoFileName, "wb", buffering=0)
 	emulatorPID = int.from_bytes(fromEmulator.read(1), byteorder="little")
 
 	print(f"[E5150 DEBUGGER]: Connected to emulator")

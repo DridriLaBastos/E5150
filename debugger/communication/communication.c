@@ -1,4 +1,5 @@
 #include "communication.h"
+#include "platform.h"
 
 static fifo_t fromEmulator = -1;
 static fifo_t toEmulator = -1;

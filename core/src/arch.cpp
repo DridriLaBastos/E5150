@@ -59,7 +59,6 @@ E5150::Arch::Arch()
 #endif
 
 #ifndef WIN32 //Those signal value aren't defined in windows
-	signal(SIGKILL, stop);
 	signal(SIGSTOP, stop);
 	signal(SIGQUIT, stop);
 #endif

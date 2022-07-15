@@ -11,14 +11,14 @@
 
 #include "../platform.h"
 
-int FIFO_OPEN_RDONLY = O_RDONLY;
-int FIFO_OPEN_WRONLY = O_WRONLY;
+const int FIFO_OPEN_RDONLY = O_RDONLY;
+const int FIFO_OPEN_WRONLY = O_WRONLY;
 
-enum PLATFORM_CODE processCreate(const char* processCommandLineArgs[], const size_t processCommandLineArgsCount)
+process_t processCreate(const char* processCommandLineArgs[], const size_t processCommandLineArgsCount)
 {
 	const pid_t createdPID = fork();
 
-	if (createdPID > 0)
+	if (createdPID == 0)
 	{
 		//We are in child process
 		char** execFunctionArgs = alloca(sizeof(char*) * (processCommandLineArgsCount + 1));
@@ -38,7 +38,6 @@ enum PLATFORM_CODE processCreate(const char* processCommandLineArgs[], const siz
 
 enum PLATFORM_CODE processWait(const process_t process)
 {
-	int childRet;
 	return waitpid(process,NULL,WUNTRACED) == process ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 

@@ -64,15 +64,24 @@ void E5150::Debugger::init()
 
 	const char* debuggerArgs [] = {
 		PYTHON3_EXECUTABLE_PATH,
-		"\"D:/Adrien COURNAND/Documents/Informatique/C++/E5150/debugger/debugger.py\"",
+		#ifndef WIN32//FIXME: Only for development, path to the debugger should be provided by cmake
+		"/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py"
+		#else
+		"\"D:/Adrien COURNAND/Documents/Informatique/C++/E5150/debugger/debugger.py\""
+		#endif
+		,
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
-		DEBUGGER_TO_EMULATOR_FIFO_FILENAME
+		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
+		#ifndef WIN32
+			"unix"
+		#else
+			"window"
+		#endif
 	};
 
-	const PLATFORM_CODE code = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
+	debuggerProcess = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
 
-
-	if (code == PLATFORM_ERROR)
+	if (debuggerProcess == -1)
 	{
 		E5150_WARNING("Unable to create the debugger subprocess. [ERRNO]: '{}'", strerror(errno));
 		return;
@@ -111,7 +120,7 @@ void E5150::Debugger::deinit()
 	remove(DEBUGGER_TO_EMULATOR_FIFO_FILENAME);
 
 	processKill(debuggerProcess);
-	processWait(-1);
+	processWait(debuggerProcess);
 }
 
 static void printRegisters(void)
