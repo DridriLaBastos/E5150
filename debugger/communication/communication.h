@@ -9,7 +9,7 @@
  * @param toDebugger descriptor for writing from the emulator to the debugger
  * @param toEmulator descriptor for writing from the debugger to the emulator
  */
-void registerCommunicationFifos(const fifo_t fromEmulator, const fifo_t toEmulator);
+void registerCommunicationFifos(const int fromEmulator, const int toEmulator);
 
 /**
  * @brief Platform independant function to write data to the emulator

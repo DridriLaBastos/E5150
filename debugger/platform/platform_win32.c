@@ -5,10 +5,12 @@
 
 #include "../platform.h"
 
+#include <io.h>
+#include <fcntl.h>
 #include <Windows.h>
 
-const int FIFO_OPEN_RDONLY = 0;
-const int FIFO_OPEN_WRONLY = 1;
+const int FIFO_OPEN_RDONLY = _O_RDONLY;
+const int FIFO_OPEN_WRONLY = _O_WRONLY;
 
 static const char* namedPipeSystemPath = "\\\\.\\pipe\\";
 
@@ -37,7 +39,7 @@ static int mapFindIndex(const char* id)
 	return -1;
 }
 
-static unsigned int mapInsert(const HANDLE* const handle, const char* id)
+static unsigned int mapInsert(const HANDLE const handle, const char* id)
 {
 	const int handleEntryPos = mapFindIndex(id);
 	if (handleEntryPos >= 0)
@@ -50,7 +52,7 @@ static unsigned int mapInsert(const HANDLE* const handle, const char* id)
 	MapEntry* lastEntry = &map[mapCount - 1];
 	lastEntry->id = malloc(strlen(id));
 	strcpy(lastEntry->id,id);
-	memcpy(&lastEntry->handle,handle,sizeof(HANDLE));
+	lastEntry->handle = handle;
 	return mapCount - 1;
 }
 
@@ -161,45 +163,18 @@ enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
 
 	if (namedPipeHandle == INVALID_HANDLE_VALUE) { return PLATFORM_ERROR; }
 
-	mapInsert(&namedPipeHandle, fifoFileName);
+	mapInsert(namedPipeHandle, fifoFileName);
 	return PLATFORM_SUCCESS;
 }
 
-fifo_t fifoOpen(const char* fifoFileName, const int openFlags)
+int fifoOpen(const char* fifoFileName, const int openFlags)
 {
 	const int mapEntryIndex = mapFindIndex(fifoFileName);
-	if (mapEntryIndex < 0) { return PLATFORM_ERROR; }
+	if (mapEntryIndex < 0) { return -1; }
 
 	const HANDLE hFifo = map[mapEntryIndex].handle;
 	const BOOL b = ConnectNamedPipe(hFifo, NULL);
-	return b ? PLATFORM_SUCCESS : PLATFORM_ERROR;
-}
 
-enum PLATFORM_CODE fifoClose(const fifo_t fifo)
-{
-	BOOL b = DisconnectNamedPipe(map[fifo].handle);
-	if (!b) { return PLATFORM_ERROR; }
 
-	b = CloseHandle(map[fifo].handle);
-	return b ? PLATFORM_SUCCESS : PLATFORM_ERROR;
-}
-
-enum PLATFORM_CODE fifoWrite(const fifo_t fifo, const void* data, const size_t noctet)
-{
-	if (fifo < 0) { return PLATFORM_ERROR; }
-	const HANDLE fifoHandle = map[fifo].handle;
-	DWORD dataWritten = 0;
-	const BOOL writeOk = WriteFile(fifoHandle, data, noctet, &dataWritten, NULL);
-
-	return writeOk ? PLATFORM_SUCCESS : PLATFORM_ERROR;
-}
-
-enum PLATFORM_CODE fifoRead(const fifo_t fifo, void* const buf, const size_t noctet)
-{
-	if (fifo < 0) { return PLATFORM_ERROR; }
-	const HANDLE fifoHandle = map[fifo].handle;
-	DWORD dataRead = 0;
-	const BOOL writeOk = ReadFile(fifoHandle, buf, noctet, &dataRead, NULL);
-
-	return writeOk ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+	return _open_osfhandle(hFifo, openFlags);
 }

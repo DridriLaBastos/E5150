@@ -12,6 +12,12 @@
 #define PATH(path) path
 #endif
 
+#ifdef WIN32
+#define FIFO_PATH(path) "//./pipe/" path
+#else
+#define FIFO_PATH(path) path
+#endif
+
 enum PLATFORM_CODE
 {
 	PLATFORM_SUCCESS,
@@ -19,11 +25,7 @@ enum PLATFORM_CODE
 	PLATFORM_FIFO_ALREADY_CREATED
 };
 
-typedef int fifo_t;
 typedef int process_t;
-
-extern const int FIFO_OPEN_RDONLY;
-extern const int FIFO_OPEN_WRONLY;
 
 /**
  * @brief Creates a new process.
@@ -48,9 +50,6 @@ const char* errorGetDescription(void);
 const uint64_t errorGetCode(void);
 
 enum PLATFORM_CODE fifoCreate(const char* fifoFileName);
-enum PLATFORM_CODE fifoClose(const fifo_t fifo);
-enum PLATFORM_CODE fifoWrite(const fifo_t fifo, const void* data, const size_t noctet);
-enum PLATFORM_CODE fifoRead(const fifo_t fifo, void* const buf, const size_t noctet);
-fifo_t fifoOpen(const char* fifoFileName, const int openFlags);
+int fifoOpen(const char* fifoFileName, const int openFlags);
 
 #endif

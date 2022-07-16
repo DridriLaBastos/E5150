@@ -3,17 +3,21 @@
 #include "debugger.hpp"
 #include "communication/command.h"
 
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+
 extern "C" {
 	#include "platform.h"
 }
 
 using namespace E5150;
 
-static constexpr char EMULATOR_TO_DEBUGGER_FIFO_FILENAME[] = ".ed.fifo";
-static constexpr char DEBUGGER_TO_EMULATOR_FIFO_FILENAME[] = ".de.fifo";
+#define EMULATOR_TO_DEBUGGER_FIFO_FILENAME ".ed.fifo"
+#define DEBUGGER_TO_EMULATOR_FIFO_FILENAME ".de.fifo"
 
-static fifo_t toDebugger = -1;
-static fifo_t fromDebugger = -1;
+static int toDebugger = -1;
+static int fromDebugger = -1;
 static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = false;
@@ -76,30 +80,30 @@ void E5150::Debugger::init()
 
 	if (debuggerProcess == -1)
 	{
-		E5150_WARNING("Unable to create the debugger subprocess. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+		E5150_WARNING("Unable to create the debugger subprocess. Emulation will continue without the debugger. [PLATFORM ERROR {}] '{}'.", errorGetCode(), errorGetDescription());
 		return;
 	}
 
-	toDebugger = fifoOpen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, FIFO_OPEN_WRONLY);
+	toDebugger = fifoOpen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
 	if (toDebugger < 0)
 	{
-		E5150_WARNING("Unable to open send to debugger channel. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+		E5150_WARNING("Unable to open send to debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
 		deinit();
 		return;
 	}
 
-	fromDebugger = fifoOpen(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, FIFO_OPEN_RDONLY);
+	fromDebugger = fifoOpen(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, O_RDONLY);
 	if (fromDebugger < 0)
 	{
-		E5150_WARNING("Unable to open receive from debugger channel. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+		E5150_WARNING("Unable to open receive from debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
 		deinit();
 		return;
 	}
 
 	const uint32_t debuggerSynchronizationData = 0xDEAB12CD;
-	if (fifoWrite(toDebugger, &debuggerSynchronizationData, sizeof(debuggerSynchronizationData)) == PLATFORM_ERROR)
+	if (write(toDebugger,&debuggerSynchronizationData,sizeof(debuggerSynchronizationData)) < 0)
 	{
-		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
 		deinit();
 		return;
 	}
@@ -111,12 +115,12 @@ void E5150::Debugger::deinit()
 {
 	if (processTerminate(debuggerProcess) != PLATFORM_SUCCESS)
 	{ E5150_INFO("Cannot stop debugger process. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
+	
+	if (close(toDebugger)   == -1) { E5150_DEBUG("Error when closing " EMULATOR_TO_DEBUGGER_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
+	if (close(fromDebugger) == -1) { E5150_DEBUG("Error when closing " DEBUGGER_TO_EMULATOR_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
 
-	if (fifoClose(toDebugger) == PLATFORM_ERROR)
-	{ E5150_INFO("Emulator to debugger channel not properly closed. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
-
-	if (fifoClose(fromDebugger) == PLATFORM_ERROR)
-	{ E5150_INFO("Debugger to emulator channel not properly closed. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
+	remove(FIFO_PATH(EMULATOR_TO_DEBUGGER_FIFO_FILENAME));
+	remove(FIFO_PATH(DEBUGGER_TO_EMULATOR_FIFO_FILENAME));
 }
 
 static void printRegisters(void)
@@ -298,8 +302,8 @@ static void conditionnalyPrintInstruction(void)
 static void handleContinueCommand()
 {
 	context.type = COMMAND_TYPE_CONTINUE;
-	fifoRead(fromDebugger, &context.subtype, sizeof(CONTINUE_TYPE));
-	fifoRead(fromDebugger, &context.count, sizeof(unsigned int));
+	read(fromDebugger, &context.subtype, sizeof(CONTINUE_TYPE));
+	read(fromDebugger, &context.count, sizeof(unsigned int));
 
 	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = 0;
@@ -308,7 +312,7 @@ static void handleContinueCommand()
 static void handleStepCommand()
 {
 	uint8_t stepFlags;
-	fifoRead(fromDebugger,&stepFlags,1);
+	read(fromDebugger,&stepFlags,1);
 
 	if ((stepFlags & STEP_TYPE_CLOCK) && (stepFlags & STEP_TYPE_PASS))
 	{ E5150_INFO("Using pass flag with clock has no effects"); }
@@ -322,10 +326,10 @@ static void handleDisplayCommand()
 {
 	static int displayFlags[4];
 	E5150_INFO("COMMAND DISPLAY");
-	//fifoRead(fromDebugger,&displayFlags[0], sizeof(int));
-	// fifoRead(fromDebugger,&displayFlags[1], sizeof(int));
-	// fifoRead(fromDebugger,&displayFlags[2], sizeof(int));
-	// fifoRead(fromDebugger,&displayFlags[3], sizeof(int));
+	//read(fromDebugger,&displayFlags[0], sizeof(int));
+	// read(fromDebugger,&displayFlags[1], sizeof(int));
+	// read(fromDebugger,&displayFlags[2], sizeof(int));
+	// read(fromDebugger,&displayFlags[3], sizeof(int));
 
 	// if (displayFlags[0]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_FLAGS; }
 	// if (displayFlags[1]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_INSTRUCTION; }
@@ -439,14 +443,14 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	context.clear();
 	conditionnalyPrintInstruction();
 
-	if(fifoWrite(toDebugger,&cpu.instructionExecutedCount,8) == PLATFORM_ERROR) { return; }
+	if(write(toDebugger,&cpu.instructionExecutedCount,8) == -1) { return; }
 	
 	do
 	{
-		if (fifoRead(fromDebugger, &commandType,sizeof(COMMAND_TYPE)) < 0) { break; }
+		if (read(fromDebugger, &commandType,sizeof(COMMAND_TYPE)) == -1) { break; }
 		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
-		if(fifoWrite(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus)) == PLATFORM_ERROR) { break; }
+		if(write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus)) == -1) { break; }
 
 		switch (commandType)
 		{
@@ -466,6 +470,6 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				E5150_WARNING("Unknown response from debugger, behaviour may be unpredicatable");
 				break;
 		}
-		if (fifoRead(fromDebugger,&shouldStop,1) < 0) { break; }
+		if (read(fromDebugger,&shouldStop,1) < 0) { break; }
 	} while (!shouldStop);
 }

@@ -1,14 +1,17 @@
-#include "communication.h"
-#include "platform.h"
+#include <fcntl.h>
+#include <stdio.h>
 
-static fifo_t fromEmulator = -1;
-static fifo_t toEmulator = -1;
+#include "communication.h"
+
+static int fromEmulator = -1;
+static int toEmulator = -1;
 
 void registerCommunicationFifos (const int _fromEmulator, const int _toEmulator)
 {
 	fromEmulator = _fromEmulator;
 	toEmulator = _toEmulator;
+	printf("REACHED with ed %d   de %d\n", _fromEmulator, _toEmulator);
 }
 
-void writeToEmulator(const uint8_t* const indata, const size_t size){ fifoWrite(toEmulator,indata,size); }
-void readFromEmulator(uint8_t* const outdata, const size_t size) { fifoRead(fromEmulator,outdata,size); }
+void writeToEmulator(const uint8_t* const indata, const size_t size){ write(toEmulator,indata,size); }
+void readFromEmulator(uint8_t* const outdata, const size_t size) { read(fromEmulator,outdata,size); }
