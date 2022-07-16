@@ -93,9 +93,12 @@ if __name__ == "__main__":
 
 	fromEmulator = open(fromEmulatorFifoFileName, "rb", buffering=0)
 	toEmulator = open(toEmulatorFifoFileName, "wb", buffering=0)
-	emulatorPID = int.from_bytes(fromEmulator.read(1), byteorder="little")
+	synchronizationData = int.from_bytes(fromEmulator.read(4), byteorder="little")
 
-	print(f"[E5150 DEBUGGER]: Connected to emulator")
+	if synchronizationData == 0xDEAB12CD :
+		print(f"[E5150 DEBUGGER]: Connected to emulator")
+	else:
+		print(f"[E5150 DEBUGGER]: Wrong synchronization data, expected 0xDEAB12CD, got 0x{synchronizationData:x}")
 
 	shell = DebuggerShell()
 

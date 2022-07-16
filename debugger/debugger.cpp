@@ -106,8 +106,8 @@ void E5150::Debugger::init()
 		return;
 	}
 
-	const uint8_t debuggerSynchronizationData = 0xDE;
-	if (fifoWrite(toDebugger, &debuggerSynchronizationData, 1) == PLATFORM_ERROR)
+	const uint32_t debuggerSynchronizationData = 0xDEAB12CD;
+	if (fifoWrite(toDebugger, &debuggerSynchronizationData, sizeof(debuggerSynchronizationData)) == PLATFORM_ERROR)
 	{
 		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
 		deinit();

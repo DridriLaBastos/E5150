@@ -122,14 +122,6 @@ enum PLATFORM_CODE processTerminate(const process_t process)
 	return GetExitCodeProcess(h, &processExitCode) ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
-{
-	COMPUTE_WIN32_PIPE_PATH(fifoFileName);
-	const HANDLE namedPipeHandle = CreateNamedPipe(pipeSystemPath, PIPE_ACCESS_DUPLEX | FILE_FLAG_WRITE_THROUGH, PIPE_TYPE_BYTE | PIPE_REJECT_REMOTE_CLIENTS, 1, 0, 0, 0, NULL);
-	mapInsert(&namedPipeHandle, fifoFileName);
-	return namedPipeHandle == INVALID_HANDLE_VALUE ? PLATFORM_ERROR : PLATFORM_SUCCESS;
-}
-
 const char* errorGetDescription(void)
 {
 	static char messageDescription[ERROR_MESSAGE_MAX_SIZE];
@@ -154,6 +146,18 @@ const char* errorGetDescription(void)
 }
 
 const uint64_t errorGetCode() { return GetLastError(); }
+
+enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
+{
+	COMPUTE_WIN32_PIPE_PATH(fifoFileName);
+	//TODO: Not sure about that, seems to work
+	const HANDLE namedPipeHandle = CreateNamedPipe(pipeSystemPath, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 256, 256, 0, NULL);
+
+	if (namedPipeHandle == INVALID_HANDLE_VALUE) { return PLATFORM_ERROR; }
+
+	mapInsert(&namedPipeHandle, fifoFileName);
+	return PLATFORM_SUCCESS;
+}
 
 fifo_t fifoOpen(const char* fifoFileName, const int openFlags)
 {
