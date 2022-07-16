@@ -64,20 +64,14 @@ void E5150::Debugger::init()
 	}
 
 	const char* debuggerArgs [] = {
-		PYTHON3_EXECUTABLE_PATH,
-		#ifndef WIN32//FIXME: Only for development, path to the debugger should be relative to the install dir provided by cmake
-		"/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py"
-		#else
-		"\"D:/Adrien COURNAND/Documents/Informatique/C++/E5150/debugger/debugger.py\""
-		#endif
-		,
+		//manually add string delimiter around path to handle spaces (not needed for the FIFO_PATH because
+		//they are variables and not inline string
+		"\"" PYTHON3_EXECUTABLE_PATH "\"",
+		"\"" DEBUGGER_PYTHON_SCRIPT_PATH "\"",
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
 		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
-		#ifndef WIN32
-			"unix"
-		#else
-			"window"
-		#endif
+		"\"" DECOM_LIB_PATH "\"",
+		DEBUGGER_PLATFORM_STRING
 	};
 
 	debuggerProcess = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
@@ -85,7 +79,6 @@ void E5150::Debugger::init()
 	if (debuggerProcess == -1)
 	{
 		E5150_WARNING("Unable to create the debugger subprocess. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
-
 		return;
 	}
 

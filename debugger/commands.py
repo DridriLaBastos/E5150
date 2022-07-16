@@ -1,5 +1,4 @@
 import argparse
-import chunk
 import ctypes
 from io import FileIO
 
@@ -46,35 +45,35 @@ display_parser.add_argument("-l", "--log-level",metavar="LEVEL",type=int,help="T
 ### Quit the debugger
 quit_parser = subparser.add_parser(commands["quit"][0], aliases=commands["quit"][1:], help="Quit the emulation", description="Quit the emulation")
 
-_com: ctypes.CDLL = None
-
+_decom: ctypes.CDLL = None
 parseOK = False
 
-def parse(fromEmulator: FileIO, toEmulator: FileIO, command: str) -> bool:
-	global _com
+def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str) -> bool:
 	global parseOK
-	if not _com:
-		_com = ctypes.CDLL('/Users/adrien/Documents/Informatique/C++/E5150/build/libdecom.dylib')
-		_com.registerCommunicationFifos(fromEmulator.fileno(), toEmulator.fileno())
+	global _decom
+
+	if not _decom:
+		_decom = ctypes.CDLL(decomPath)
+		_decom.registerCommunicationFifos(fromEmulator.fileno(), toEmulator.fileno())
+	
 	chunks = command.split()
 	parseOK = False
 	result = parser.parse_args(chunks)
 	parseOK = True
 	if result.command in commands["continue"]:
-		return _com.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks)
+		return _decom.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks)
 	elif result.command == "step":
-		print("[E5150 DEBUGGER] REACHED")
 		if result.clock:
 			result.instruction = False
 		print(result)
-		return _com.sendStepCommandInfo(result.instruction, result.clock, result._pass)
+		return _decom.sendStepCommandInfo(result.instruction, result.clock, result._pass)
 	elif result.command in commands["stepi"]:
-		return _com.sendStepCommandInfo(True, False, False)
+		return _decom.sendStepCommandInfo(True, False, False)
 	elif result.command in commands["stepo"]:
-		return _com.sendStepCommandInfo(True, False, True)
+		return _decom.sendStepCommandInfo(True, False, True)
 	elif result.command in commands["stepc"]:
-		return _com.sendStepCommandInfo(False, True, False)
+		return _decom.sendStepCommandInfo(False, True, False)
 	elif result.command in commands["display"]:
-		return _com.sendDisplayCommandInfo(result.flags, result.instructions, result.registers, -1 if result.log_level is None else result.log_level)
+		return _decom.sendDisplayCommandInfo(result.flags, result.instructions, result.registers, -1 if result.log_level is None else result.log_level)
 
-	return _com.sendUnknownCommandInfo()
+	return _decom.sendUnknownCommandInfo()

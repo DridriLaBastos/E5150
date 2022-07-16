@@ -45,8 +45,10 @@ if (ENABLE_DEBUGGER)
 
 	if(UNIX)
 		set(PLATFORM_SRC ${DEBUGGER_SRC_PATH}/platform/platform_unix.c)
+		set(DEBUGGER_PLATFORM_STRING "unix")
 	elseif(WIN32)
 		set(PLATFORM_SRC ${DEBUGGER_SRC_PATH}/platform/platform_win32.c)
+		set(DEBUGGER_PLATFORM_STRING "win32")
 	else()
 		message(FATAL_ERROR "Architecture not recognized, cannot build debugger platform dependent code.")
 	endif()
@@ -60,6 +62,12 @@ if (ENABLE_DEBUGGER)
 
 	add_library(decom SHARED ${DEBUGGER_SRC_PATH}/communication/command.c ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
 	target_include_directories(decom PRIVATE ${DEBUGGER_SRC_PATH})
+
+	# TODO: gives this as install path
+	target_compile_definitions(epc	PRIVATE DECOM_LIB_PATH="$<TARGET_FILE:decom>"
+									PRIVATE DEBUGGER_PYTHON_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/debugger/debugger.py"
+									PRIVATE DEBUGGER_PLATFORM_STRING="${DEBUGGER_PLATFORM_STRING}")
+
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

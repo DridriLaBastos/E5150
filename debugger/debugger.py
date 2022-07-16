@@ -6,9 +6,11 @@ import commands
 parser = argparse.ArgumentParser(description="Debugger CLI of E5150")
 parser.add_argument("read_fifo_filename", help="Named pipe filename to read data from the emulator")
 parser.add_argument("write_fifo_filename", help="Named pipe filename to write data to the emulator")
+parser.add_argument("decom_path", help="Path to the library needed for the communication from the debugger to the emulator")
 parser.add_argument("platform", help="'window' for windows platform, 'unix' for unix platform")
 fromEmulator:FileIO = None
 toEmulator:FileIO = None
+decomPath: str = ""
 
 class DebuggerShell(cmd.Cmd):
 	intro = ""
@@ -36,8 +38,9 @@ class DebuggerShell(cmd.Cmd):
 	###########################
 
 	def _parse(self, cmd: str):
+		print("REACHED")
 		try:
-			return commands.parse(fromEmulator,toEmulator,cmd)
+			return commands.parse(fromEmulator,toEmulator,decomPath,cmd)
 		except:
 			pass
 		return False
@@ -87,12 +90,14 @@ def shellLoop():
 if __name__ == "__main__":
 	args = parser.parse_args()
 	print("[E5150 DEBUGGER]: Debugger is running!")
+	print(f"[E5150 DEBUGGER]: called with decom = {args.decom_path}")
 
 	fromEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//./pipe/'}{args.read_fifo_filename}"
 	toEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//./pipe/'}{args.write_fifo_filename}"
 
 	fromEmulator = open(fromEmulatorFifoFileName, "rb", buffering=0)
 	toEmulator = open(toEmulatorFifoFileName, "wb", buffering=0)
+	decomPath = args.decom_path
 	synchronizationData = int.from_bytes(fromEmulator.read(4), byteorder="little")
 
 	if synchronizationData == 0xDEAB12CD :
@@ -104,3 +109,4 @@ if __name__ == "__main__":
 
 	while True:
 		shell.cmdloop()
+
