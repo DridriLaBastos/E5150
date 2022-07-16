@@ -16,9 +16,6 @@ static constexpr unsigned int BLOCKS_PER_SECOND = (unsigned int)((double)BASE_CL
 static void stop(const int signum)
 {
 	E5150::Util::_continue = false;
-#ifdef DEBUGGER
-	E5150::Debugger::deinit();
-#endif
 	E5150_INFO("Simulation stopped by 'signal {}'", signum);
 }
 
@@ -64,6 +61,8 @@ E5150::Arch::Arch()
 #endif
 	signal(SIGABRT, stop);
 	signal(SIGINT, stop);
+	signal(SIGKILL, stop);
+	signal(SIGTERM, stop);
 }
 
 void E5150::Arch::startSimulation()

@@ -66,11 +66,11 @@ void E5150::Debugger::init()
 	const char* debuggerArgs [] = {
 		//manually add string delimiter around path to handle spaces (not needed for the FIFO_PATH because
 		//they are variables and not inline string
-		"\"" PYTHON3_EXECUTABLE_PATH "\"",
-		"\"" DEBUGGER_PYTHON_SCRIPT_PATH "\"",
+		PYTHON3_EXECUTABLE_PATH,
+		DEBUGGER_PYTHON_SCRIPT_PATH,
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
 		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
-		"\"" DECOM_LIB_PATH "\"",
+		DECOM_LIB_PATH,
 		DEBUGGER_PLATFORM_STRING
 	};
 
@@ -112,10 +112,14 @@ void E5150::Debugger::init()
 
 void E5150::Debugger::deinit()
 {
-	fifoClose(toDebugger);
-	fifoClose(fromDebugger);
+	if (processTerminate(debuggerProcess) != PLATFORM_SUCCESS)
+	{ E5150_INFO("Cannot stop debugger process. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
 
-	processTerminate(debuggerProcess);
+	if (fifoClose(toDebugger) == PLATFORM_ERROR)
+	{ E5150_INFO("Emulator to debugger channel not properly closed. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
+
+	if (fifoClose(fromDebugger) == PLATFORM_ERROR)
+	{ E5150_INFO("Debugger to emulator channel not properly closed. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
 }
 
 static void printRegisters(void)
