@@ -10,29 +10,6 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": ""
-    },
-    {
-      "name": "x64-Release-no-debugger",
-      "generator": "Ninja",
-      "configurationType": "Debug",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ],
-      "variables": [
-        {
-          "name": "CMAKE_BUILD_TYPE",
-          "value": "Release",
-          "type": "STRING"
-        },
-        {
-          "name": "ENABLE_DEBUGGER",
-          "value": "False",
-          "type": "BOOL"
-        }
-      ]
     }
   ]
 }

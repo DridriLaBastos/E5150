@@ -4,6 +4,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+//Using string concatenation of the compilator to add strin delimiter to the path to handle spaced properly on windows
+//TODO: test this : Why on my mac adding string delimiter didn't worked ?
+#ifdef WIN32
+#define PATH(path) "\"" path "\""
+#else
+#define PATH(path) path
+#endif
+
 enum PLATFORM_CODE
 {
 	PLATFORM_SUCCESS,

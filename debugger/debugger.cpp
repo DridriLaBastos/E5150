@@ -64,14 +64,12 @@ void E5150::Debugger::init()
 	}
 
 	const char* debuggerArgs [] = {
-		//manually add string delimiter around path to handle spaces (not needed for the FIFO_PATH because
-		//they are variables and not inline string
-		PYTHON3_EXECUTABLE_PATH,
-		DEBUGGER_PYTHON_SCRIPT_PATH,
+		PATH(PYTHON3_EXECUTABLE_PATH),
+		PATH(DEBUGGER_PYTHON_SCRIPT_PATH),
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
 		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
-		DECOM_LIB_PATH,
-		DEBUGGER_PLATFORM_STRING
+		PATH(DECOM_LIB_PATH),
+		PATH(DEBUGGER_PLATFORM_STRING)
 	};
 
 	debuggerProcess = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
@@ -82,7 +80,6 @@ void E5150::Debugger::init()
 		return;
 	}
 
-	//E5150_INFO("Debugger process created with pid {}", debuggerPID);
 	toDebugger = fifoOpen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, FIFO_OPEN_WRONLY);
 	if (toDebugger < 0)
 	{
