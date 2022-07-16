@@ -56,17 +56,16 @@ if (ENABLE_DEBUGGER)
 	find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${PLATFORM_SRC})
-	target_compile_definitions(epc PRIVATE PYTHON3_EXECUTABLE_PATH="${Python3_EXECUTABLE}")
-	target_compile_definitions(epc PRIVATE DEBUGGER)
-	target_include_directories(epc PRIVATE ${DEBUGGER_SRC_PATH})
-
-	add_library(decom SHARED ${DEBUGGER_SRC_PATH}/communication/command.c ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
-	target_include_directories(decom PRIVATE ${DEBUGGER_SRC_PATH})
-
-	# TODO: gives this as install path
+		# TODO: gives this as install path
 	target_compile_definitions(epc	PRIVATE DECOM_LIB_PATH="$<TARGET_FILE:decom>"
 									PRIVATE DEBUGGER_PYTHON_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/debugger/debugger.py"
-									PRIVATE DEBUGGER_PLATFORM_STRING="${DEBUGGER_PLATFORM_STRING}")
+									PRIVATE DEBUGGER_PLATFORM_STRING="${DEBUGGER_PLATFORM_STRING}"
+									PRIVATE DEBUGGER
+									PRIVATE PYTHON3_EXECUTABLE_PATH="${Python3_EXECUTABLE}")
+	target_include_directories(epc PRIVATE ${DEBUGGER_SRC_PATH})
+
+	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
+	target_include_directories(decom PRIVATE ${DEBUGGER_SRC_PATH})
 
 endif()
 
