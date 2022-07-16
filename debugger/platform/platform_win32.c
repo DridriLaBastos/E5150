@@ -24,7 +24,7 @@ typedef struct MapEntry_t {
 	HANDLE handle;
 } MapEntry;
 
-static MapEntry map[] = NULL;
+static MapEntry* map = NULL;
 static unsigned int mapCount = 0;
 
 static int mapFindIndex(const char* id)
@@ -46,11 +46,11 @@ static unsigned int mapInsert(const HANDLE* const handle, const char* id)
 	}
 
 	mapCount += 1;
-	map = realloc(map, sizeof(map[0])*mapCount);
+	map = realloc(map, sizeof(MapEntry)*mapCount);
 	MapEntry* lastEntry = &map[mapCount - 1];
 	lastEntry->id = malloc(strlen(id));
 	strcpy(lastEntry->id,id);
-	memcpy(handle, &lastEntry->handle,sizeof(HANDLE));
+	memcpy(&lastEntry->handle,handle,sizeof(HANDLE));
 	return mapCount - 1;
 }
 
@@ -63,7 +63,7 @@ static void mapRemove(const unsigned int entry)
 }
 
 //TODO: may benefit on some error checking
-enum PLATFORM_CODE processCreate(const char* processArgs[], const size_t processCommandLineArgsCount)
+process_t processCreate(const char* processArgs[], const size_t processCommandLineArgsCount)
 {
 	//For each arguments for the process we want to add a space inbetween, this creates processCommandLineArgsCount - 1 spaces.
 	//We add 1 more to the size for the last null character
@@ -98,18 +98,29 @@ enum PLATFORM_CODE processCreate(const char* processArgs[], const size_t process
 
 	BOOL processCreationSucceed = CreateProcess(NULL, processLaunchCommandLine, NULL, NULL, FALSE, 0, NULL, NULL,&si,&pi);
 
-	if (processCreationSucceed) {
-		const DWORD waitStatus = WaitForSingleObject(pi.hProcess, 3000);
+	//TODO: Why does WaitForSingleObject fails with timeout ?
+	/*if (processCreationSucceed) {
+		const DWORD waitStatus = WaitForSingleObject(pi.hProcess, INFINITE);
 
 		processCreationSucceed = waitStatus == WAIT_OBJECT_0;
-	}
+		
+	}*/
 
-	return processCreationSucceed ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+	return processCreationSucceed ? pi.dwProcessId : -1;
 }
 
-enum PLATFORM_CODE processWait(const process_t process) {}
-enum PLATFORM_CODE processKill(const process_t process) {}
-int platformGetProcessID(const process_t process) {}
+enum PLATFORM_CODE processTerminate(const process_t process)
+{
+	BOOL b = GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, process);
+	if (!b) { return PLATFORM_ERROR; }
+
+	//TODO: Is it really necessary to call GetExitCode on window to clean the process ?
+	HANDLE h = OpenProcess(PROCESS_TERMINATE, FALSE, process);
+	if (!h) { return PLATFORM_ERROR; }
+
+	DWORD processExitCode;
+	return GetExitCodeProcess(h, &processExitCode) ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+}
 
 enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
 {
@@ -119,7 +130,7 @@ enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
 	return namedPipeHandle == INVALID_HANDLE_VALUE ? PLATFORM_ERROR : PLATFORM_SUCCESS;
 }
 
-const char* platformGetErrorDescription(void)
+const char* errorGetDescription(void)
 {
 	static char messageDescription[ERROR_MESSAGE_MAX_SIZE];
 
@@ -142,17 +153,26 @@ const char* platformGetErrorDescription(void)
 	return messageDescription;
 }
 
+const uint64_t errorGetCode() { return GetLastError(); }
+
 fifo_t fifoOpen(const char* fifoFileName, const int openFlags)
 {
-	return mapFindIndex(fifoFileName);
+	const int mapEntryIndex = mapFindIndex(fifoFileName);
+	if (mapEntryIndex < 0) { return PLATFORM_ERROR; }
+
+	const HANDLE hFifo = map[mapEntryIndex].handle;
+	const BOOL b = ConnectNamedPipe(hFifo, NULL);
+	return b ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
 enum PLATFORM_CODE fifoClose(const fifo_t fifo)
 {
-	
-}
+	BOOL b = DisconnectNamedPipe(map[fifo].handle);
+	if (!b) { return PLATFORM_ERROR; }
 
-enum PLATFORM_CODE fifoRemove(const char* fifoFilename) {}
+	b = CloseHandle(map[fifo].handle);
+	return b ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+}
 
 enum PLATFORM_CODE fifoWrite(const fifo_t fifo, const void* data, const size_t noctet)
 {

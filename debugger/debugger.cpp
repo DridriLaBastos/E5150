@@ -16,6 +16,7 @@ static fifo_t toDebugger = -1;
 static fifo_t fromDebugger = -1;
 static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
+static bool debuggerInitialized = false;
 
 static struct
 {
@@ -44,7 +45,7 @@ void E5150::Debugger::init()
 	{
 		if (code == PLATFORM_ERROR)
 		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", platformGetErrorDescription());
+			E5150_WARNING("Cannot initiate send channel communication with the debugger. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
 			return;
 		}
 
@@ -55,7 +56,7 @@ void E5150::Debugger::init()
 	{
 		if (code == PLATFORM_ERROR)
 		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger. [ERRNO]: '{}'", platformGetErrorDescription());
+			E5150_WARNING("Cannot initiate send channel communication with the debugger.  Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
 			return;
 		}
 
@@ -64,7 +65,7 @@ void E5150::Debugger::init()
 
 	const char* debuggerArgs [] = {
 		PYTHON3_EXECUTABLE_PATH,
-		#ifndef WIN32//FIXME: Only for development, path to the debugger should be provided by cmake
+		#ifndef WIN32//FIXME: Only for development, path to the debugger should be relative to the install dir provided by cmake
 		"/Users/adrien/Documents/Informatique/C++/E5150/debugger/debugger.py"
 		#else
 		"\"D:/Adrien COURNAND/Documents/Informatique/C++/E5150/debugger/debugger.py\""
@@ -83,7 +84,8 @@ void E5150::Debugger::init()
 
 	if (debuggerProcess == -1)
 	{
-		E5150_WARNING("Unable to create the debugger subprocess. [ERRNO]: '{}'", strerror(errno));
+		E5150_WARNING("Unable to create the debugger subprocess. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+
 		return;
 	}
 
@@ -91,7 +93,7 @@ void E5150::Debugger::init()
 	toDebugger = fifoOpen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, FIFO_OPEN_WRONLY);
 	if (toDebugger < 0)
 	{
-		E5150_INFO("Unable to open send to debugger channel. [ERRNO]: '{}'", platformGetErrorDescription());
+		E5150_WARNING("Unable to open send to debugger channel. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
 		deinit();
 		return;
 	}
@@ -99,15 +101,20 @@ void E5150::Debugger::init()
 	fromDebugger = fifoOpen(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, FIFO_OPEN_RDONLY);
 	if (fromDebugger < 0)
 	{
-		E5150_INFO("Unable to open receive from debugger channel. [ERRNO]: '{}'", platformGetErrorDescription());
+		E5150_WARNING("Unable to open receive from debugger channel. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
 		deinit();
 		return;
 	}
+
 	const uint8_t debuggerSynchronizationData = 0xDE;
 	if (fifoWrite(toDebugger, &debuggerSynchronizationData, 1) == PLATFORM_ERROR)
 	{
-		E5150_WARNING("Unable to write send data to the debugger : '{}'", platformGetErrorDescription());
+		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+		deinit();
+		return;
 	}
+
+	debuggerInitialized = true;
 }
 
 void E5150::Debugger::deinit()
@@ -115,12 +122,7 @@ void E5150::Debugger::deinit()
 	fifoClose(toDebugger);
 	fifoClose(fromDebugger);
 
-	//Those are stdc calls
-	remove(EMULATOR_TO_DEBUGGER_FIFO_FILENAME);
-	remove(DEBUGGER_TO_EMULATOR_FIFO_FILENAME);
-
-	processKill(debuggerProcess);
-	processWait(debuggerProcess);
+	processTerminate(debuggerProcess);
 }
 
 static void printRegisters(void)
@@ -428,21 +430,29 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 {	
 	static COMMAND_TYPE commandType;
 	static uint8_t shouldStop;
+	static bool unizializedDebuggerWarningNotPrinted = true;
 
+	if (!debuggerInitialized) {
+		if (unizializedDebuggerWarningNotPrinted) {
+			E5150_WARNING("Debugger was not successfully initialized. Debugger features will not be available.");
+			unizializedDebuggerWarningNotPrinted = false;
+		}
+		return;
+	}
 	if (executeCommand(instructionExecuted, instructionDecoded)) { return; }
 	
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel;
 	context.clear();
 	conditionnalyPrintInstruction();
 
-	if(write(toDebugger,&cpu.instructionExecutedCount,8) < 0) { return; }
+	if(fifoWrite(toDebugger,&cpu.instructionExecutedCount,8) == PLATFORM_ERROR) { return; }
 	
 	do
 	{
 		if (fifoRead(fromDebugger, &commandType,sizeof(COMMAND_TYPE)) < 0) { break; }
 		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
-		if(write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus)) < 0) { break; }
+		if(fifoWrite(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus)) == PLATFORM_ERROR) { break; }
 
 		switch (commandType)
 		{

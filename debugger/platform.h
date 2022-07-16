@@ -31,20 +31,18 @@ extern const int FIFO_OPEN_WRONLY;
  *
  * @param[in] processArgs cmd line arguments of the process (first is the process to be launch)
  * @param[in] processCommandLineArgsCount total number of paramters given to the process
- * @return -1 in case of failure or a value >= 0 that identifies on the platform layer the created process.
+ * @return -1 in case of failure or a value >= 0 that identifies the created process on the platform layer
  */
 process_t processCreate(const char* processArgs [], const size_t processCommandLineArgsCount);
-enum PLATFORM_CODE processWait(const process_t process);
-enum PLATFORM_CODE processKill(const process_t process);
-int platformGetProcessID(const process_t process);
+enum PLATFORM_CODE processTerminate(const process_t);
+
+const char* errorGetDescription(void);
+const uint64_t errorGetCode(void);
 
 enum PLATFORM_CODE fifoCreate(const char* fifoFileName);
-const char* platformGetErrorDescription(void);
-fifo_t fifoOpen(const char* fifoFileName, const int openFlags);
-
 enum PLATFORM_CODE fifoClose(const fifo_t fifo);
-enum PLATFORM_CODE fifoRemove(const char* fifoFilename);
 enum PLATFORM_CODE fifoWrite(const fifo_t fifo, const void* data, const size_t noctet);
 enum PLATFORM_CODE fifoRead(const fifo_t fifo, void* const buf, const size_t noctet);
+fifo_t fifoOpen(const char* fifoFileName, const int openFlags);
 
 #endif

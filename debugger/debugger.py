@@ -88,8 +88,8 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	print("[E5150 DEBUGGER]: Debugger is running!")
 
-	fromEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//pipe/'}{args.read_fifo_filename}"
-	toEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//pipe/'}{args.write_fifo_filename}"
+	fromEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//./pipe/'}{args.read_fifo_filename}"
+	toEmulatorFifoFileName = f"{'' if args.platform == 'unix' else '//./pipe/'}{args.write_fifo_filename}"
 
 	fromEmulator = open(fromEmulatorFifoFileName, "rb", buffering=0)
 	toEmulator = open(toEmulatorFifoFileName, "wb", buffering=0)
