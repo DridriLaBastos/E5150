@@ -4,6 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef WIN32
+#include <fcntl.h>
+#else
+#include <unistd.h>
+#endif
+
 //Using string concatenation of the compilator to add strin delimiter to the path to handle spaced properly on windows
 //TODO: test this : Why on my mac adding string delimiter didn't worked ?
 #ifdef WIN32

@@ -5,7 +5,6 @@
 
 #include <cerrno>
 #include <cstring>
-#include <fcntl.h>
 
 extern "C" {
 	#include "platform.h"
