@@ -16,13 +16,17 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 
 	message("Found ${CPU_COUNT} cpus for building xed")
 
-	set(XED_BUILD_OUTPUT_FLAG prefix)
+	# xed is suvh a PAIN to build...
+	# This NEEDS to be extensivly tested on multiple platforms
+	# Why sometimes the command works and sometimes not ?
+	set(XED_BUILD_INSTALL_FLAGS "--build-dir=${PROJECT_BINARY_DIR}/obj --install-dir=${PROJECT_BINARY_DIR}/kits --prefix=${PROJECT_BINARY_DIR}")
 
-	if(WIN32)
-	set(XED_BUILD_OUTPUT_FLAG install-dir)
+	if (WIN32)
+		set(XED_BUILD_INSTALL_FLAGS "--install-dir=${PROJECT_BINARY_DIR}")
 	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags="-flto" --opt=3 --${XED_BUILD_OUTPUT_FLAG}=${PROJECT_BINARY_DIR} --no-amd --no-via --no-encoder install)
+	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags=-flto --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
+		COMMAND_ECHO STDOUT)
 
 	find_library(XED_LIB_PATH ${XED_LIB_NAME}
 			PATHS ${PROJECT_BINARY_DIR}/lib
@@ -33,9 +37,3 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 		message("XED LIBRARY SUCCESSFULLY BUILDED: (found at '${XED_LIB_PATH}')")
 	endif()
 endif()
-
-# add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/lib/${XED_LIB} ${PROJECT_BINARY_DIR}/include/xed
-#					COMMAND ${PYTHON3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags="-flto=thin" --opt=3 --prefix=${PROJECT_BINARY_DIR} --no-amd --no-via --no-encoder install
-#				)
-
-# add_custom_target(xedlib DEPENDS ${PROJECT_BINARY_DIR}/lib/${XED_LIB})
