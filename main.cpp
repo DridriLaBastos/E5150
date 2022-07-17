@@ -10,7 +10,7 @@ int main (void)
 	E5150::Arch arch;
 
 	#if 1
-		//Loadin IBM BIOS
+		//Loading IBM BIOS
 		ram.load("test/ibm_bios.bin", 0xFE000);
 	#else
 		//Loading custom test code

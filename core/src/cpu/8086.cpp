@@ -95,7 +95,7 @@ void CPU::updateStatusFlags (const unsigned int value, const bool wordSize)
 }
 
 unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
-{ return (base << 4) + offset; }
+{ return ((base << 4) + offset) & 0xFFFFF; }//Why do I have an error on release mode on windows ?
 
 unsigned int CPU::genAddress (const uint16_t base, const xed_reg_enum_t offset) const
 { return genAddress(base, readReg(offset)); }
@@ -282,7 +282,6 @@ unsigned int CPU::clock()
 	if (!CPU_HLT)
 		cpu.biu.clock();
 	const unsigned int EUStatus = cpu.eu.clock();
-
 	if (EUStatus & E5150::I8086::EU::STATUS_INSTRUCTION_EXECUTED)
 	{
 		biu.instructionBufferQueuePop(cpu.eu.instructionLength);
@@ -296,7 +295,6 @@ unsigned int CPU::clock()
 	}
 
 	biu.updateClockFunction();
-
 	return EUStatus;
 }
 
