@@ -19,7 +19,7 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 	# xed is suvh a PAIN to build...
 	# This NEEDS to be extensivly tested on multiple platforms
 	# Why sometimes the command works and sometimes not ?
-	set(XED_BUILD_INSTALL_FLAGS "--build-dir=${PROJECT_BINARY_DIR}/obj --install-dir=${PROJECT_BINARY_DIR}/kits --prefix=${PROJECT_BINARY_DIR}")
+	set(XED_BUILD_INSTALL_FLAGS --build-dir=${PROJECT_BINARY_DIR}/obj --install-dir=${PROJECT_BINARY_DIR}/kits --prefix=${PROJECT_BINARY_DIR})
 
 	if (WIN32)
 		set(XED_BUILD_INSTALL_FLAGS "--install-dir=${PROJECT_BINARY_DIR}")
