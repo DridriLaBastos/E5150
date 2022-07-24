@@ -9,7 +9,7 @@
  * @param toDebugger descriptor for writing from the emulator to the debugger
  * @param toEmulator descriptor for writing from the debugger to the emulator
  */
-void registerCommunicationFifos(const int fromEmulator, const int toEmulator);
+DLL_EXPORT void registerCommunicationFifos(const int fromEmulator, const int toEmulator);
 
 /**
  * @brief Platform independant function to write data to the emulator
@@ -17,7 +17,7 @@ void registerCommunicationFifos(const int fromEmulator, const int toEmulator);
  * @param indata pointer to the data to write
  * @param size size in octets of the data to write
  */
-void writeToEmulator(const uint8_t* const indata, const size_t size);
+DLL_EXPORT void writeToEmulator(const uint8_t* const indata, const size_t size);
 
 /**
  * @brief Platform independant function to read data from the emulator
@@ -25,6 +25,6 @@ void writeToEmulator(const uint8_t* const indata, const size_t size);
  * @param outdata 
  * @param size 
  */
-void readFromEmulator(uint8_t* const outdata, const size_t size);
+DLL_EXPORT void readFromEmulator(uint8_t* const outdata, const size_t size);
 
 #endif

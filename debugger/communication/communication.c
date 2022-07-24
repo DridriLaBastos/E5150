@@ -10,7 +10,6 @@ void registerCommunicationFifos (const int _fromEmulator, const int _toEmulator)
 {
 	fromEmulator = _fromEmulator;
 	toEmulator = _toEmulator;
-	printf("REACHED with ed %d   de %d\n", _fromEmulator, _toEmulator);
 }
 
 void writeToEmulator(const uint8_t* const indata, const size_t size){ write(toEmulator,indata,size); }

@@ -38,7 +38,6 @@ class DebuggerShell(cmd.Cmd):
 	###########################
 
 	def _parse(self, cmd: str):
-		print("REACHED")
 		try:
 			return commands.parse(fromEmulator,toEmulator,decomPath,cmd)
 		except:

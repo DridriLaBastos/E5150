@@ -6,9 +6,7 @@
 #include <cerrno>
 #include <cstring>
 
-extern "C" {
-	#include "platform.h"
-}
+#include "platform.h"
 
 using namespace E5150;
 

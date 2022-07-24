@@ -24,6 +24,12 @@
 #define FIFO_PATH(path) path
 #endif
 
+#ifdef WIN32
+#define DLL_EXPORT __declspec(dllexport)
+#else
+#define DLL_EXPORT
+#endif
+
 enum PLATFORM_CODE
 {
 	PLATFORM_SUCCESS,
@@ -33,29 +39,37 @@ enum PLATFORM_CODE
 
 typedef int process_t;
 
-/**
- * @brief Creates a new process.
- * 
- *
- * The function calls the relevant platform code to create a new process. The function always returns into the parent process (unlike unix `fork` function). The return value identifies if an error occurs during the process creation or not.
- *
- * The way the process is created is by calling the first element in the processArgs array and passing the whole array
- * as the command line arguments of the created process. If the array values are ["python", "main.py], the function
- * will try to create the process `python`, and give it the argument `python main.py`.
- *
- * The function makes no assumption to the number of parameters a process can have.
- *
- * @param[in] processArgs cmd line arguments of the process (first is the process to be launch)
- * @param[in] processCommandLineArgsCount total number of paramters given to the process
- * @return -1 in case of failure or a value >= 0 that identifies the created process on the platform layer
- */
-process_t processCreate(const char* processArgs [], const size_t processCommandLineArgsCount);
-enum PLATFORM_CODE processTerminate(const process_t);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-const char* errorGetDescription(void);
-const uint64_t errorGetCode(void);
+	/**
+	 * @brief Creates a new process.
+	 *
+	 *
+	 * The function calls the relevant platform code to create a new process. The function always returns into the parent process (unlike unix `fork` function). The return value identifies if an error occurs during the process creation or not.
+	 *
+	 * The way the process is created is by calling the first element in the processArgs array and passing the whole array
+	 * as the command line arguments of the created process. If the array values are ["python", "main.py], the function
+	 * will try to create the process `python`, and give it the argument `python main.py`.
+	 *
+	 * The function makes no assumption to the number of parameters a process can have.
+	 *
+	 * @param[in] processArgs cmd line arguments of the process (first is the process to be launch)
+	 * @param[in] processCommandLineArgsCount total number of paramters given to the process
+	 * @return -1 in case of failure or a value >= 0 that identifies the created process on the platform layer
+	 */
+	process_t processCreate(const char* processArgs[], const size_t processCommandLineArgsCount);
+	enum PLATFORM_CODE processTerminate(const process_t);
 
-enum PLATFORM_CODE fifoCreate(const char* fifoFileName);
-int fifoOpen(const char* fifoFileName, const int openFlags);
+	const char* errorGetDescription(void);
+	const uint64_t errorGetCode(void);
+
+	enum PLATFORM_CODE fifoCreate(const char* fifoFileName);
+	int fifoOpen(const char* fifoFileName, const int openFlags);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

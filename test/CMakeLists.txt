@@ -14,7 +14,7 @@ project(test)
  message(AUTHOR_WARNING "Excpected checksum: ${IBM_BIOS_EXPECTED_CHECKSUM} got ${IBM_BIOS_CHECKSUM}")
  endif()
 
- message("Downloaded bios file hash: ${IBM_BIOS_HASH}")
+ message("Downloaded bios file hash: ${IBM_BIOS_CHECKSUM}")
 
  add_custom_command(OUTPUT bios.bin
  					COMMAND ${CMAKE_ASM_NASM_COMPILER} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${CMAKE_ASM_NASM_FLAGS} ${PROJECT_SOURCE_DIR}/bios.s -o bios.bin

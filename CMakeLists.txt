@@ -66,7 +66,7 @@ if (ENABLE_DEBUGGER)
 
 	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
 	target_include_directories(decom PRIVATE ${DEBUGGER_SRC_PATH})
-
+	add_dependencies(epc decom)
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

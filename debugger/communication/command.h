@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define COMMUNICATION_TEST_VALUE 0xFFAABBCC
+#include "platform.h"
 
 typedef enum
 {
@@ -32,8 +32,8 @@ typedef enum
 	STEP_TYPE_PASS = 1 << 2
 } STEP_TYPE;
 
-int sendContinueCommandInfo(const int instructionCounts, const int clockCounts);
-int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag);
-int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel);
+DLL_EXPORT int sendContinueCommandInfo(const int instructionCounts, const int clockCounts);
+DLL_EXPORT int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag);
+DLL_EXPORT int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel);
 
 #endif//__COMMAND_HPP__
