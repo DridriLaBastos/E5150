@@ -7,3 +7,6 @@ First try
  - It provides PIO access (for exemple bochs doesn't)
  - It tryies to be most accurate as possile when emulating hardware
  - It's a good learning tool for PC architecture, but it is not focused on performances
+
+# How to build
+On windows select Visual studio Win 64, or let the default value Nmake

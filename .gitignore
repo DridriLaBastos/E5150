@@ -44,6 +44,7 @@ build
 # Windows
 .vs
 .out
+CMakeSettings.json
 
 # macOS files
 *.DS_Store
