@@ -30,7 +30,6 @@ static int debuggerToEmulator_SendContinueCommandInfo(const CONTINUE_TYPE contin
 
 int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 {
-	puts("REACHED C");
 	if (instructionCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INSTRUCTION, instructionCounts); }
 	if (clockCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_CLOCK, clockCounts); }
 	return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INFINITE, -1);
@@ -67,4 +66,12 @@ int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, 
 	writeToEmulator(&toggleRegisters, sizeof(toggleRegisters));
 	writeToEmulator(&changeLogLevel, sizeof(changeLogLevel));
 	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+////                                QUIT
+///////////////////////////////////////////////////////////////////////////////////////////
+int sendQuitCommandInfo()
+{
+	sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_QUIT);
 }

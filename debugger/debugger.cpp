@@ -463,6 +463,11 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				handleDisplayCommand();
 				break;
 
+			case COMMAND_TYPE_QUIT:
+				E5150::Util::_continue = false;
+				E5150_DEBUG("Reached");
+				break;
+
 			default:
 				E5150_WARNING("Unknown response from debugger, behaviour may be unpredicatable");
 				break;

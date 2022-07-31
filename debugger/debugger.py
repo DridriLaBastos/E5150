@@ -43,22 +43,6 @@ class DebuggerShell(cmd.Cmd):
 		except:
 			pass
 		return False
-
-	###########################
-	#    Command functions    #
-	###########################
-	
-	def do_continue(self, arg: str):
-		"""continue the execution of the emulation"""
-		return self._parse(f"continue {arg}")
-	
-	def do_step(self, arg: str):
-		"""Step throw program execution"""
-		return self._parse(f"step {arg}")
-	
-	def do_display(self, arg: str):
-		"""Control display verbosity of the emulator"""
-		return self._parse(f"display {arg}")
 	
 	def do_help(self, arg: str) -> bool:
 		"""Show this help"""

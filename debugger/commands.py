@@ -65,7 +65,6 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str
 	elif result.command == "step":
 		if result.clock:
 			result.instruction = False
-		print(result)
 		return _decom.sendStepCommandInfo(result.instruction, result.clock, result._pass)
 	elif result.command in commands["stepi"]:
 		return _decom.sendStepCommandInfo(True, False, False)
@@ -75,5 +74,7 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str
 		return _decom.sendStepCommandInfo(False, True, False)
 	elif result.command in commands["display"]:
 		return _decom.sendDisplayCommandInfo(result.flags, result.instructions, result.registers, -1 if result.log_level is None else result.log_level)
+	elif result.command in commands["quit"]:
+		return _decom.sendQuitCommandInfo()
 
 	return _decom.sendUnknownCommandInfo()
