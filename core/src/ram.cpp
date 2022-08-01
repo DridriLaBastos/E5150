@@ -29,15 +29,15 @@ void RAM::write(const unsigned int address, const uint8_t data)
 
 void RAM::load (const std::string path, size_t pos)
 {
-	std::ifstream stream (path);
+	std::ifstream stream (path,std::ios_base::binary);
 
 	if (!stream.is_open())
 	{
-
 		E5150_WARNING("cannot open file '{}'",path);
 	}
 	else
 	{
+		//TODO: Check if the file is larger than the memory available
 		while (!stream.eof() && pos < 0x100000)
 		{
 			const uint8_t tmp = stream.get();
