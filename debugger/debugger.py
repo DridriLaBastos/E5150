@@ -76,10 +76,10 @@ if __name__ == "__main__":
 	print(f"[E5150 DEBUGGER]: called with decom = {args.decom_path}")
 
 	runningOnWindows = os.name == 'nt'
-	pipePathPrefix = '//./pipe' if runningOnWindows else ''
+	pipePathPrefix = '//./pipe/' if runningOnWindows else ''
 
-	fromEmulatorFifoFileName = f"{pipePathPrefix}/{args.read_fifo_filename}"
-	toEmulatorFifoFileName = f"{pipePathPrefix}/{args.write_fifo_filename}"
+	fromEmulatorFifoFileName = f"{pipePathPrefix}{args.read_fifo_filename}"
+	toEmulatorFifoFileName = f"{pipePathPrefix}{args.write_fifo_filename}"
 
 	print(f"computed path: ed '{fromEmulatorFifoFileName}'   de '{toEmulatorFifoFileName}'")
 
