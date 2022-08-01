@@ -69,8 +69,7 @@ void E5150::Debugger::init()
 		PATH(DEBUGGER_PYTHON_SCRIPT_PATH),
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
 		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
-		PATH(DECOM_LIB_PATH),
-		PATH(DEBUGGER_PLATFORM_STRING)
+		PATH(DECOM_LIB_PATH)
 	};
 
 	debuggerProcess = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
