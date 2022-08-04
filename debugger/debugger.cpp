@@ -131,46 +131,6 @@ static void printFlags(void)
 	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
 }
 
-static void printBIUDebugInfo(void)
-{
-	const I8086::BIU::InternalInfos& BIUDebugInfo = I8086::BIU::getDebugWorkingState();
-
-	switch (BIUDebugInfo.workingMode)
-	{
-		case I8086::BIU::WORKING_MODE::FETCH_INSTRUCTION:
-		{
-			printf("BIU: BUS CYCLE %d (clock count down: %d) --- FETCHING %#5x (%#4x:%#4x)\n", BIUDebugInfo.BUS_CYCLE_CLOCK - BIUDebugInfo.BUS_CYCLE_CLOCK_LEFT, BIUDebugInfo.BUS_CYCLE_CLOCK_LEFT,cpu.genAddress(cpu.cs,cpu.ip+BIUDebugInfo.IP_OFFSET),cpu.cs,cpu.ip+BIUDebugInfo.IP_OFFSET);
-
-			if ((cpu.biu.instructionBufferQueuePos <= 5) && BIUDebugInfo.BUS_CYCLE_CLOCK_LEFT == BIUDebugInfo.BUS_CYCLE_CLOCK)
-			{
-				printf("BIU: INSTRUCTION BUFFER QUEUE: queue size %d\n", cpu.biu.instructionBufferQueuePos);
-
-				printf("Instruction buffer: ");
-				std::for_each(cpu.biu.instructionBufferQueue.begin(), cpu.biu.instructionBufferQueue.end(),
-					[](const uint8_t b) { printf("%#x ",b); });
-				// for (uint8_t b: cpu.biu.instructionBufferQueue)
-				// 	printf("%#x ",b);
-				putchar('\n');
-			}
-		} break;
-
-		case I8086::BIU::WORKING_MODE::FETCH_DATA:
-			printf("BIU: DATA ACCESS FROM EU: clock left: %d\n", BIUDebugInfo.EU_DATA_ACCESS_CLOCK_LEFT);
-			break;
-		
-		case I8086::BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE:
-			printf("BIU: INSTRUCTION BUFFER QUEUE FULL\n");
-			break;
-
-		case I8086::BIU::WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
-			printf("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE\n");
-			break;
-
-	default:
-		break;
-	}
-}
-
 static void printCurrentInstruction(void)
 {
 	const I8086::EU::InternalInfos& workingState = cpu.eu.getDebugWorkingState();
@@ -360,8 +320,61 @@ static bool executeContinueCommand(const bool instructionExecuted, const bool in
 	return false;//To silent compiler warning
 }
 
+static void printClockLevelBIUEmulationLog(void)
+{
+	const auto& BIUState = cpu.biu.getDebugWorkingState();
+
+	switch (BIUState.workingMode)
+	{
+	case I8086::BIU::WORKING_MODE::FETCH_INSTRUCTION:
+	{
+		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: BUS CYCLE {} (clock count down: {}) --- FETCHING {} ({}:{})", BIUState.BUS_CYCLE_CLOCK - BIUState.BUS_CYCLE_CLOCK_LEFT, BIUState.BUS_CYCLE_CLOCK_LEFT, cpu.genAddress(cpu.cs, cpu.ip + BIUState.IP_OFFSET), cpu.cs, cpu.ip + BIUState.IP_OFFSET);
+
+			//TODO: This should be given inside the state variable
+		if ((cpu.biu.instructionBufferQueuePos <= 5) && BIUState.BUS_CYCLE_CLOCK_LEFT == BIUState.BUS_CYCLE_CLOCK)
+		{
+			EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: INSTRUCTION BUFFER QUEUE: queue size {}", cpu.biu.instructionBufferQueuePos);
+
+			//TODO: Investigate how to use spdlog to produce an equivalent output
+			if (E5150::Util::CURRENT_EMULATION_LOG_LEVEL >= EMULATION_MAX_LOG_LEVEL)
+			{
+				printf("Instruction buffer: ");
+				std::for_each(cpu.biu.instructionBufferQueue.begin(), cpu.biu.instructionBufferQueue.end(),
+					[](const uint8_t b) { printf("%#x ", b); });
+				// for (uint8_t b: cpu.biu.instructionBufferQueue)
+				// 	printf("%#x ",b);
+				putchar('\n');
+			}
+		}
+	} break;
+
+	case I8086::BIU::WORKING_MODE::FETCH_DATA:
+		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: DATA ACCESS FROM EU: clock left: {}", BIUState.EU_DATA_ACCESS_CLOCK_LEFT);
+		break;
+
+	case I8086::BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE:
+		EMULATION_INFO_LOG < EMULATION_MAX_LOG_LEVEL>("BIU: INSTRUCTION BUFFER QUEUE FULL");
+		break;
+
+	case I8086::BIU::WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
+		EMULATION_INFO_LOG < EMULATION_MAX_LOG_LEVEL>("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE");
+		break;
+
+	default:
+		break;
+	}
+}
+
+static void printClockLevelEUEmulationLog(void)
+{
+	const auto& EUInfo = cpu.eu.getDebugWorkingState();
+	
+}
+
 static bool executeStepCommand(const bool instructionExecuted, const bool instructionDecoded)
 {
+	printClockLevelBIUEmulationLog();
+	printClockLevelEUEmulationLog();
 	if (context.subtype & STEP_TYPE_CLOCK) { return false; }
 	if (context.subtype & STEP_TYPE_INSTRUCTION) { return executeUntilNextInstruction(instructionExecuted,instructionDecoded); }
 	//TODO: STEP_TYPE_INSTRUCTION & STEP_TYPE_PASS
