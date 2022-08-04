@@ -78,6 +78,7 @@ process_t processCreate(const char* processArgs[], const size_t processCommandLi
 	}
 
 	char* processLaunchCommandLine = _malloca(processCommandLineSize);
+	//TODO: Is it possible for this to return nullptr ?
 	ZeroMemory(processLaunchCommandLine, processCommandLineSize);
 
 	size_t processCmdIndex = 0;

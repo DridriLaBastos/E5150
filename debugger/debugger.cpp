@@ -72,7 +72,7 @@ void E5150::Debugger::init()
 		PATH(DECOM_LIB_PATH)
 	};
 
-	debuggerProcess = processCreate(debuggerArgs,sizeof(debuggerArgs) / sizeof(debuggerArgs[0]));
+	debuggerProcess = processCreate(debuggerArgs,std::size(debuggerArgs));
 
 	if (debuggerProcess == -1)
 	{
@@ -96,7 +96,7 @@ void E5150::Debugger::init()
 		return;
 	}
 
-	const uint32_t debuggerSynchronizationData = 0xDEAB12CD;
+	constexpr uint32_t debuggerSynchronizationData = 0xDEAB12CD;
 	if (write(toDebugger,&debuggerSynchronizationData,sizeof(debuggerSynchronizationData)) < 0)
 	{
 		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));

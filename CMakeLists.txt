@@ -14,8 +14,12 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 option(ENABLE_DEBUGGER "Compile the integrated debugger" ON)
 
-if (NOT MSVC)
+if (NOT WIN32)
 	add_compile_options(-Wno-switch)
+endif()
+
+if (WIN32)
+add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
 endif()
 
 #Maybe using a configuration file later

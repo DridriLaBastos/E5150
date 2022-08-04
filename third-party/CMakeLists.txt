@@ -1,9 +1,11 @@
 project(thirdparty)
 
 set(XED_LIB_NAME "libxed.a")
+set(XED_LTO_FLAG "-flto")
 
-if (MSVC)
+if (WIN32)
 	set (XED_LIB_NAME "xed.lib")
+	set(XED_LTO_FLAG "/GL")
 endif()
 
 if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJECT_BINARY_DIR}/include/xed))
@@ -25,7 +27,7 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 		set(XED_BUILD_INSTALL_FLAGS "--install-dir=${PROJECT_BINARY_DIR}")
 	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags=-flto --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
+	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags=${XED_LTO_FLAG} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
 		COMMAND_ECHO STDOUT)
 
 	find_library(XED_LIB_PATH ${XED_LIB_NAME}

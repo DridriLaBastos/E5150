@@ -15,6 +15,11 @@
           "name": "CMAKE_BUILD_TYPE",
           "value": "Debug",
           "type": "STRING"
+        },
+        {
+          "name": "ENABLE_DEBUGGER",
+          "value": "False",
+          "type": "BOOL"
         }
       ]
     },
@@ -28,6 +33,24 @@
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "name": "x64-Release"
+    },
+    {
+      "name": "x64-Profile",
+      "generator": "Ninja",
+      "configurationType": "RelWithDebInfo",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "ENABLE_DEBUGGER",
+          "value": "True",
+          "type": "BOOL"
+        }
+      ]
     }
   ]
 }
