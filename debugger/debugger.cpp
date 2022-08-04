@@ -307,17 +307,19 @@ static bool executeContinueCommand(const bool instructionExecuted, const bool in
 {
 	if (context.subtype == CONTINUE_TYPE_INFINITE) { return true; }
 
+	bool executionDone = false;
+
 	switch (context.subtype)
 	{
 		case CONTINUE_TYPE_CLOCK:
 			context.count -= 1;
-			return context.count;
+			executionDone = context.count == 0;
 		
 		case CONTINUE_TYPE_INSTRUCTION:
-			return executeUntilNextInstruction(instructionExecuted, instructionDecoded);
+			executionDone = !executeUntilNextInstruction(instructionExecuted, instructionDecoded);
 	}
 
-	return false;//To silent compiler warning
+	if (executionDone) { E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel; }
 }
 
 static void printClockLevelBIUEmulationLog(void)
@@ -437,7 +439,6 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	}
 	if (executeCommand(instructionExecuted, instructionDecoded)) { return; }
 	
-	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel;
 	context.clear();
 	printInstruction();
 
