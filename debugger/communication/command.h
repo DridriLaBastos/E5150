@@ -35,7 +35,7 @@ typedef enum
 
 DLL_EXPORT int sendContinueCommandInfo(const int instructionCounts, const int clockCounts);
 DLL_EXPORT int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag);
-DLL_EXPORT int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel);
+DLL_EXPORT int sendDisplayCommandInfo(const int newLogLevel);
 DLL_EXPORT int sendQuitCommandInfo(void);
 
 #endif//__COMMAND_HPP__

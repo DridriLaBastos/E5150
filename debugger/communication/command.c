@@ -58,13 +58,10 @@ int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const in
 ////                                DISPLAY
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-int sendDisplayCommandInfo(const int toggleFlags, const int toggleInstructions, const int toggleRegisters, const int changeLogLevel)
+int sendDisplayCommandInfo(const int newLogLevel)
 {
 	sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_DISPLAY);
-	writeToEmulator(&toggleFlags, sizeof(toggleFlags));
-	writeToEmulator(&toggleInstructions, sizeof(toggleInstructions));
-	writeToEmulator(&toggleRegisters, sizeof(toggleRegisters));
-	writeToEmulator(&changeLogLevel, sizeof(changeLogLevel));
+	writeToEmulator(&newLogLevel, sizeof(newLogLevel));
 	return false;
 }
 

@@ -171,8 +171,9 @@ static void printBIUDebugInfo(void)
 	}
 }
 
-static void printCurrentInstruction(const I8086::EU::InternalInfos& workingState)
+static void printCurrentInstruction(void)
 {
+	const I8086::EU::InternalInfos& workingState = cpu.eu.getDebugWorkingState();
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
 	if (!inst)
 		return;
@@ -187,7 +188,7 @@ static void printCurrentInstruction(const I8086::EU::InternalInfos& workingState
 		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
 		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
 
-		if (true/*op_vis == XED_OPVIS_EXPLICIT*/)
+		if (op_vis == XED_OPVIS_EXPLICIT)
 		{
 			if (foundPtr)
 			{
@@ -267,32 +268,11 @@ static void printCurrentInstruction(const I8086::EU::InternalInfos& workingState
 		std::cout << " (" << cpu.instructionExecutedCount << ")\n";
 }
 
-static void printEUDebugInfo(void)
+static void printInstruction(void)
 {
-	const I8086::EU::InternalInfos& EUDebugInfo = I8086::EU::getDebugWorkingState();
-
-	switch (EUDebugInfo.EUWorkingMode)
-	{
-		case I8086::EU::WORKING_MODE::EXEC_INSTRUCTION:
-			printCurrentInstruction(EUDebugInfo);
-			printf("Clock cycle: %d\n", EUDebugInfo.INSTRUCTION_CLOCK_LEFT);
-			break;
-
-		default:
-			break;
-	}
-}
-
-static void conditionnalyPrintInstruction(void)
-{
-	//if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_REGISTERS)
 		printRegisters();
-
-	//if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_FLAGS)
 		printFlags();
-
-	//if (state.printBehaviour & PRINT_BEHAVIOUR::PRINT_INSTRUCTION)
-		printCurrentInstruction(cpu.eu.getDebugWorkingState());
+		printCurrentInstruction();
 }
 
 static void handleContinueCommand()
@@ -320,26 +300,31 @@ static void handleStepCommand()
 
 static void handleDisplayCommand()
 {
-	static int displayFlags[4];
-	E5150_INFO("COMMAND DISPLAY");
-	//read(fromDebugger,&displayFlags[0], sizeof(int));
-	// read(fromDebugger,&displayFlags[1], sizeof(int));
-	// read(fromDebugger,&displayFlags[2], sizeof(int));
-	// read(fromDebugger,&displayFlags[3], sizeof(int));
+	int newLogLevel;
+	read(fromDebugger, &newLogLevel, sizeof(newLogLevel));
 
-	// if (displayFlags[0]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_FLAGS; }
-	// if (displayFlags[1]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_INSTRUCTION; }
-	// if (displayFlags[2]) { state.printBehaviour ^= PRINT_BEHAVIOUR::PRINT_REGISTERS; }
-	// if (displayFlags[3] > -1)
-	// {
-	// 	if (displayFlags[3] > EMULATION_MAX_LOG_LEVEL)
-	// 	{
-	// 		E5150_INFO("Log level too high set to highest value {}", EMULATION_MAX_LOG_LEVEL);
-	// 		displayFlags[3] = EMULATION_MAX_LOG_LEVEL;
-	// 	}
-	// 	E5150::Util::CURRENT_EMULATOR_LOG_LEVEL = displayFlags[3];
-	// }
+	if (newLogLevel < 0)
+	{
+		E5150_INFO("Current log level : {}", E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
+		return;
+	}
+
+	if (newLogLevel > EMULATION_MAX_LOG_LEVEL)
+	{
+		E5150_INFO("Log level select to high, applied log level will be the highest value : {}", EMULATION_MAX_LOG_LEVEL);
+		E5150::Util::CURRENT_EMULATION_LOG_LEVEL = EMULATION_MAX_LOG_LEVEL;
+		return;
+	}
+
+	E5150_INFO("Log level set to new level {}", newLogLevel);
+	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = newLogLevel;
 }
+
+static void handleQuitCommand(void)
+{
+	E5150::Util::_continue = false;
+}
+
 
 static bool isControlTransferIn( const xed_iclass_enum_t& iclass )
 {
@@ -383,6 +368,8 @@ static bool executeStepCommand(const bool instructionExecuted, const bool instru
 	return false;
 }
 
+
+//TODO: better design pattern for command execution
 static bool executeCommand(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
 	if (context.type == COMMAND_TYPE_ERROR) { return false; }
@@ -420,10 +407,12 @@ static bool executeCommand(const uint8_t instructionExecuted, const bool instruc
 	// }
 }
 
+//TODO: Debugger error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
 void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {	
 	static COMMAND_TYPE commandType;
 	static uint8_t shouldStop;
+	static const uint8_t commandEndSynchro = 0;//Only here to notify the debugger the emulator finished executing the command
 	static bool unizializedDebuggerWarningNotPrinted = true;
 
 	if (!debuggerInitialized) {
@@ -437,7 +426,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel;
 	context.clear();
-	conditionnalyPrintInstruction();
+	printInstruction();
 
 	if(write(toDebugger,&cpu.instructionExecutedCount,8) == -1) { return; }
 	
@@ -463,8 +452,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				break;
 
 			case COMMAND_TYPE_QUIT:
-				E5150::Util::_continue = false;
-				E5150_DEBUG("Reached");
+				handleQuitCommand();
 				break;
 
 			default:
@@ -472,5 +460,6 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				break;
 		}
 		if (read(fromDebugger,&shouldStop,1) < 0) { break; }
+		if (write(toDebugger, &commandEndSynchro, 1) < 0) { break;; }
 	} while (!shouldStop);
 }

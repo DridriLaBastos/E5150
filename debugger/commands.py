@@ -36,11 +36,8 @@ subparser.add_parser(commands["stepc"][0], aliases=commands["stepc"][1:], help="
 
 ### Display command arguments
 
-display_parser = subparser.add_parser(commands["display"][0], aliases=commands["display"][1:], help="Change emulation display rules", description="Change the behaviour when diplaying information of the emulation. Each arguments acts as a flags and it is possible to use severals of them to toggle differents informations display. If no arguments is provided all displays are disabled")
-display_parser.add_argument("-i", "--instructions", action="store_true", help="Toggle displaying executed instruction")
-display_parser.add_argument("-r", "--registers", action="store_true", help="Toggle displaying cpu registers")
-display_parser.add_argument("-f", "--flags", action="store_true", help="Toggle displaying cpu flags")
-display_parser.add_argument("-l", "--log-level",metavar="LEVEL",type=int,help="The debugging message log level. Higher means more log and smaller means less log. The value must be positive")
+display_parser = subparser.add_parser(commands["display"][0], aliases=commands["display"][1:], help="Change emulation display rules", description="Change the verbosity of the emulation or display the current emulation log level")
+display_parser.add_argument("-l", "--log_level",metavar="LEVEL",type=int,help="The debugging message log level. Higher means more log and smaller means less log. Negative values will display the current log level and are equivalent to not providing the argument")
 
 ### Quit the debugger
 quit_parser = subparser.add_parser(commands["quit"][0], aliases=commands["quit"][1:], help="Quit the emulation", description="Quit the emulation")
@@ -73,7 +70,7 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str
 	elif result.command in commands["stepc"]:
 		return _decom.sendStepCommandInfo(False, True, False)
 	elif result.command in commands["display"]:
-		return _decom.sendDisplayCommandInfo(result.flags, result.instructions, result.registers, -1 if result.log_level is None else result.log_level)
+		return _decom.sendDisplayCommandInfo(-1 if result.log_level is None else result.log_level)
 	elif result.command in commands["quit"]:
 		return _decom.sendQuitCommandInfo()
 

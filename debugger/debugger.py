@@ -28,6 +28,7 @@ class DebuggerShell(cmd.Cmd):
 	def postcmd(self, stop: bool, line: str) -> bool:
 		if commands.parseOK:
 			toEmulator.write(b'\x01' if stop else b'\x00')
+			fromEmulator.read(1) # Emulator finishes to execute the command
 		return super().postcmd(stop, line)
 	
 	def default(self, line: str) -> None:

@@ -12,11 +12,6 @@
       "name": "x64-Debug",
       "variables": [
         {
-          "name": "CMAKE_BUILD_TYPE",
-          "value": "Debug",
-          "type": "STRING"
-        },
-        {
           "name": "ENABLE_DEBUGGER",
           "value": "False",
           "type": "BOOL"

@@ -155,14 +155,12 @@ static unsigned int prepareInstructionExecution(void)
 			return getPOPFCycles();
 
 		case XED_ICLASS_ADD:
-			cpu.eu.instructionExtraData.isSigned = 0;
-			cpu.eu.instructionExtraData.withCarry = false;
+			cpu.eu.instructionExtraData.clearData();
 			instructionFunction = ADD;
 			return getADDCycles();
 
 		case XED_ICLASS_ADC:
-			cpu.eu.instructionExtraData.isSigned = 0;
-			cpu.eu.instructionExtraData.withCarry = true;
+			cpu.eu.instructionExtraData.clearData();
 			instructionFunction = ADD;
 			return getADDCycles();
 
@@ -179,14 +177,12 @@ static unsigned int prepareInstructionExecution(void)
 			return getDAACycles();
 
 		case XED_ICLASS_SUB:
-			cpu.eu.instructionExtraData.isSigned = 0;
-			cpu.eu.instructionExtraData.withCarry = false;
+			cpu.eu.instructionExtraData.clearData();
 			instructionFunction = SUB;
 			return getSUBCycles();
 
 		case XED_ICLASS_SBB:
-			cpu.eu.instructionExtraData.isSigned = 0;
-			cpu.eu.instructionExtraData.withCarry = true;
+			cpu.eu.instructionExtraData.clearData();
 			instructionFunction = SUB;
 			return getSUBCycles();
 
@@ -211,25 +207,21 @@ static unsigned int prepareInstructionExecution(void)
 			return getDASCycles();
 
 		case XED_ICLASS_MUL:
-			cpu.eu.instructionExtraData.isSigned = 0;
-			cpu.eu.instructionExtraData.isSigned = false;
+			cpu.eu.instructionExtraData.clearData();
 			instructionFunction = MUL;
 			return getMULCycles();
 
 		case XED_ICLASS_IMUL:
-			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.isSigned = true;
 			instructionFunction = MUL;
 			return getIMULCycles();
 
 		case XED_ICLASS_DIV:
-			cpu.eu.instructionExtraData.isSigned = 0;
-			cpu.eu.instructionExtraData.isSigned = false;
+			cpu.eu.instructionExtraData.clearData();
 			instructionFunction = DIV;
 			return getDIVCycles();
 
 		case XED_ICLASS_IDIV:
-			cpu.eu.instructionExtraData.isSigned = 0;
 			cpu.eu.instructionExtraData.isSigned = true;
 			instructionFunction = DIV;
 			return getIDIVCycles();
