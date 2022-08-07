@@ -55,7 +55,7 @@ namespace E5150::I8086
 			static const InternalInfos& getDebugWorkingState (void);
 
 			unsigned int computeEAAndGetComputationClockCount();
-			unsigned int EAAddress;
+			unsigned int EAddress;
 			unsigned int repeatCount;
 			unsigned int instructionLength;
 

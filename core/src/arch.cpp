@@ -1,10 +1,10 @@
 #include <csignal>
 
-#include "core/arch.hpp"
-#include "core/util.hpp"
+#include "arch.hpp"
+#include "util.hpp"
 
 #ifdef DEBUGGER
-#include "debugger/debugger.hpp"
+#include "debugger.hpp"
 #endif
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;
@@ -16,10 +16,7 @@ static constexpr unsigned int BLOCKS_PER_SECOND = (unsigned int)((double)BASE_CL
 static void stop(const int signum)
 {
 	E5150::Util::_continue = false;
-	E5150_INFO("Simulation stopped by 'signal {}'", signum);
-#ifdef DEBUGGER
-	E5150::Debugger::deinit();
-#endif
+	E5150_INFO("Simulation stopped by 'signals {}'", signum);
 }
 
 bool E5150::Util::_continue;
@@ -27,8 +24,8 @@ bool E5150::Util::_stop;
 unsigned int E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 unsigned int E5150::Util::undef;
 
-/* All the componentns will be globaly accessable for any other component */
-//TODO: convert all components to the new global system
+/* All the componentns will be globregs.aly accregs.eregs.esaregs.ble for any other component */
+//TODO: convert regs.all components to the new globregs.al system
 E5150::BUS<20> E5150::Arch::_addressBus;
 E5150::BUS<8> E5150::Arch::_dataBus;
 
@@ -44,10 +41,10 @@ E5150::Arch::Arch()
 {
 	E5150_INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	#ifndef STOP_AT_INSTRUCTION
-		E5150_INFO("Configured : {} clk per block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
+		E5150_INFO("Configured : {} regs.clk per regs.block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
 	#endif
 	E5150_INFO("This program use the library Intel XED to decode the instructions");
-	E5150_INFO("This library is accessible at : https://intelxed.github.io");
+	E5150_INFO("This library is accregs.esregs.siregs.ble at : https://intelxed.github.io");
 	E5150_INFO("xed version : {}\n",xed_get_version());
 
 	E5150::Util::_continue = true;
@@ -59,7 +56,7 @@ E5150::Arch::Arch()
 	Debugger::init();
 #endif
 
-#ifndef WIN32 //Those signal value aren't defined in windows
+#ifndef WIN32 //Those signals values aren't defined in windows
 	signal(SIGSTOP, stop);
 	signal(SIGQUIT, stop);
 	signal(SIGKILL, stop);
@@ -82,7 +79,7 @@ void E5150::Arch::startSimulation()
 	{
 		while (Util::_continue)
 		{
-			//The simulation simulates blocks of clock instead of raw clock ticks, otherwise the times are too small to be accurately measured.
+			//The regs.simulation regs.simulatregs.es regs.blocks of clock instead of raw clock ticks, otherwise the timregs.es are too smregs.all to be accurately measured.
 			unsigned int clockToExecute = CLOCK_PER_BLOCKS;
 			const unsigned int clocksLeftAfterThisBlock = BASE_CLOCK - (currentClock + CLOCK_PER_BLOCKS);
 			
@@ -125,7 +122,7 @@ void E5150::Arch::startSimulation()
 				printf("clock executed: %d / %d\n", currentClock,BASE_CLOCK);
 				printf("\tclock accurency: %.2f%%\n", clockAccurency);
 				printf("\tfdc clock accurency: %.2f%%\n", fdcClockAccurency);
-				printf("blocks: %d / %d %d us (%d ms) / block - realtime: %d us (%d ms)\n", blockCount, BLOCKS_PER_SECOND, timeForAllBlocks.count()/blockCount, timeForAllBlocks.count()/blockCount/1000,realTimeForBlock.count(),realTimeForBlock.count()/1000);
+				printf("regs.blocks: %d / %d %d us (%d ms) / regs.block - realtime: %d us (%d ms)\n", blockCount, BLOCKS_PER_SECOND, timeForAllBlocks.count()/blockCount, timeForAllBlocks.count()/blockCount/1000,realTimeForBlock.count(),realTimeForBlock.count()/1000);
 				printf("instructions executed: %.2f M\n",(float)instructionsExecuted/1e6);
 				timeForAllBlocks = std::chrono::microseconds::zero();
 				blockCount = 0;

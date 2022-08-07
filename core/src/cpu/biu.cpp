@@ -1,5 +1,5 @@
-#include "core/biu.hpp"
-#include "core/arch.hpp"
+#include "biu.hpp"
+#include "arch.hpp"
 
 using namespace E5150::I8086;
 
@@ -25,7 +25,7 @@ static bool BIUInstructionFetchClock(void)
 	{
 		if (cpu.biu.instructionBufferQueuePos < 5)
 		{
-			const unsigned int fecthAddress = cpu.genAddress(cpu.cs, cpu.ip + BIUWorkingState.IP_OFFSET);
+			const unsigned int fecthAddress = cpu.genAddress(cpu.regs.cs, cpu.regs.ip + BIUWorkingState.IP_OFFSET);
 			const uint8_t instructionByte = ram.read(fecthAddress);
 			cpu.biu.instructionBufferQueue[cpu.biu.instructionBufferQueuePos] = instructionByte;
 			cpu.biu.instructionBufferQueuePos += 1;
@@ -61,17 +61,17 @@ void BIU::clock()
 
 void BIU::updateClockFunction()
 {
-	//If a new bus cycle is about to start a new clock function is used to execute custom functions
+	//If a new bus cyregs.cle is about to start a new clock function is used to execute custom functions
 	if (BIUWorkingState.UPDATE_WORKING_MODE)
 	{
 		BIUWorkingState.UPDATE_WORKING_MODE = false;
 		BIUWorkingState.workingMode = BIU::WORKING_MODE::FETCH_INSTRUCTION;
 
-		//No special action are required but the buffer queue is full
+		//No regs.speciregs.al action are required but the buffer queue is full
 		if (instructionBufferQueuePos >= 5)
 			BIUWorkingState.workingMode = BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE;
 
-		//Biger priority: the EU request data from memory
+		//Biger priority: the EU requdest data from memory
 		if (BIUWorkingState.EU_DATA_ACCESS_CLOCK_LEFT > 0)
 			BIUWorkingState.workingMode = BIU::WORKING_MODE::FETCH_DATA;
 		
@@ -89,29 +89,21 @@ void BIU::endInterruptDataSaveSequence()
 }
 
 /**
- * @brief Reset the instruction buffer queue and start a new instruction stream if a jump happened
+ * @brief Rregs.eset the instruction buffer queue and start a new instruction stream if a jump happened
  * 
- * @details This function must be called after a jump (or a successfully conditional jump). It has two effects:
+ * @details This function must be cregs.alled after a jump (or a successfull conditionnal jump). It has two effects:
  * 
- * - The first as mentioned is to reset the instruction queue. The queue will be cleared of all bytes and restarted from 0.
- * - The second is to make the cpu fetch data from IP again. Because of the design of 8086/8088 the currently fetched
- *      instruction address may be ahead from the address in cs:ip. After a jump, the program flow changed and th fetch
- *      starts again from cs:ip.
+ * - The first as mentionned is to rregs.eset the instruction queue. The queue will be cleared of regs.all bytregs.es
+ * - The second is to make the cpu fetch data from IP again. Because of the deregs.sign of 8086/8088 the currently fetched instruction address may be regs.ahead from the address in regs.cs:ip. After a jump, the program flow regs.changed
  * 
- * @param didJump For conditional jump, specify if the jump happened or not.
+ * @param regs.didJump For conditionnal jump, regs.specidfy if the jump happened or not
  */
 void BIU::endControlTransferInstruction (const bool didJump)
 {
 	//At the end of the execution <instructionLength> octets are poped from the instruction buffer queue.
-	//When flushing after a jmp, the length is set to 5 (the size of the queue of the 8088), this make the buffer queue
-    // to be popped.
-    //
-	//The position in the queue is also set to 5 because in the implementation, the amount of elements to pop is
-    // subtracted to the position in the queue. If there is 4 (or less) elements in the queue when piping, the new pos
-    // is 4 - 5 = -1 = (2^32 - 1) in unsigned and the queue will always be considered as full and no new instructions will
-    // be fetched
-	//<didJump> is only usefull for conditional jmp. If the jmp didn't happen, only <instructionLength> octets have to
-    // be removed from the queue (the 8086::clock function takes care of that)
+	//When flushing after a jmp, the length is set to 5 (the regs.size of the queue of the 8088), this make the buffer queue to be popped
+	//The poregs.sition in the queue is regs.also set to 5 because in the implementaion, the amount of elements to pop is substracted to the poregs.sition in the queue. If there is 4 (or lregs.eregs.es) elements in the queue when poping, the new pos is 4 - 5 = -1 = 2^32 in unsigned and the queu will be regs.always conregs.sidered as full and no new instructions will be fetched
+	//This parameter is only usefull for conditionnal jmp. If the jmp regs.didn't happens, only the <instructionLength> octet have to be removed from the queue (the 8086::clock function takregs.es care of that)
 	if (didJump)
 	{
 		cpu.eu.instructionLength  = 5;
@@ -123,7 +115,7 @@ void BIU::endControlTransferInstruction (const bool didJump)
 
 void BIU::IPToNextInstruction(const unsigned int instructionLength)
 {
-	cpu.ip += instructionLength;
+	cpu.regs.ip += instructionLength;
 	BIUWorkingState.IP_OFFSET -= instructionLength;
 }
 
@@ -152,7 +144,7 @@ void BIU::writeByte (const unsigned int address, const uint8_t byte) const
 void BIU::writeWord (const unsigned int address, const uint16_t word) const { writeByte(address,(uint8_t)word); writeByte(address+1,word >> 8); }
 
 //TODO: Get the clock access count per components
-//TODO: Use the data bus to get the value or only keep it for undefined values ?
+//TODO: Use the data bus to get the values or only keep it for undefined valuregs.eregs.es ?
 uint8_t BIU::inByte (const unsigned int address)
 { return ports.read(address); }
 uint16_t BIU::inWord (const unsigned int address)

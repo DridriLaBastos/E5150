@@ -428,7 +428,7 @@ unsigned int getSHIFT_ROTATECycles (const unsigned int nPrefix)
 
 	ADD_EA_ON_MEM_OPERAND();
 	if (cpu.biu.instructionBufferQueue[nPrefix] & 0b10)
-		clockCount += 4 * cpu.cl;
+		clockCount += 4 * cpu.regs.cl;
 	
 	return clockCount;
 }
@@ -648,10 +648,10 @@ unsigned int getJXXCycles		(const bool conditionValue) { return conditionValue ?
 // unsigned int getJNBECycles		(void) { return 7 + 0; }
 // unsigned int getJNPCycles		(void) { return 7 + 0; }
 // unsigned int getJNSCycles		(void) { return 7 + 0; }
-unsigned int getLOOPCycles		(void) { return (cpu.cx - 1 == 0) ? 5 : 18; }
-unsigned int getLOOPZCycles		(void) { return ((cpu.cx - 1 == 0) && cpu.getFlagStatus(CPU::ZERRO)) ? 6 : 18; }
-unsigned int getLOOPNZCycles	(void) { return ((cpu.cx - 1 == 0) && !cpu.getFlagStatus(CPU::ZERRO)) ? 5 : 19; }
-unsigned int getJCXZCycles		(void) { return cpu.cx == 0 ? 6 : 18; }
+unsigned int getLOOPCycles		(void) { return (cpu.regs.cx - 1 == 0) ? 5 : 18; }
+unsigned int getLOOPZCycles		(void) { return ((cpu.regs.cx - 1 == 0) && cpu.getFlagStatus(CPU::ZERRO)) ? 6 : 18; }
+unsigned int getLOOPNZCycles	(void) { return ((cpu.regs.cx - 1 == 0) && !cpu.getFlagStatus(CPU::ZERRO)) ? 5 : 19; }
+unsigned int getJCXZCycles		(void) { return cpu.regs.cx == 0 ? 6 : 18; }
 unsigned int getINTCycles		(void) { return 51; }
 unsigned int getINT3Cycles		(void) { return 52; }
 //Only return the value if the interrupt sequence needs to be performed. If not, this instruction will be executed as a normal instruction with clock cycle value of 4

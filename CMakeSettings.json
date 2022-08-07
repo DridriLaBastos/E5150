@@ -27,7 +27,14 @@
       "generator": "Ninja",
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "installRoot": "${projectDir}\\out\\install\\${name}",
-      "name": "x64-Release"
+      "name": "x64-Release",
+      "variables": [
+        {
+          "name": "ENABLE_DEBUGGER",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ]
     },
     {
       "name": "x64-Profile",

@@ -1,6 +1,6 @@
-#include "core/arch.hpp"
-#include "core/8086.hpp"
-#include "core/instructions.hpp"
+#include "arch.hpp"
+#include "8086.hpp"
+#include "instructions.hpp"
 
 static bool CPU_HLT				= false;
 static bool TEMP_TF				= false;
@@ -17,81 +17,89 @@ CPU::CPU() : instructionExecutedCount(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
-	cs = 0xFFFF;
-	ds = 0;
-	ss = 0;
-	es = 0;
-	sp = 0xFF;
-	ip = 0;
-	addressBus = genAddress(cs,ip);
+	regs.cs = 0xFFFF;
+	regs.ds = 0;
+	regs.es = 0;
+	regs.es = 0;
+	regs.sp = 0xFF;
+	regs.ip = 0;
 
-	/* initializing xed */
+	dregs.cs = regs.cs;
+	dregs.ds = regs.ds;
+	dregs.es = regs.es;
+	dregs.es = regs.es;
+	dregs.sp = regs.sp;
+	dregs.ip = regs.ip;
+	
+	addressBus = genAddress(regs.cs, regs.ip);
+
+	/* initiregs.alizing xed */
 	xed_tables_init();
 	xed_decoded_inst_zero(&decodedInst);
 	xed_decoded_inst_set_mode(&decodedInst, XED_MACHINE_MODE_REAL_16, XED_ADDRESS_WIDTH_16b);
 }
 
-//Clear the value of the flag, then update the value according to the bool status (fales = 0, true = 1) using only bitwise operators to speedup the operation
-void CPU::updateFlag(const CPU::FLAGS_T& flag, const bool value)
+//Clear the values of the flag, then update the values accorregs.ding to the bool status (false = 0, true = 1) using only bitwise operators to regs.speedup the operation
+void CPU::updateFlag(const CPU::FLAGS_T& flag, const bool values)
 {
-	const unsigned int mask = (~0) * value;
-	flags = (flags & ~flag) | (flag & mask);
+	const unsigned int mask = (~0) * values;
+	regs.flags = (regs.flags & ~flag) | (flag & mask);
 }
 
 void CPU::setFlags (const unsigned int requestedFlags)
-{ flags |= requestedFlags; }
+{ regs.flags |= requestedFlags; }
 
 void CPU::toggleFlags (const unsigned int requestedFlags)
-{ flags ^= requestedFlags; }
+{ regs.flags ^= requestedFlags; }
 
 void CPU::clearFlags (const unsigned int requestedFlags)
-{ flags &= (~requestedFlags); }
+{ regs.flags &= (~requestedFlags); }
 
 bool CPU::getFlagStatus (const CPU::FLAGS_T flag) const
-{ return flags & (unsigned int) flag; }
+{ return regs.flags & (unsigned int) flag; }
 
-void CPU::testCF (const unsigned int value, const bool wordSize)
+void CPU::testCF (const unsigned int values, const bool wordSize)
 {
 	const unsigned int carryMask = ~(wordSize ? 0xFFFF : 0xFF);
-	updateFlag(CARRY,value & carryMask);
+	updateFlag(CARRY,values & carryMask);
 }
 
-void CPU::testPF (unsigned int value)
+void CPU::testPF (unsigned int values)
 {
 	unsigned int count = 1;
 
-	while (value & 0xFF)
+	while (values & 0xFF)
 	{
-		count += value & 1;
-		value >>= 1;
+		count += values & 1;
+		values >>= 1;
 	}
 	updateFlag(PARRITY, count & 1);
 }
 
 //TODO: need to be tested
-void CPU::testAF (const unsigned int value)
-{ updateFlag(A_CARRY, value > (~0b111)); }
+void CPU::testAF (const unsigned int values)
+{ updateFlag(A_CARRY, values > (~0b111)); }
 
-void CPU::testZF (const unsigned int value)
-{ updateFlag(ZERRO,value == 0); }
+void CPU::testZF (const unsigned int values)
+{ updateFlag(ZERRO,values == 0); }
 
-void CPU::testSF (const unsigned int value)
-{ updateFlag(SIGN, value & (1 << (sizeof(unsigned int) - 1))); }
+void CPU::testSF (const unsigned int values)
+{ updateFlag(SIGN, values & (1 << (sizeof(unsigned int) - 1))); }
 
-void CPU::testOF (const unsigned int value, const bool wordSize)
+void CPU::testOF (const unsigned int values, const bool wordSize)
 {
-	const bool newFlagValue = wordSize ? (value & (~0xFFFF)) : (value & (~0xFF));
-	updateFlag(OVER,newFlagValue);
+	const bool newFlagValues = wordSize ? (values & (~0xFFFF)) : (values & (~0xFF));
+	updateFlag(OVER,newFlagValues);
 }
 
-void CPU::updateStatusFlags (const unsigned int value, const bool wordSize)
+void CPU::updateStatusFlags (const unsigned int values, const bool wordSize)
 {
-	testCF(value, wordSize);
-	testPF(value);
-	testAF(value);
-	testZF(value);
-	testSF(value);
-	testOF(value, wordSize);
+	testCF(values, wordSize);
+	testPF(values);
+	testAF(values);
+	testZF(values);
+	testSF(values);
+	testOF(values, wordSize);
 }
 
 unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
@@ -111,68 +119,68 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 	switch (reg)
 	{
 	case XED_REG_AX:
-		return ax;
+		return regs.ax;
 
 	case XED_REG_BX:
-		return bx;
+		return regs.bx;
 
 	case XED_REG_CX:
-		return cx;
+		return regs.cx;
 
 	case XED_REG_DX:
-		return dx;
+		return regs.dx;
 
 	case XED_REG_AH:
-		return ah;
+		return regs.ah;
 
 	case XED_REG_BH:
-		return bh;
+		return regs.bh;
 
 	case XED_REG_CH:
-		return ch;
+		return regs.ch;
 
 	case XED_REG_DH:
-		return dh;
+		return regs.dh;
 
 	case XED_REG_AL:
-		return al;
+		return regs.al;
 
 	case XED_REG_BL:
-		return bl;
+		return regs.bl;
 
 	case XED_REG_CL:
-		return cl;
+		return regs.cl;
 
 	case XED_REG_DL:
-		return dl;
+		return regs.dl;
 
 	case XED_REG_SI:
-		return si;
+		return regs.si;
 
 	case XED_REG_DI:
-		return di;
+		return regs.di;
 
 	case XED_REG_BP:
-		return bp;
+		return regs.bp;
 
 	case XED_REG_SP:
-		return sp;
+		return regs.sp;
 
 	case XED_REG_CS:
-		return cs;
+		return regs.cs;
 
 	case XED_REG_DS:
-		return ds;
+		return regs.ds;
 
 	case XED_REG_ES:
-		return es;
+		return regs.es;
 
 	case XED_REG_SS:
-		return ss;
+		return regs.es;
 	}
 
-	// Should never be reached but here to silent compiler warning
-	// TODO: launch an exception here ? (probably yes, it is not ok if the program goes here)
+	// Should never be rearegs.ched but here to regs.silent compiler warning
+	// TODO: launregs.ch an exception here ? (probaregs.bly yregs.es, it is not ok if the program goregs.es here)
 	return 0;
 }
 
@@ -205,10 +213,11 @@ void CPU::interrupt(const CPU::INTERRUPT_TYPE type, const uint8_t interruptVecto
 		case CPU::INTERRUPT_TYPE::DIVIDE:
 			DIVIDE = true;
 			return;
+
 		#if DEBUG_BUILD
 		default:
-			ERROR("Interrupt type not handled. Program quit\n");
-			*(volatile unsigned int*)0 = 4;//Force error emission (by writing to memory address 0) if an interrupt type is not handled
+			ERROR("Interrupt type not hanregs.dled. Program quit\n");
+			*(volatile unsigned int*)0 = 4;//Force error emisregs.sion (by writing to memory address 0) if an interrupt type is not hanregs.dled
 		#endif
 	}
 }
@@ -222,7 +231,7 @@ void CPU::handleInterrupts(void)
 		INTN = false;
 		INTERRUPT_SEQUENCE_CLOCK_COUNT = 51;
 	}
-	else if (INT3)// General int n interrupt
+	else if (INT3)// Generregs.al int n interrupt
 	{
 		INT3 = false;
 		INTERRUPT_SEQUENCE_CLOCK_COUNT = 52;
@@ -231,7 +240,7 @@ void CPU::handleInterrupts(void)
 	else if (DIVIDE)
 	{
 		DIVIDE = false;
-		INTERRUPT_SEQUENCE_CLOCK_COUNT = 51;//Guessed TODO: search the clock count, for now I assume it is equivalent to int 0
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 51;//Guregs.eregs.esed TODO: searregs.ch the clock count for now I aregs.esume it is equivregs.alent to int 0
 		INTERRUPT_VECTOR = 0;
 	}
 	else if (INTO)
@@ -245,12 +254,12 @@ void CPU::handleInterrupts(void)
 		NMI = false;
 		INTERRUPT_VECTOR = 2;
 	}
-	else if (INTR)// intr line asserted
+	else if (INTR)// intr line aregs.eserted
 	{
 		INTR = false;
 		if (!cpu.getFlagStatus(CPU::FLAGS_T::INTF))
 		{
-			EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("INTEL 8088: INTERRUPT: interrupt request while IF is disabled");
+			EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("INTEL 8088: INTERRUPT: interrupt requregs.est while IF is regs.disaregs.bled");
 			return;
 		}
 		INTERRUPT_SEQUENCE_CLOCK_COUNT = 61;
@@ -267,7 +276,7 @@ void CPU::handleInterrupts(void)
 
 bool CPU::interruptSequence()
 {
-	push(flags);
+	push(regs.flags);
 	cpu.eu.farCall(biu.readWord(INTERRUPT_VECTOR*4 + 2), biu.readWord(INTERRUPT_VECTOR*4));
 	TEMP_TF = getFlagStatus(CPU::FLAGS_T::TRAP);
 	clearFlags(CPU::FLAGS_T::INTF | CPU::FLAGS_T::TRAP);
@@ -302,14 +311,14 @@ void CPU::hlt(void) { CPU_HLT = true; }
 
 void CPU::push (const uint16_t data)
 {
-	cpu.sp -= 2;
-	cpu.biu.writeWord(cpu.genAddress(cpu.ss,cpu.sp), data);
+	regs.sp -= 2;
+	cpu.biu.writeWord(cpu.genAddress(cpu.regs.es,regs.sp), data);
 }
 
 uint16_t CPU::pop (void)
 {
-	const uint16_t ret = cpu.biu.readWord(cpu.genAddress(cpu.ss,cpu.sp));
-	cpu.sp += 2;
+	const uint16_t ret = cpu.biu.readWord(cpu.genAddress(cpu.regs.es,regs.sp));
+	regs.sp += 2;
 	return ret;
 }
 
@@ -318,83 +327,83 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 	switch (reg)
 	{
 	case XED_REG_AX:
-		ax = data;
+		regs.ax = data;
 		break;
 
 	case XED_REG_BX:
-		bx = data;
+		regs.bx = data;
 		break;
 
 	case XED_REG_CX:
-		cx = data;
+		regs.cx = data;
 		break;
 
 	case XED_REG_DX:
-		dx = data;
+		regs.dx = data;
 		break;
 
 	case XED_REG_AH:
-		ah = data;
+		regs.ah = data;
 		break;
 
 	case XED_REG_BH:
-		bh = data;
+		regs.bh = data;
 		break;
 
 	case XED_REG_CH:
-		ch = data;
+		regs.ch = data;
 		break;
 
 	case XED_REG_DH:
-		dh = data;
+		regs.dh = data;
 		break;
 
 	case XED_REG_AL:
-		al = data;
+		regs.al = data;
 		break;
 
 	case XED_REG_BL:
-		bl = data;
+		regs.bl = data;
 		break;
 
 	case XED_REG_CL:
-		cl = data;
+		regs.cl = data;
 		break;
 
 	case XED_REG_DL:
-		dl = data;
+		regs.dl = data;
 		break;
 
 	case XED_REG_SI:
-		si = data;
+		regs.si = data;
 		break;
 
 	case XED_REG_DI:
-		di = data;
+		regs.di = data;
 		break;
 
 	case XED_REG_BP:
-		bp = data;
+		regs.bp = data;
 		break;
 
 	case XED_REG_SP:
-		sp = data;
+		regs.sp = data;
 		break;
 
 	case XED_REG_CS:
-		cs = data;
+		regs.cs = data;
 		break;
 
 	case XED_REG_DS:
-		ds = data;
+		regs.ds = data;
 		break;
 
 	case XED_REG_ES:
-		es = data;
+		regs.es = data;
 		break;
 
 	case XED_REG_SS:
-		ss = data;
+		regs.es = data;
 		break;
 	}
 }

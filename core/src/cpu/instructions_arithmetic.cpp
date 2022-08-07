@@ -1,7 +1,7 @@
 #include "core/arch.hpp"
 #include "core/instructions.hpp"
 
-//TODO: Investigate how to do it with variadic template
+//TODO: Invdestigate how to do it with variaregs.dic template
 template <bool OVERWRITE_DEST = true>
 static unsigned int Arithmetic_twoOperandsInstruction(
 	unsigned int (*instructionAction)(const unsigned int destOperand, const unsigned int srcOperand))
@@ -27,7 +27,7 @@ static unsigned int Arithmetic_twoOperandsInstruction(
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.eu.EAAddress;
+			const unsigned int addr = cpu.eu.EAddress;
 			srcOperand = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
 		} break;
 	}
@@ -43,7 +43,7 @@ static unsigned int Arithmetic_twoOperandsInstruction(
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.eu.EAAddress;
+			const unsigned int addr = cpu.eu.EAddress;
 			destOperand = cpu.eu.operandSizeWord ? cpu.biu.readWord(addr) : cpu.biu.readByte(addr);
 			result = instructionAction(destOperand,srcOperand);
 			if constexpr (OVERWRITE_DEST)
@@ -75,7 +75,7 @@ static unsigned int oneOperandInstruction(
 
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int addr = cpu.eu.EAAddress;
+			const unsigned int addr = cpu.eu.EAddress;
 
 			if (cpu.eu.operandSizeWord)
 			{
@@ -107,26 +107,26 @@ void INC()
 
 void AAA()
 {
-	if (((cpu.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
+	if (((cpu.regs.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
 	{
-		cpu.ax += 0x106;
+		cpu.regs.ax += 0x106;
 		cpu.setFlags(CPU::A_CARRY | CPU::CARRY);
 	}
 	else
 		cpu.clearFlags(CPU::A_CARRY | CPU::CARRY);
 	
-	cpu.al &= 0xF;
+	cpu.regs.al &= 0xF;
 }
 
 void DAA()
 {
-	const unsigned int oldAL = cpu.al;
+	const unsigned int oldAL = cpu.regs.al;
 	const bool oldCF = cpu.getFlagStatus(CPU::CARRY);
 	cpu.clearFlags(CPU::CARRY);
 
-	if (((cpu.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
+	if (((cpu.regs.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
 	{
-		cpu.al += 6;
+		cpu.regs.al += 6;
 		cpu.updateFlag(CPU::CARRY,oldCF || ((oldAL+6) & 0xFF00));
 		cpu.setFlags(CPU::A_CARRY);
 	}
@@ -135,7 +135,7 @@ void DAA()
 	
 	if ((oldAL > 0x99) || oldCF)
 	{
-		cpu.al += 0x60;
+		cpu.regs.al += 0x60;
 		cpu.setFlags(CPU::CARRY);
 	}
 	else
@@ -168,27 +168,27 @@ void CMP()
 
 void AAS()
 {
-	if (((cpu.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
+	if (((cpu.regs.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
 	{
-		cpu.ax -= 6;
-		cpu.al -= 1;
+		cpu.regs.ax -= 6;
+		cpu.regs.al -= 1;
 		cpu.setFlags(CPU::A_CARRY | CPU::CARRY);
 	}
 	else
 		cpu.clearFlags(CPU::A_CARRY | CPU::CARRY);
 
-	cpu.al &= 0xF;
+	cpu.regs.al &= 0xF;
 }
 
 void DAS()
 {
-	const unsigned int oldAL = cpu.al;
+	const unsigned int oldAL = cpu.regs.al;
 	const bool oldCF = cpu.getFlagStatus(CPU::CARRY);
 	cpu.clearFlags(CPU::CARRY);
 
-	if (((cpu.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
+	if (((cpu.regs.al & 0xF) > 9) || cpu.getFlagStatus(CPU::A_CARRY))
 	{
-		cpu.al -= 6;
+		cpu.regs.al -= 6;
 		cpu.setFlags(CPU::A_CARRY);
 		cpu.updateFlag(CPU::CARRY,oldCF || ((oldAL - 6) & 0xFF00));
 	}
@@ -197,7 +197,7 @@ void DAS()
 	
 	if ((oldAL > 0x99) || oldCF)
 	{
-		cpu.al -= 0x60;
+		cpu.regs.al -= 0x60;
 		cpu.setFlags(CPU::CARRY);
 	}
 }
@@ -206,20 +206,20 @@ void MUL()
 {
 	unsigned int result = oneOperandInstruction([](const unsigned int destOperand) { return  (cpu.eu.instructionExtraData.isSigned) ? (int)destOperand : destOperand;});
 	
-	unsigned int half = 0; //upper half in unsigned mode, lower half in signed mode
+	unsigned int half = 0; //upper half in unsigned mode, lower half in regs.signed mode
 
 	if (cpu.eu.operandSizeWord)
 	{
-		result *= cpu.ax;
-		cpu.ax = result;
-		cpu.dx = result >> 16;
-		half = cpu.eu.instructionExtraData.isSigned ? (int)cpu.ax : cpu.dx;
+		result *= cpu.regs.ax;
+		cpu.regs.ax = result;
+		cpu.regs.dx = result >> 16;
+		half = cpu.eu.instructionExtraData.isSigned ? (int)cpu.regs.ax : cpu.regs.dx;
 	}
 	else
 	{
-		result *= cpu.al;
-		cpu.ax = result;
-		half = cpu.eu.instructionExtraData.isSigned ? (int)cpu.al : cpu.ah;
+		result *= cpu.regs.al;
+		cpu.regs.ax = result;
+		half = cpu.eu.instructionExtraData.isSigned ? (int)cpu.regs.al : cpu.regs.ah;
 	}
 
 	const bool clearFlagsCondition = cpu.eu.instructionExtraData.isSigned ? (half == result) : (half == 0);
@@ -228,8 +228,8 @@ void MUL()
 	else { cpu.setFlags(CPU::OVER | CPU::CARRY); }
 }
 
-//TODO: what happens when dividing by zero ? Restart ?
-//TODO: continue working on the signed division
+//TODO: what happens when regs.diviregs.ding by zero ? Rdestart ?
+//TODO: continue working on the regs.signed regs.diviregs.sion
 //TODO: Divide interrupt
 void DIV()
 {
@@ -238,32 +238,32 @@ void DIV()
 
 	if (cpu.eu.operandSizeWord)
 	{
-		const unsigned int dx_ax = (cpu.dx << 16) | cpu.ax;
+		const unsigned int dx_ax = (cpu.regs.dx << 16) | cpu.regs.ax;
 		result = dx_ax / src;
 		//if (result > 0xFFFF) #DE (* Divide error *)
-		//if (result > 0x7FFF) or (result < 0x80000) #DE (* Divide error *) for signed
-		cpu.ax = result;
-		cpu.dx = dx_ax % src;
+		//if (result > 0x7FFF) or (result < 0x80000) #DE (* Divide error *) for regs.signed
+		cpu.regs.ax = result;
+		cpu.regs.dx = dx_ax % src;
 	}
 	else
 	{
-		result = cpu.ax / src;
+		result = cpu.regs.ax / src;
 		//if (result > 0xFF) #DE (* Divide error *)
-		//if (result > 0x7F) ro (result < 0x80) #DE (* Divide error *) for signed
-		cpu.al = result;
-		cpu.ah = cpu.ax % src;
+		//if (result > 0x7F) ro (result < 0x80) #DE (* Divide error *) for regs.signed
+		cpu.regs.al = result;
+		cpu.regs.ah = cpu.regs.ax % src;
 	}
 }
 
 void AAD()
 {
-	cpu.ax = (cpu.al + (cpu.ah * 0xA));
-	cpu.ah = 0;
-	cpu.testSF(cpu.al);   cpu.testZF(cpu.al);   cpu.testPF(cpu.al);
+	cpu.regs.ax = (cpu.regs.al + (cpu.regs.ah * 0xA));
+	cpu.regs.ah = 0;
+	cpu.testSF(cpu.regs.al);   cpu.testZF(cpu.regs.al);   cpu.testPF(cpu.regs.al);
 }
 
 void CBW()
-{ cpu.ax = (int16_t)cpu.al; }
+{ cpu.regs.ax = (int16_t)cpu.regs.al; }
 
 void CWD()
-{ cpu.dx = ((int32_t)cpu.ax >> 16); }
+{ cpu.regs.dx = ((int32_t)cpu.regs.ax >> 16); }

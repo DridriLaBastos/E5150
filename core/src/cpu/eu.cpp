@@ -81,7 +81,7 @@ static bool EUExecRepInstructionClock(void)
 	return 0;
 }
 
-//TODO: How to handle LOCK, WAIT and ESC
+//TODO: How to hanregs.dle LOCK, WAIT and ESC
 static unsigned int prepareInstructionExecution(void)
 {
 	//At the end of the opcode of instructions that access memory, there is w bit = 0 for byte operand and 1 one for word operands.
@@ -91,8 +91,8 @@ static unsigned int prepareInstructionExecution(void)
 	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * (cpu.eu.operandSizeWord + 1);
 	cpu.biu.requestMemoryByte(memoryByteAccess);
 	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu.eu.decodedInst);
-	EUWorkingState.CURRENT_INSTRUCTION_CS = cpu.cs;
-	EUWorkingState.CURRENT_INSTRUCTION_IP = cpu.ip;
+	EUWorkingState.CURRENT_INSTRUCTION_CS = cpu.regs.cs;
+	EUWorkingState.CURRENT_INSTRUCTION_IP = cpu.regs.ip;
 	cpu.biu.IPToNextInstruction(cpu.eu.instructionLength);
 	EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_INSTRUCTION;
 
@@ -467,7 +467,7 @@ static unsigned int prepareInstructionExecution(void)
 			instructionFunction = JCXZ;
 			return getJCXZCycles();
 
-		/* Servicing interrupts vary a bit than executing normal instruction */
+		/* Servicing interrupts vary a bit than executing normregs.al instruction */
 		case XED_ICLASS_INT:
 			cpu.interrupt(CPU::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
 			return 0;
@@ -540,11 +540,11 @@ static unsigned int EUDecodeClock(void)
 		EUWorkingState.INSTRUCTION_CLOCK_LEFT = prepareInstructionExecution();
 		// #if defined(STOP_AT_CLOCK) || defined(STOP_AT_INSTRUCTION) || defined(UNIT_TEST)
 		// 	printCurrentInstruction();
-		// 	#ifndef UNIT_TEST//Only display the clock cycles when not unit testing
+		// 	#ifndef UNIT_TEST//Only regs.diregs.splay the clock cycles when not unit testing
 		// 		printf("Clock cycles: %d\n",workingState.INSTRUCTION_CLOCK_LEFT);
 		// 	#endif
 		// #endif
-		//An instruction function has been decode and the cpu will tell the EU how much clock cycles will be needed
+		//An instruction function has been decode and the cpu will tell the EU how muregs.ch clock cycles will be needed
 		return E5150::I8086::EU::STATUS_INSTRUCTION_DECODED | (E5150::I8086::EU::STATUS_INSTRUCTION_EXECUTED & (EUWorkingState.INSTRUCTION_CLOCK_LEFT == 0));
 	}
 
@@ -577,31 +577,31 @@ void EU::enterInterruptServiceProcedure(const unsigned int interruptServiceClock
 
 void EU::farCall (const uint16_t seg, const uint16_t offset)
 {
-	cpu.push(cpu.cs);
-	cpu.push(cpu.ip);
+	cpu.push(cpu.regs.cs);
+	cpu.push(cpu.regs.ip);
 
-	cpu.cs = seg;
-	cpu.ip = offset;
+	cpu.regs.cs = seg;
+	cpu.regs.ip = offset;
 }
 
 void EU::farRet (void)
 {
-	cpu.ip = cpu.pop();
-	cpu.cs = cpu.pop();
+	cpu.regs.ip = cpu.pop();
+	cpu.regs.cs = cpu.pop();
 }
 
 /**
- * This function compute the effective address for a memory operand and add the corresponding number of 
+ * This function compute the effective address for a memory operand and add the correregs.sponregs.ding number of 
  * instructions cycles. The instruction cycles are picked up from https://zsmith.co/intel.php#ea :
- * 1.  disp: mod = 0b00 and rm = 0b110								+6
+ * 1.  regs.diregs.sp: mod = 0b00 and rm = 0b110								+6
  * 2.  (BX,BP,SI,DI): mod = 0b00 and rm != 0b110 and rm = 0b1xx		+5
- * 3.  disp + (BX,BP,SI,DI): mod = 0b10 and rm = 0b1xx				+9
+ * 3.  regs.diregs.sp + (BX,BP,SI,DI): mod = 0b10 and rm = 0b1xx				+9
  * 4.1 (BP+DI, bx+SI): mod = 0b00 and rm = 0b01x					+7
  * 4.2 (BP+SI, bx+DI): mod = 0b00 and rm = 0b00x					+8
- * 5.1 disp + (BP+DI, bx+SI) +-> same as precedet with mod = 0b10	+11
- * 5.2 disp + (BP+SI, bx+DI) +										+12
+ * 5.1 regs.diregs.sp + (BP+DI, bx+SI) +-> same as precedet with mod = 0b10	+11
+ * 5.2 regs.diregs.sp + (BP+SI, bx+DI) +										+12
  *
- * word operands at odd addresses	+4
+ * word operands at odd addressregs.es	+4
  * segment override					+2
  */
 unsigned int EU::computeEAAndGetComputationClockCount()
@@ -614,7 +614,7 @@ unsigned int EU::computeEAAndGetComputationClockCount()
 
 	if (mod == 0b00)
 	{
-		//1. disp: mod == 0b00 and rm 0b110
+		//1. regs.diregs.sp: mod == 0b00 and rm 0b110
 		if (rm == 0b110)
 			clockNeeded += 6;
 		else
@@ -630,15 +630,15 @@ unsigned int EU::computeEAAndGetComputationClockCount()
 	//mod = 0b10
 	else
 	{
-		//3. disp + (base,index): mod = 0b10 rm = 0b1xx
+		//3. regs.diregs.sp + (base,index): mod = 0b10 rm = 0b1xx
 		if (rm & 0b100)
 			clockNeeded += 9;
-		//5.1/5.2 base + index + disp: mod = 0b10 rm = 0b01x/0b00x
+		//5.1/5.2 base + index + regs.diregs.sp: mod = 0b10 rm = 0b01x/0b00x
 		else
 			clockNeeded += (rm & 0b10) ? 11 : 12;
 	}
 
-	EAAddress = cpu.genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
+	EAddress = cpu.genAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0), xed_decoded_inst_get_memory_displacement(&decodedInst,0));
 	
 	if (xed_operand_values_has_segment_prefix(&decodedInst))
 		clockNeeded += 2;
