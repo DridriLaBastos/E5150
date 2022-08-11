@@ -1,5 +1,5 @@
-#include "util.hpp"
-#include "arch.hpp"
+#include "core/util.hpp"
+#include "core/arch.hpp"
 #include "debugger.hpp"
 #include "communication/command.h"
 
@@ -22,7 +22,12 @@ static bool debuggerInitialized = false;
 static struct
 {
 	COMMAND_TYPE type;
-	unsigned int subtype;
+
+	union {
+		unsigned int passType;
+		unsigned int subtype;
+	};
+
 	union
 	{
 		unsigned int value;
@@ -32,6 +37,7 @@ static struct
 	void clear(void)
 	{
 		type = COMMAND_TYPE_ERROR;
+		passType = 0;
 		subtype = 0;
 		value = 0;
 	}
@@ -51,6 +57,7 @@ void E5150::Debugger::init()
 		}
 
 		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
+		E5150_WARNING("\tIf this behaviour persists, remove the file '" EMULATOR_TO_DEBUGGER_FIFO_FILENAME "'");
 	}
 
 	if (const PLATFORM_CODE code = fifoCreate(DEBUGGER_TO_EMULATOR_FIFO_FILENAME); code != PLATFORM_SUCCESS)
@@ -62,6 +69,7 @@ void E5150::Debugger::init()
 		}
 
 		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
+		E5150_WARNING("\tIf this behaviour persists, remove the file '" DEBUGGER_TO_EMULATOR_FIFO_FILENAME "'");
 	}
 
 	const char* debuggerArgs [] = {
@@ -228,7 +236,7 @@ static void printCurrentInstruction(void)
 		std::cout << " (" << cpu.instructionExecutedCount << ")\n";
 }
 
-static void printInstruction(void)
+static void printCpuInfos(void)
 {
 		printRegisters();
 		printFlags();
@@ -238,7 +246,7 @@ static void printInstruction(void)
 static void handleContinueCommand()
 {
 	context.type = COMMAND_TYPE_CONTINUE;
-	read(fromDebugger, &context.subtype, sizeof(CONTINUE_TYPE));
+	read(fromDebugger, &context.passType, sizeof(PASS_TYPE));
 	read(fromDebugger, &context.count, sizeof(unsigned int));
 
 	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
@@ -247,14 +255,20 @@ static void handleContinueCommand()
 
 static void handleStepCommand()
 {
-	uint8_t stepFlags;
-	read(fromDebugger,&stepFlags,1);
+	uint8_t passFlags;
+	read(fromDebugger,&passFlags,1);
 
-	if ((stepFlags & STEP_TYPE_CLOCK) && (stepFlags & STEP_TYPE_PASS))
-	{ E5150_INFO("Using pass flag with clock has no effects"); }
+	if ((passFlags & PASS_TYPE_CLOCKS) && (passFlags & PASS_TYPE_STEP_THROUGH))
+	{
+		E5150_INFO("Using pass flag with clock has no effects");
+		passFlags &= ~PASS_TYPE_STEP_THROUGH;
+	}
+
+	if ((passFlags & PASS_TYPE_INSTRUCTIONS) && (passFlags & PASS_TYPE_STEP_THROUGH))
+	{ passFlags = PASS_TYPE_STEP_THROUGH; }
 
 	context.type = COMMAND_TYPE_STEP;
-	context.subtype = stepFlags;
+	context.passType = passFlags;
 	context.count = 1;
 }
 
@@ -294,34 +308,6 @@ static bool isControlTransferIn( const xed_iclass_enum_t& iclass )
 			(iclass == XED_ICLASS_INT) || (iclass == XED_ICLASS_INT1) || (iclass == XED_ICLASS_INT3) || (iclass == XED_ICLASS_INTO);
 }
 
-static bool isControlTranferOut(const xed_iclass_enum_t& iclass)
-{ return (iclass == XED_ICLASS_RET_FAR) || (iclass == XED_ICLASS_RET_NEAR) || (iclass == XED_ICLASS_IRET); }
-
-FORCE_INLINE static bool executeUntilNextInstruction(const bool instructionExecuted, const bool instructionDecoded)
-{
-	context.count -= instructionExecuted && (context.count > 0);
-	return (context.count > 0) || (!instructionDecoded);
-}
-
-static bool executeContinueCommand(const bool instructionExecuted, const bool instructionDecoded)
-{
-	if (context.subtype == CONTINUE_TYPE_INFINITE) { return true; }
-
-	bool executionDone = false;
-
-	switch (context.subtype)
-	{
-		case CONTINUE_TYPE_CLOCK:
-			context.count -= 1;
-			executionDone = context.count == 0;
-		
-		case CONTINUE_TYPE_INSTRUCTION:
-			executionDone = !executeUntilNextInstruction(instructionExecuted, instructionDecoded);
-	}
-
-	if (executionDone) { E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel; }
-}
-
 static void printClockLevelBIUEmulationLog(void)
 {
 	const auto& BIUState = cpu.biu.getDebugWorkingState();
@@ -330,7 +316,7 @@ static void printClockLevelBIUEmulationLog(void)
 	{
 	case I8086::BIU::WORKING_MODE::FETCH_INSTRUCTION:
 	{
-		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: BUS CYCLE {} (clock count down: {}) --- FETCHING {} ({}:{})", BIUState.BUS_CYCLE_CLOCK - BIUState.BUS_CYCLE_CLOCK_LEFT, BIUState.BUS_CYCLE_CLOCK_LEFT, cpu.genAddress(cpu.cs, cpu.ip + BIUState.IP_OFFSET), cpu.cs, cpu.ip + BIUState.IP_OFFSET);
+		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: BUS CYCLE {} (clock count down: {}) --- FETCHING 0x{:X} (0x{:X}:0x{:X})", BIUState.BUS_CYCLE_CLOCK - BIUState.BUS_CYCLE_CLOCK_LEFT, BIUState.BUS_CYCLE_CLOCK_LEFT, cpu.genAddress(cpu.cs, cpu.ip + BIUState.IP_OFFSET), cpu.cs, cpu.ip + BIUState.IP_OFFSET);
 
 			//TODO: This should be given inside the state variable
 		if ((cpu.biu.instructionBufferQueuePos <= 5) && BIUState.BUS_CYCLE_CLOCK_LEFT == BIUState.BUS_CYCLE_CLOCK)
@@ -355,11 +341,11 @@ static void printClockLevelBIUEmulationLog(void)
 		break;
 
 	case I8086::BIU::WORKING_MODE::WAIT_ROOM_IN_QUEUE:
-		EMULATION_INFO_LOG < EMULATION_MAX_LOG_LEVEL>("BIU: INSTRUCTION BUFFER QUEUE FULL");
+		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: INSTRUCTION BUFFER QUEUE FULL");
 		break;
 
 	case I8086::BIU::WORKING_MODE::WAIT_END_OF_INTERRUPT_DATA_SAVE_SEQUENCE:
-		EMULATION_INFO_LOG < EMULATION_MAX_LOG_LEVEL>("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE");
+		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: WAITING END OF INTERRUPT DATA SAVING PROCEDURE");
 		break;
 
 	default:
@@ -370,65 +356,51 @@ static void printClockLevelBIUEmulationLog(void)
 static void printClockLevelEUEmulationLog(void)
 {
 	const auto& EUInfo = cpu.eu.getDebugWorkingState();
-	
 }
 
-static bool executeStepCommand(const bool instructionExecuted, const bool instructionDecoded)
+/**
+ * @brief Executes the continue and step commands
+ * 
+ * @param instructionExecuted the CPU finishes to execute an instruction
+ * @param instructionDecoded the CPU has decoded an instruction
+ * @retval true the command is still being executed
+ * @retval false the command execution is done
+ */
+static bool executePassCommand(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
-	printClockLevelBIUEmulationLog();
-	printClockLevelEUEmulationLog();
-	if (context.subtype & STEP_TYPE_CLOCK) { return false; }
-	if (context.subtype & STEP_TYPE_INSTRUCTION) { return executeUntilNextInstruction(instructionExecuted,instructionDecoded); }
-	//TODO: STEP_TYPE_INSTRUCTION & STEP_TYPE_PASS
-	return false;
-}
-
-
-//TODO: better design pattern for command execution
-static bool executeCommand(const uint8_t instructionExecuted, const bool instructionDecoded)
-{
-	if (context.type == COMMAND_TYPE_ERROR) { return false; }
-
-	switch (context.type)
+	switch (context.passType)
 	{
-		case COMMAND_TYPE_CONTINUE:
-			return executeContinueCommand(instructionExecuted,instructionDecoded);
-		
-		case COMMAND_TYPE_STEP:
-			return executeStepCommand(instructionExecuted,instructionDecoded);
-		
-		default:
-			return false;
-	}
+		case PASS_TYPE_CLOCKS:
+			printClockLevelBIUEmulationLog();
+			printClockLevelEUEmulationLog();
+			context.count -= 1;
+			return context.count;
 
-	// 	case (COMMAND_TYPE_STEP):
-	// 	{
-	// 		printBIUDebugInfo();
-	// 		printEUDebugInfo();
-	// 		if (context.subtype & STEP_TYPE_INSTRUCTION)
-	// 		{
-	// 			if (instructionDecoded & (context.subtype & STEP_TYPE_PASS))
-	// 			{
-	// 				const xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&cpu.eu.decodedInst);
-	// 				context.count += isControlTransferIn(iclass);
-	// 				context.count -= isControlTranferOut(iclass);
-	// 			}
-	// 			else
-	// 			{ context.count -= instructionExecuted; }
-	// 		}
-	// 		else
-	// 		{ context.count -= 1; }
-	// 	}
-	// }
+		case PASS_TYPE_INSTRUCTIONS:
+			//When the execution of a command is done, the emulator will stop and display the state of the cpu.
+			//If at the end of the execution, a new instruction hasn't been decoded, the CPU will still display that the current
+			//instruction executed is the previous one, and it can be confusing for the user. Instead, when count is 0, the command
+			//still maintain it's execution state until a new instruction have been decoded
+			context.count -= (instructionExecuted) && (context.count > 0);
+			return (context.count > 0) || (!instructionDecoded);
+		//case STEP_TROUGH
+		case PASS_TYPE_INFINITE:
+			return true;
+
+		default:
+			E5150_WARNING("Unknown way execute a pass command (continue/step). Command aborted");
+			break;
+	}
+	return false;
 }
 
 //TODO: Debugger error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
 void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {	
-	static COMMAND_TYPE commandType;
-	static uint8_t shouldStop;
-	static const uint8_t commandEndSynchro = 0;//Only here to notify the debugger the emulator finished executing the command
-	static bool unizializedDebuggerWarningNotPrinted = true;
+	COMMAND_TYPE commandType;
+	uint8_t shouldStop;
+	const uint8_t commandEndSynchro = 0;//Only here to notify to the debugger that the emulator finished executing the command
+	bool unizializedDebuggerWarningNotPrinted = true;
 
 	if (!debuggerInitialized) {
 		if (unizializedDebuggerWarningNotPrinted) {
@@ -437,11 +409,15 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 		}
 		return;
 	}
-	if (executeCommand(instructionExecuted, instructionDecoded)) { return; }
+
+	if (context.type == COMMAND_TYPE_CONTINUE || context.type == COMMAND_TYPE_STEP)
+	{
+		if (executePassCommand(instructionExecuted, instructionDecoded)) { return; }
+		if (context.type == COMMAND_TYPE_CONTINUE) { E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel; }
+	}
 	
 	context.clear();
-	printInstruction();
-
+	printCpuInfos();
 	if(write(toDebugger,&cpu.instructionExecutedCount,8) == -1) { return; }
 	
 	do
@@ -473,7 +449,9 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				E5150_WARNING("Unknown response from debugger, behaviour may be unpredicatable");
 				break;
 		}
-		if (read(fromDebugger,&shouldStop,1) < 0) { break; }
-		if (write(toDebugger, &commandEndSynchro, 1) < 0) { break;; }
-	} while (!shouldStop);
+		if (read(fromDebugger,&shouldStop,1) != 0) { break; }
+		if (write(toDebugger, &commandEndSynchro, 1) < 0) { break; }
+
+		shouldStop |= context.type == COMMAND_TYPE_QUIT;
+	} while (!shouldStop && !context.type);
 }

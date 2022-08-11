@@ -18,21 +18,33 @@ static COMMAND_RECEIVED_STATUS sendCommandToEmulatorAndGetStatus(const COMMAND_T
 ////                                CONTINUE
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-static int debuggerToEmulator_SendContinueCommandInfo(const CONTINUE_TYPE continueType, const unsigned int value)
-{
-	if (!sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_CONTINUE))
-	{ return false; }
-
-	writeToEmulator(&continueType,sizeof(continueType));
-	writeToEmulator(&value, sizeof(value));
-	return true;
-}
-
 int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 {
-	if (instructionCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INSTRUCTION, instructionCounts); }
-	if (clockCounts >= 0) { return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_CLOCK, clockCounts); }
-	return debuggerToEmulator_SendContinueCommandInfo(CONTINUE_TYPE_INFINITE, -1);
+	const COMMAND_RECEIVED_STATUS status = sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_CONTINUE);
+	if (status) { return false; }
+
+	PASS_TYPE passType;
+	unsigned int passCount;
+
+	if (instructionCounts > 0)
+	{
+		passType = PASS_TYPE_INSTRUCTIONS;
+		passCount = instructionCounts;
+	}
+	else if (clockCounts > 0)
+	{
+		passType = PASS_TYPE_CLOCKS;
+		passCount = clockCounts;
+	}
+	else
+	{
+		passType = PASS_TYPE_INFINITE;
+		passCount = -1;
+	}
+
+	writeToEmulator(&passType, sizeof(passType));
+	writeToEmulator(&passCount, sizeof(passCount));
+	return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -41,16 +53,16 @@ int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 
 int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag)
 {
-	if(sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_STEP))
-	{
-		uint8_t stepFlags = 0;
+	const COMMAND_RECEIVED_STATUS status = sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_STEP);
+	if (status) { return false; }
 
-		if (instructionFlag) { stepFlags |= STEP_TYPE_INSTRUCTION; }
-		if (clockFlag) { stepFlags |= STEP_TYPE_CLOCK; }
-		if (passFlag) { stepFlags |= STEP_TYPE_PASS; }
+	uint8_t stepFlags = 0;
 
-		writeToEmulator(&stepFlags,1);
-	}
+	if (instructionFlag) { stepFlags |= PASS_TYPE_INSTRUCTIONS; }
+	if (clockFlag) { stepFlags |= PASS_TYPE_CLOCKS; }
+	if (passFlag) { stepFlags |= PASS_TYPE_STEP_THROUGH; }
+
+	writeToEmulator(&stepFlags,sizeof(stepFlags));
 	return true;
 }
 
@@ -71,4 +83,5 @@ int sendDisplayCommandInfo(const int newLogLevel)
 int sendQuitCommandInfo()
 {
 	sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_QUIT);
+	return true;
 }
