@@ -5,8 +5,8 @@
 //  Created by Adrien COURNAND on 01/08/2021.
 //
 
-#include "arch.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/instructions.hpp"
 
 #define CLOCK_CYCLES(...) static const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
 #define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)];

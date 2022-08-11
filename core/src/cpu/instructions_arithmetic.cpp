@@ -1,5 +1,5 @@
-#include "arch.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/instructions.hpp"
 
 //TODO: Investigate how to do it with variadic template
 template <bool OVERWRITE_DEST = true>

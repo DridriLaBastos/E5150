@@ -1,7 +1,7 @@
 #ifndef __COMMUNICATION_H__
 #define __COMMUNICATION_H__
 
-#include "platform.h"
+#include "debugger/platform.h"
 
 /**
  * @brief Register the file descriptor to talk between the emulator and the debugger

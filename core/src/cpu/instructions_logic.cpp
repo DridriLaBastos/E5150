@@ -1,5 +1,5 @@
-#include "arch.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/instructions.hpp"
 
 template <bool SAVE_RESULT = true>
 static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunction)(unsigned int destOperand, unsigned int srcOperand))

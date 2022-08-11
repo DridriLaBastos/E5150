@@ -1,5 +1,5 @@
-#include "arch.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/instructions.hpp"
 
 void CLC () { cpu.clearFlags(CPU::CARRY); }
 void CMC () { cpu.toggleFlags(CPU::CARRY); }

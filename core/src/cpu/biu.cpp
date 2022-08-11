@@ -1,5 +1,5 @@
-#include "biu.hpp"
-#include "arch.hpp"
+#include "core/biu.hpp"
+#include "core/arch.hpp"
 
 using namespace E5150::I8086;
 

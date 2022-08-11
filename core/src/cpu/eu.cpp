@@ -1,7 +1,7 @@
-#include "eu.hpp"
-#include "arch.hpp"
+#include "core/eu.hpp"
+#include "core/arch.hpp"
 
-#include "instructions.hpp"
+#include "core/instructions.hpp"
 
 using namespace E5150::I8086;
 static bool EUWaitSuccessfullDecodeClock(void);

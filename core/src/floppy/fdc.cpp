@@ -1,5 +1,5 @@
-#include "fdc.hpp"
-#include "command.hpp"
+#include "core/fdc.hpp"
+#include "core/command.hpp"
 
 using namespace E5150;
 

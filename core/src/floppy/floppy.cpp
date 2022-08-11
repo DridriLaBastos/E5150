@@ -1,4 +1,4 @@
-#include "floppy.hpp"
+#include "core/floppy.hpp"
 
 #define FLPEmulationLog(REQUIRED_LOG_LEVEL,LOG_MSG,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("FLOPPY {}: " LOG_MSG,driverNumber,##__VA_ARGS__)
 #define EXTERNAL_FLPEmulationLog(REQUIRED_LOG_LEVEL,LOG_MSG,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("FLOPPY {}: " LOG_MSG,flp->driverNumber,##__VA_ARGS__)

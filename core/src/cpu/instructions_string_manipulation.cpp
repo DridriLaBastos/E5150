@@ -1,5 +1,5 @@
-#include "arch.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/instructions.hpp"
 
 //TODO: Is there a case where the rep prefix isn't the first ?
 static FORCE_INLINE void REP_OPERATIONS(void)

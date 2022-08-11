@@ -1,4 +1,4 @@
-#include "command.hpp"
+#include "core/command.hpp"
 
 /**
  * Maybe all this template stuffs are not needed but I wanted to try something because I don't template

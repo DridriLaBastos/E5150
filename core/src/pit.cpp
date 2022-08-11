@@ -1,4 +1,4 @@
-#include "pit.hpp"
+#include "core/pit.hpp"
 
 #define PITEmulationLog(REQUIRED_LOG_LEVEL,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("PIT: " __VA_ARGS__)
 

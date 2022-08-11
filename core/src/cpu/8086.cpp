@@ -1,6 +1,6 @@
-#include "arch.hpp"
-#include "8086.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/8086.hpp"
+#include "core/instructions.hpp"
 
 static bool CPU_HLT				= false;
 static bool TEMP_TF				= false;

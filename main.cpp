@@ -1,4 +1,4 @@
-#include "core/include/arch.hpp"
+#include "core/arch.hpp"
 
 /* Exemple de fonctionnement */
 int main (void)

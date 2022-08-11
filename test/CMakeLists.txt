@@ -1,22 +1,27 @@
 project(test)
 
- enable_language(ASM_NASM)
+enable_language(ASM_NASM)
 
- set(CMAKE_ASM_NASM_OBJECT_FORMAT bin)
- set(CMAKE_ASM_NASM_FLAGS "-I ${CMAKE_SOURCE_DIR}")
+set(CMAKE_ASM_NASM_OBJECT_FORMAT bin)
+set(CMAKE_ASM_NASM_FLAGS "-I ${CMAKE_SOURCE_DIR}")
 
- file(DOWNLOAD http://www.minuszerodegrees.net/bios/BIOS_IBM5150_24APR81_5700051_U33.BIN ${PROJECT_BINARY_DIR}/ibm_bios.bin SHOW_PROGRESS)
- file(SHA256 ${PROJECT_BINARY_DIR}/ibm_bios.bin IBM_BIOS_CHECKSUM)
- set(IBM_BIOS_EXPECTED_CHECKSUM "a259306c47b43e14ef6378d7bdeff67331a2519d363bc36b3f354bc91a6874c8")
+if (NOT EXISTS ${PROJECT_BINARY_DIR}/ibm_bios.bin)
+	file(DOWNLOAD http://www.minuszerodegrees.net/bios/BIOS_IBM5150_24APR81_5700051_U33.BIN ${PROJECT_BINARY_DIR}/ibm_bios.bin SHOW_PROGRESS)
+	file(SHA256 ${PROJECT_BINARY_DIR}/ibm_bios.bin IBM_BIOS_CHECKSUM)
+	set(IBM_BIOS_EXPECTED_CHECKSUM "a259306c47b43e14ef6378d7bdeff67331a2519d363bc36b3f354bc91a6874c8")
 
- if (NOT (${IBM_BIOS_CHECKSUM} STREQUAL ${IBM_BIOS_EXPECTED_CHECKSUM}))
- message(WARNING "Checksum of the downloaded bios doesn't matche the expected one, emulation may behave oddly")
- message(AUTHOR_WARNING "Excpected checksum: ${IBM_BIOS_EXPECTED_CHECKSUM} got ${IBM_BIOS_CHECKSUM}")
- endif()
+	message(CHECK_START "Downloaded BIOS file integrity")
+	if (${IBM_BIOS_CHECKSUM} STREQUAL ${IBM_BIOS_EXPECTED_CHECKSUM})
+		message(CHECK_PASS "OK")
+	else()
+		message(CHECK_FAIL "Downloaded BIOS file contains an error")
+		message(AUTHOR_WARNING "Excpected checksum: ${IBM_BIOS_EXPECTED_CHECKSUM} got ${IBM_BIOS_CHECKSUM}")
+	endif()
+else()
+	message(STATUS "BIOS file already downloaded")
+endif()
 
- message("Downloaded bios file hash: ${IBM_BIOS_CHECKSUM}")
-
- add_custom_command(OUTPUT bios.bin
+add_custom_command(OUTPUT bios.bin
  					COMMAND ${CMAKE_ASM_NASM_COMPILER} -f ${CMAKE_ASM_NASM_OBJECT_FORMAT} ${CMAKE_ASM_NASM_FLAGS} ${PROJECT_SOURCE_DIR}/bios.s -o bios.bin
                     MAIN_DEPENDENCY ${PROJECT_SOURCE_DIR}/bios.s
  				)

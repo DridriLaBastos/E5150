@@ -1,5 +1,5 @@
-#include "arch.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/instructions.hpp"
 
 void CALL_NEAR()
 {

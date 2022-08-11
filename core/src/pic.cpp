@@ -1,4 +1,4 @@
-#include "pic.hpp"
+#include "core/pic.hpp"
 
 #define PICEmulationLog(REQUIRED_LOG_LEVEL,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("PIC: " __VA_ARGS__)
 

@@ -1,10 +1,10 @@
 #include <csignal>
 
-#include "arch.hpp"
-#include "util.hpp"
+#include "core/arch.hpp"
+#include "core/util.hpp"
 
 #ifdef DEBUGGER
-#include "debugger.hpp"
+#include "debugger/debugger.hpp"
 #endif
 
 static constexpr unsigned int CLOCK_PER_BLOCKS = 1500000;

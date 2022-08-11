@@ -1,6 +1,6 @@
-#include "arch.hpp"
-#include "ports.hpp"
-#include "component.hpp"
+#include "core/arch.hpp"
+#include "core/ports.hpp"
+#include "core/component.hpp"
 
 #define PORTSEmulationLog(REQUIRED_LOG_LEVEL,...) EMULATION_INFO_LOG<REQUIRED_LOG_LEVEL>("PORTS: " __VA_ARGS__)
 

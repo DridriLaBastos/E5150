@@ -1,5 +1,5 @@
-#include "ram.hpp"
-#include "arch.hpp"
+#include "core/ram.hpp"
+#include "core/arch.hpp"
 
 RAM::RAM(): mRamPtr(new uint8_t[0x100000]), m_mappedDevices()
 {

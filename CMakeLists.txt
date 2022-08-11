@@ -29,20 +29,16 @@ file(GLOB CORE_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/*.cpp")
 file(GLOB CPU_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/cpu/*.cpp")
 file(GLOB FLOPPY_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/floppy/*.cpp")
 
-file(GLOB CORE_HEADERS "${PROJECT_SOURCE_DIR}/core/include/*.hpp")
-set_source_files_properties(${CORE_HEADERS} PROPERTIES HEADER_FILE_ONLY TRUE)
-
-source_group(TREE ${PROJECT_SOURCE_DIR} FILES main.cpp ${CORE_SRC} ${CORE_HEADERS})
-
 set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
 
-# Addind the header only files as sources to make theme appear in IDE, only using source_group isn't enougth if th source file isn't used
-add_executable(epc main.cpp ${EMULATOR_SRC} ${EMULATOR_HEADERS})
+# Adding the header only files as sources to make theme appear in IDE, only using source_group isn't enougth if th source file isn't used
+add_executable(epc main.cpp ${EMULATOR_SRC})
 add_dependencies(epc asm-test)
 
-target_include_directories(epc PUBLIC ${PROJECT_SOURCE_DIR}/core/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/spdlog/include PUBLIC ${PROJECT_SOURCE_DIR}/third-party/include PUBLIC ${PROJECT_BINARY_DIR}/third-party/include)
+include_directories(. third-party/spdlog/include ${CMAKE_BINARY_DIR}/third-party/include)
+
 target_link_libraries(epc ${XED_LIB_PATH})
-target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${PROJECT_SOURCE_DIR}/core/include/pch.hpp>)
+target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX>:core/pch.hpp>)
 
 if (ENABLE_DEBUGGER)
 	set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
@@ -66,10 +62,8 @@ if (ENABLE_DEBUGGER)
 									PRIVATE DEBUGGER_PLATFORM_STRING="${DEBUGGER_PLATFORM_STRING}"
 									PRIVATE DEBUGGER
 									PRIVATE PYTHON3_EXECUTABLE_PATH="${Python3_EXECUTABLE}")
-	target_include_directories(epc PRIVATE ${DEBUGGER_SRC_PATH})
 
 	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
-	target_include_directories(decom PRIVATE ${DEBUGGER_SRC_PATH})
 	add_dependencies(epc decom)
 endif()
 
