@@ -33,7 +33,11 @@ process_t processCreate(const char* processCommandLineArgs[], const size_t proce
 
 enum PLATFORM_CODE processTerminate(process_t process)
 {
-	if (kill(process,SIGTERM) < 0) { return PLATFORM_ERROR; }
+	if (kill(process,SIGTERM) < 0)
+	{
+		//If the nice way doesn't work
+		return kill(process,SIGKILL) != 0 ? PLATFORM_ERROR : PLATFORM_SUCCESS;
+	}
 	return waitpid(process,NULL,WUNTRACED) == process ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 

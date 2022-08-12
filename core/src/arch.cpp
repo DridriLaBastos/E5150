@@ -17,6 +17,9 @@ static void stop(const int signum)
 {
 	E5150::Util::_continue = false;
 	E5150_INFO("Simulation stopped by 'signal {}'", signum);
+#ifdef DEBUGGER
+	E5150::Debugger::deinit();
+#endif
 }
 
 bool E5150::Util::_continue;

@@ -117,11 +117,24 @@ void E5150::Debugger::init()
 
 void E5150::Debugger::deinit()
 {
-	if (processTerminate(debuggerProcess) != PLATFORM_SUCCESS)
-	{ E5150_INFO("Cannot stop debugger process. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
-	
-	if (close(toDebugger)   == -1) { E5150_DEBUG("Error when closing " EMULATOR_TO_DEBUGGER_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
-	if (close(fromDebugger) == -1) { E5150_DEBUG("Error when closing " DEBUGGER_TO_EMULATOR_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
+	if (debuggerProcess >= 0)
+	{
+		if (processTerminate(debuggerProcess) != PLATFORM_SUCCESS)
+		{ E5150_INFO("Cannot stop debugger process. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
+		else { debuggerProcess = -1; }
+	}
+
+	if (toDebugger >= 0)
+	{
+		if (close(toDebugger)   == -1) { E5150_DEBUG("Error when closing " EMULATOR_TO_DEBUGGER_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
+		else { toDebugger = -1; }
+	}
+
+	if (fromDebugger >= 0)
+	{
+		if (close(fromDebugger) == -1) { E5150_DEBUG("Error when closing " DEBUGGER_TO_EMULATOR_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
+		else { fromDebugger = -1; }
+	}
 
 	remove(FIFO_PATH(EMULATOR_TO_DEBUGGER_FIFO_FILENAME));
 	remove(FIFO_PATH(DEBUGGER_TO_EMULATOR_FIFO_FILENAME));
