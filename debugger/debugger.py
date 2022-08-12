@@ -20,7 +20,6 @@ class DebuggerShell(cmd.Cmd):
 	# Override core functions #
 	###########################
 	def cmdloop(self) -> None:
-		global instructionExecCount
 		instructionExecCount = int.from_bytes(fromEmulator.read(8),byteorder="little")
 		self.prompt = f"({instructionExecCount}) > "
 		return super().cmdloop()
@@ -53,24 +52,6 @@ class DebuggerShell(cmd.Cmd):
 			self._parse(arg + " --help")
 		return False
 
-def shellLoop():
-	global instructionExecCount
-	global fromEmulator
-	global toEmulator
-	exitLoop = False
-	lastExecutedCmd = None
-	instructionExecCount += int.from_bytes(fromEmulator.read(8),byteorder="little")
-	while not exitLoop:
-		cmd = input(f"({instructionExecCount}) > ")
-
-		if not cmd and lastExecutedCmd:
-			cmd = lastExecutedCmd
-
-		exitLoop = commands.parse(fromEmulator,toEmulator,cmd)
-		lastExecutedCmd = cmd
-
-	toEmulator.write(b'\x01' if exitLoop else b'\x00')
-
 if __name__ == "__main__":
 	args = parser.parse_args()
 	print("[E5150 DEBUGGER]: Debugger is running!")
@@ -81,8 +62,6 @@ if __name__ == "__main__":
 
 	fromEmulatorFifoFileName = f"{pipePathPrefix}{args.read_fifo_filename}"
 	toEmulatorFifoFileName = f"{pipePathPrefix}{args.write_fifo_filename}"
-
-	print(f"computed path: ed '{fromEmulatorFifoFileName}'   de '{toEmulatorFifoFileName}'")
 
 	fromEmulator = open(fromEmulatorFifoFileName, "rb", buffering=0)
 	toEmulator = open(toEmulatorFifoFileName, "wb", buffering=0)
