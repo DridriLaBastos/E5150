@@ -3,28 +3,26 @@
 
 #include "debugger/platform.h"
 
-/**
- * @brief Register the file descriptor to talk between the emulator and the debugger
- * 
- * @param toDebugger descriptor for writing from the emulator to the debugger
- * @param toEmulator descriptor for writing from the debugger to the emulator
- */
-DLL_EXPORT void registerCommunicationFifos(const int fromEmulator, const int toEmulator);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/**
- * @brief Platform independant function to write data to the emulator
- * 
- * @param indata pointer to the data to write
- * @param size size in octets of the data to write
- */
-DLL_EXPORT void writeToEmulator(const uint8_t* const indata, const size_t size);
+DLL_EXPORT void registerCommunicationFifos(const int fromDest, const int toDest);
 
-/**
- * @brief Platform independant function to read data from the emulator
- * 
- * @param outdata 
- * @param size 
- */
-DLL_EXPORT void readFromEmulator(uint8_t* const outdata, const size_t size);
+DLL_EXPORT int writeToRegisteredDest(const void* const indata, const size_t size);
+DLL_EXPORT int readFromRegisteredDest(void* const outdata, const size_t size);
+
+void isEmulator(void);
+
+#define READ_FROM_EMULATOR(ptr,size) readFromRegisteredDest(ptr,size)
+#define WRITE_TO_EMULATOR(ptr,size) writeToRegisteredDest(ptr,size)
+
+#define READ_FROM_DEBUGGER(ptr,size) readFromRegisteredDest(ptr,size)
+#define WRITE_TO_DEBUGGER(ptr,size) writeToRegisteredDest(ptr,size)
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

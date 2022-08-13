@@ -2,6 +2,7 @@
 #include "core/arch.hpp"
 #include "debugger.hpp"
 #include "communication/command.h"
+#include "communication/communication.h"
 
 #include <cerrno>
 #include <cstring>
@@ -47,6 +48,7 @@ static struct
 void E5150::Debugger::init()
 {
 	context.clear();
+	isEmulator();
 
 	if (const PLATFORM_CODE code = fifoCreate(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_SUCCESS)
 	{
@@ -104,8 +106,10 @@ void E5150::Debugger::init()
 		return;
 	}
 
+	registerCommunicationFifos(fromDebugger, toDebugger);
+
 	constexpr uint32_t debuggerSynchronizationData = 0xDEAB12CD;
-	if (write(toDebugger,&debuggerSynchronizationData,sizeof(debuggerSynchronizationData)) < 0)
+	if (WRITE_TO_DEBUGGER(&debuggerSynchronizationData, sizeof(debuggerSynchronizationData)) < 0)
 	{
 		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
 		deinit();
@@ -259,8 +263,8 @@ static void printCpuInfos(void)
 static void handleContinueCommand()
 {
 	context.type = COMMAND_TYPE_CONTINUE;
-	read(fromDebugger, &context.passType, sizeof(PASS_TYPE));
-	read(fromDebugger, &context.count, sizeof(unsigned int));
+	READ_FROM_DEBUGGER(&context.passType, sizeof(PASS_TYPE));
+	READ_FROM_DEBUGGER(&context.count, sizeof(unsigned int));
 
 	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = 0;
@@ -269,7 +273,7 @@ static void handleContinueCommand()
 static void handleStepCommand()
 {
 	uint8_t passFlags;
-	read(fromDebugger,&passFlags,1);
+	READ_FROM_DEBUGGER(&passFlags,1);
 
 	if ((passFlags & PASS_TYPE_CLOCKS) && (passFlags & PASS_TYPE_STEP_THROUGH))
 	{
@@ -288,7 +292,7 @@ static void handleStepCommand()
 static void handleDisplayCommand()
 {
 	int newLogLevel;
-	read(fromDebugger, &newLogLevel, sizeof(newLogLevel));
+	READ_FROM_DEBUGGER(&newLogLevel, sizeof(newLogLevel));
 
 	if (newLogLevel < 0)
 	{
@@ -407,7 +411,7 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 	return false;
 }
 
-//TODO: Debugger error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
+//TODO: IMPORTANT: Debugger error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
 void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {	
 	COMMAND_TYPE commandType;
@@ -431,14 +435,14 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	
 	context.clear();
 	printCpuInfos();
-	if(write(toDebugger,&cpu.instructionExecutedCount,8) == -1) { return; }
+	if(WRITE_TO_DEBUGGER(&cpu.instructionExecutedCount,8) == -1) { return; }
 	
 	do
 	{
-		if (read(fromDebugger, &commandType,sizeof(COMMAND_TYPE)) == -1) { break; }
+		if (READ_FROM_DEBUGGER(&commandType,sizeof(COMMAND_TYPE)) == -1) { break; }
 		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
-		if(write(toDebugger, &commandReceivedStatus, sizeof(commandReceivedStatus)) == -1) { break; }
+		if(WRITE_TO_DEBUGGER( &commandReceivedStatus, sizeof(commandReceivedStatus)) == -1) { break; }
 
 		switch (commandType)
 		{
@@ -462,8 +466,8 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				E5150_WARNING("Unknown response from debugger, behaviour may be unpredicatable");
 				break;
 		}
-		if (read(fromDebugger,&shouldStop,1) != 0) { break; }
-		if (write(toDebugger, &commandEndSynchro, 1) < 0) { break; }
+		if (READ_FROM_DEBUGGER(&shouldStop,1) < 0) { break; }
+		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }
 
 		shouldStop |= context.type == COMMAND_TYPE_QUIT;
 	} while (!shouldStop && !context.type);

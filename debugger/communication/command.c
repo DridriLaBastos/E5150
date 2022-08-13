@@ -8,8 +8,8 @@ static COMMAND_RECEIVED_STATUS sendCommandToEmulatorAndGetStatus(const COMMAND_T
 {
 	static COMMAND_RECEIVED_STATUS commandReceivedStatus;
 
-	writeToEmulator(&commandType, sizeof(commandType));
-	readFromEmulator(&commandReceivedStatus, sizeof(COMMAND_RECEIVED_STATUS));
+	WRITE_TO_EMULATOR(&commandType, sizeof(commandType));
+	READ_FROM_EMULATOR(&commandReceivedStatus, sizeof(COMMAND_RECEIVED_STATUS));
 
 	return commandReceivedStatus;
 }
@@ -42,8 +42,8 @@ int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 		passCount = -1;
 	}
 
-	writeToEmulator(&passType, sizeof(passType));
-	writeToEmulator(&passCount, sizeof(passCount));
+	WRITE_TO_EMULATOR(&passType, sizeof(passType));
+	WRITE_TO_EMULATOR(&passCount, sizeof(passCount));
 	return true;
 }
 
@@ -62,7 +62,7 @@ int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const in
 	if (clockFlag) { stepFlags |= PASS_TYPE_CLOCKS; }
 	if (passFlag) { stepFlags |= PASS_TYPE_STEP_THROUGH; }
 
-	writeToEmulator(&stepFlags,sizeof(stepFlags));
+	WRITE_TO_EMULATOR(&stepFlags,sizeof(stepFlags));
 	return true;
 }
 
@@ -73,7 +73,7 @@ int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const in
 int sendDisplayCommandInfo(const int newLogLevel)
 {
 	sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_DISPLAY);
-	writeToEmulator(&newLogLevel, sizeof(newLogLevel));
+	WRITE_TO_EMULATOR(&newLogLevel, sizeof(newLogLevel));
 	return false;
 }
 

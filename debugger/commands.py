@@ -46,12 +46,10 @@ _decom: ctypes.CDLL = None
 parseOK = False
 
 def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str) -> bool:
-	global parseOK
 	global _decom
+	global parseOK
 
-	if not _decom:
-		_decom = ctypes.CDLL(decomPath)
-		_decom.registerCommunicationFifos(fromEmulator.fileno(), toEmulator.fileno())
+	assert(_decom != None)
 	
 	chunks = command.split()
 	parseOK = False

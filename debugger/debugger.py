@@ -3,6 +3,7 @@ import cmd
 import argparse
 import commands
 import os
+import ctypes
 
 parser = argparse.ArgumentParser(description="Debugger CLI of E5150")
 parser.add_argument("read_fifo_filename", help="Named pipe filename to read data from the emulator")
@@ -11,6 +12,7 @@ parser.add_argument("decom_path", help="Path to the library needed for the commu
 fromEmulator:FileIO = None
 toEmulator:FileIO = None
 decomPath: str = ""
+decom: ctypes.CDLL = None
 
 class DebuggerShell(cmd.Cmd):
 	intro = ""
@@ -20,14 +22,16 @@ class DebuggerShell(cmd.Cmd):
 	# Override core functions #
 	###########################
 	def cmdloop(self) -> None:
-		instructionExecCount = int.from_bytes(fromEmulator.read(8),byteorder="little")
-		self.prompt = f"({instructionExecCount}) > "
+		instructionExecCount = ctypes.c_int64(0)
+		decom.readFromRegisteredDest(ctypes.byref(instructionExecCount), ctypes.sizeof(ctypes.c_int64))
+		self.prompt = f"({instructionExecCount.value}) > "
 		return super().cmdloop()
 	
 	def postcmd(self, stop: bool, line: str) -> bool:
 		if commands.parseOK:
-			toEmulator.write(b'\x01' if stop else b'\x00')
-			fromEmulator.read(1) # Emulator finishes to execute the command
+			decom.writeToRegisteredDest(ctypes.pointer(ctypes.c_int8(commands.parseOK)),1)
+			tmp = ctypes.c_int8 (1 if commands.parseOK else 0)
+			decom.readFromRegisteredDest(ctypes.byref(tmp),1) # Emulator finishes to execute the command
 		return super().postcmd(stop, line)
 	
 	def default(self, line: str) -> None:
@@ -65,13 +69,19 @@ if __name__ == "__main__":
 
 	fromEmulator = open(fromEmulatorFifoFileName, "rb", buffering=0)
 	toEmulator = open(toEmulatorFifoFileName, "wb", buffering=0)
-	decomPath = args.decom_path
-	synchronizationData = int.from_bytes(fromEmulator.read(4), byteorder="little")
 
-	if synchronizationData == 0xDEAB12CD :
+	decom = ctypes.CDLL(args.decom_path)
+	commands._decom = decom
+	decom.registerCommunicationFifos(fromEmulator.fileno(), toEmulator.fileno())
+
+	synchronizationData = ctypes.c_uint(0)
+
+	decom.readFromRegisteredDest(ctypes.byref(synchronizationData),ctypes.sizeof(synchronizationData))
+
+	if synchronizationData.value == 0xDEAB12CD :
 		print(f"[E5150 DEBUGGER]: Connected to emulator")
 	else:
-		print(f"[E5150 DEBUGGER]: Wrong synchronization data, expected 0xDEAB12CD, got 0x{synchronizationData:x}")
+		print(f"[E5150 DEBUGGER]: Wrong synchronization data, expected 0xDEAB12CD, got 0x{synchronizationData.value:x}")
 
 	shell = DebuggerShell()
 

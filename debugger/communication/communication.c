@@ -1,22 +1,48 @@
 
 //TODO: cleaner file : can this could go inside platform.h
-#ifndef WIN32
-#include <fcntl.h>
-#else
+#ifdef WIN32
 #include <corecrt_io.h>
+#else
+#include <fcntl.h>
+#endif
+
+#ifdef DEBUG_DE_COM
+#include <stdio.h>
 #endif
 
 #include "communication.h"
 
-static int fromEmulator = -1;
-static int toEmulator = -1;
+static int fromDest = -1;
+static int toDest = -1;
+static size_t contextCharIndex = 0;
+static const char context [] = {'D', 'E'};
 
-void registerCommunicationFifos (const int _fromEmulator, const int _toEmulator)
+void registerCommunicationFifos (const int _fromDest, const int _toDest)
 {
-	fromEmulator = _fromEmulator;
-	toEmulator = _toEmulator;
+	fromDest = _fromDest;
+	toDest = _toDest;
 }
 
+void isEmulator(void) { contextCharIndex = 1; }
+
 //TODO: To be safer : send the amount of data that will be sent and of the mirroring functions [read,write]FromDebugger
-void writeToEmulator(const uint8_t* const indata, const size_t size){ write(toEmulator,indata,size); }
-void readFromEmulator(uint8_t* const outdata, const size_t size) { read(fromEmulator,outdata,size); }
+int writeToRegisteredDest(const void* const indata, const size_t size)
+{
+#ifdef DEBUG_DE_COM
+	static unsigned int called = 0;
+	called += 1;
+	printf("%c WRITE %d: %zu bytes\n", context[contextCharIndex], called, size);
+#endif
+	return write(toDest,indata,size);
+}
+
+int readFromRegisteredDest(void* const outdata, const size_t size)
+{
+#ifdef DEBUG_DE_COM
+	static unsigned int called = 0;
+	called += 1;
+	printf("%c READ %d: %zu bytes\n", context[contextCharIndex], called, size);
+#endif
+	return read(fromDest,outdata,size);
+}
+
