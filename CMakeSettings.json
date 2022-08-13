@@ -31,7 +31,7 @@
       "variables": [
         {
           "name": "ENABLE_DEBUGGER",
-          "value": "False",
+          "value": "True",
           "type": "BOOL"
         }
       ]

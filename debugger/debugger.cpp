@@ -149,14 +149,14 @@ void E5150::Debugger::deinit()
 
 static void printRegisters(void)
 {
-	printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",cpu.cs,cpu.ds,cpu.es,cpu.ss);
-	printf("AX: %#6.4x   bx: %#6.4x   CX: %#6.4x   DX: %#6.4x\n",cpu.ax,cpu.bx,cpu.cx,cpu.dx);
-	printf("SI: %#6.4x   DI: %#6.4x   BP: %#6.4x   SP: %#6.4x\n\n",cpu.si,cpu.di,cpu.bp,cpu.sp);
+	printf("CS: %#6.4x   DS: %#6.4x   ES: %#6.4x   SS: %#6.4x\n",cpu.regs.cs,cpu.regs.ds,cpu.regs.es,cpu.regs.ss);
+	printf("AX: %#6.4x   bx: %#6.4x   CX: %#6.4x   DX: %#6.4x\n",cpu.regs.ax,cpu.regs.bx,cpu.regs.cx,cpu.regs.dx);
+	printf("SI: %#6.4x   DI: %#6.4x   BP: %#6.4x   SP: %#6.4x\n\n",cpu.regs.si,cpu.regs.di,cpu.regs.bp,cpu.regs.sp);
 }
 
 static void printFlags(void)
 {
-	std::cout << ((cpu.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.flags & CPU::OVER) ? "OF" : "of") << std::endl;
+	std::cout << ((cpu.regs.flags & CPU::CARRY) ? "CF" : "cf") << "  " << ((cpu.regs.flags & CPU::PARRITY) ? "PF" : "pf") << "  " << ((cpu.regs.flags & CPU::A_CARRY) ? "AF" : "af") << "  " << ((cpu.regs.flags & CPU::ZERRO) ? "ZF" : "zf") << "  " << ((cpu.regs.flags & CPU::SIGN) ? "SF" : "sf") << "  " << ((cpu.regs.flags & CPU::TRAP) ? "TF" : "tf") << "  " << ((cpu.regs.flags & CPU::INTF) ? "IF" : "if") << "  " << ((cpu.regs.flags & CPU::DIR) ? "DF" : "df") << "  " << ((cpu.regs.flags & CPU::OVER) ? "OF" : "of") << std::endl;
 }
 
 static void printCurrentInstruction(void)
@@ -336,7 +336,7 @@ static void printClockLevelBIUEmulationLog(void)
 	{
 	case I8086::BIU::WORKING_MODE::FETCH_INSTRUCTION:
 	{
-		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: BUS CYCLE {} (clock count down: {}) --- FETCHING 0x{:X} (0x{:X}:0x{:X})", BIUState.BUS_CYCLE_CLOCK - BIUState.BUS_CYCLE_CLOCK_LEFT, BIUState.BUS_CYCLE_CLOCK_LEFT, cpu.genAddress(cpu.cs, cpu.ip + BIUState.IP_OFFSET), cpu.cs, cpu.ip + BIUState.IP_OFFSET);
+		EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("BIU: BUS CYCLE {} (clock count down: {}) --- FETCHING 0x{:X} (0x{:X}:0x{:X})", BIUState.BUS_CYCLE_CLOCK - BIUState.BUS_CYCLE_CLOCK_LEFT, BIUState.BUS_CYCLE_CLOCK_LEFT, cpu.genAddress(cpu.regs.cs, cpu.regs.ip + BIUState.IP_OFFSET), cpu.regs.cs, cpu.regs.ip + BIUState.IP_OFFSET);
 
 			//TODO: This should be given inside the state variable
 		if ((cpu.biu.instructionBufferQueuePos <= 5) && BIUState.BUS_CYCLE_CLOCK_LEFT == BIUState.BUS_CYCLE_CLOCK)

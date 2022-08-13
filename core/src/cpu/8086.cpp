@@ -1,6 +1,5 @@
-#include "arch.hpp"
-#include "8086.hpp"
-#include "instructions.hpp"
+#include "core/arch.hpp"
+#include "core/8086.hpp"
 
 static bool CPU_HLT				= false;
 static bool TEMP_TF				= false;
@@ -23,13 +22,6 @@ CPU::CPU() : instructionExecutedCount(0)
 	regs.es = 0;
 	regs.sp = 0xFF;
 	regs.ip = 0;
-
-	dregs.cs = regs.cs;
-	dregs.ds = regs.ds;
-	dregs.es = regs.es;
-	dregs.es = regs.es;
-	dregs.sp = regs.sp;
-	dregs.ip = regs.ip;
 	
 	addressBus = genAddress(regs.cs, regs.ip);
 
