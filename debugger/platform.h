@@ -10,7 +10,7 @@
 #include <unistd.h>
 #endif
 
-//Using string concatenation of the compilator to add strin delimiter to the path to handle spaced properly on windows
+//Using string concatenation feature of the compiler to add string delimiter to the path to handle spaced properly on windows
 //TODO: test this : Why on my mac adding string delimiter didn't worked ?
 #ifdef WIN32
 #define PATH(path) "\"" path "\""
@@ -47,13 +47,13 @@ extern "C" {
 	 * @brief Creates a new process.
 	 *
 	 *
-	 * The function calls the relevant platform code to create a new process. The function always returns into the parent process (unlike unix `fork` function). The return value identifies if an error occurs during the process creation or not.
+	 * Calls the relevant platform code to create a new process. The function always returns into the parent process
+	 * (unlike unix `fork` function). The return value identifies if an error occurs during the process creation or not.
 	 *
-	 * The way the process is created is by calling the first element in the processArgs array and passing the whole array
-	 * as the command line arguments of the created process. If the array values are ["python", "main.py], the function
+	 * The first element of the processArgs array will be interpreted as the command line to run and passed.
+	 * The whole array will also be passed as the argument to the program. Thus the cmd line to run the program is also
+	 * the first argument of the program. If the array values are ["python", "main.py"], the function
 	 * will try to create the process `python`, and give it the argument `python main.py`.
-	 *
-	 * The function makes no assumption to the number of parameters a process can have.
 	 *
 	 * @param[in] processArgs cmd line arguments of the process (first is the process to be launch)
 	 * @param[in] processCommandLineArgsCount total number of paramters given to the process

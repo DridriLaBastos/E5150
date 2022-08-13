@@ -18,7 +18,7 @@ static int toDebugger = -1;
 static int fromDebugger = -1;
 static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
-static bool debuggerInitialized = false;
+static bool debuggerInitialized = true;
 
 static struct
 {
@@ -115,12 +115,13 @@ void E5150::Debugger::init()
 		deinit();
 		return;
 	}
-
-	debuggerInitialized = true;
 }
 
 void E5150::Debugger::deinit()
 {
+    if (!debuggerInitialized)
+        return;
+
 	if (debuggerProcess >= 0)
 	{
 		if (processTerminate(debuggerProcess) != PLATFORM_SUCCESS)
@@ -142,6 +143,8 @@ void E5150::Debugger::deinit()
 
 	remove(FIFO_PATH(EMULATOR_TO_DEBUGGER_FIFO_FILENAME));
 	remove(FIFO_PATH(DEBUGGER_TO_EMULATOR_FIFO_FILENAME));
+
+    debuggerInitialized = false;
 }
 
 static void printRegisters(void)
@@ -302,12 +305,12 @@ static void handleDisplayCommand()
 
 	if (newLogLevel > EMULATION_MAX_LOG_LEVEL)
 	{
-		E5150_INFO("Log level select to high, applied log level will be the highest value : {}", EMULATION_MAX_LOG_LEVEL);
+		E5150_INFO("Log level selected to high, log level applied will be the highest value : {}", EMULATION_MAX_LOG_LEVEL);
 		E5150::Util::CURRENT_EMULATION_LOG_LEVEL = EMULATION_MAX_LOG_LEVEL;
 		return;
 	}
 
-	E5150_INFO("Log level set to new level {}", newLogLevel);
+	E5150_INFO("Log level set to the new level {}", newLogLevel);
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = newLogLevel;
 }
 
@@ -397,7 +400,7 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 			//When the execution of a command is done, the emulator will stop and display the state of the cpu.
 			//If at the end of the execution, a new instruction hasn't been decoded, the CPU will still display that the current
 			//instruction executed is the previous one, and it can be confusing for the user. Instead, when count is 0, the command
-			//still maintain it's execution state until a new instruction have been decoded
+			//still maintain its execution state until a new instruction have been decoded.
 			context.count -= (instructionExecuted) && (context.count > 0);
 			return (context.count > 0) || (!instructionDecoded);
 		//case STEP_TROUGH
@@ -463,7 +466,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				break;
 
 			default:
-				E5150_WARNING("Unknown response from debugger, behaviour may be unpredicatable");
+				E5150_WARNING("Unknown response from debugger, behaviour may be unpredictable");
 				break;
 		}
 		if (READ_FROM_DEBUGGER(&shouldStop,1) < 0) { break; }

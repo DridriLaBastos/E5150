@@ -91,19 +91,27 @@ void BIU::endInterruptDataSaveSequence()
 /**
  * @brief Reset the instruction buffer queue and start a new instruction stream if a jump happened
  * 
- * @details This function must be called after a jump (or a successfull conditionnal jump). It has two effects:
+ * @details This function must be called after a jump (or a successfully conditional jump). It has two effects:
  * 
- * - The first as mentionned is to reset the instruction queue. The queue will be cleared of all bytes
- * - The second is to make the cpu fetch data from IP again. Because of the design of 8086/8088 the currently fetched instruction address may be ahead from the address in cs:ip. After a jump, the program flow changed
+ * - The first as mentioned is to reset the instruction queue. The queue will be cleared of all bytes and restarted from 0.
+ * - The second is to make the cpu fetch data from IP again. Because of the design of 8086/8088 the currently fetched
+ *      instruction address may be ahead from the address in cs:ip. After a jump, the program flow changed and th fetch
+ *      starts again from cs:ip.
  * 
- * @param didJump For conditionnal jump, specidfy if the jump happened or not
+ * @param didJump For conditional jump, specify if the jump happened or not.
  */
 void BIU::endControlTransferInstruction (const bool didJump)
 {
 	//At the end of the execution <instructionLength> octets are poped from the instruction buffer queue.
-	//When flushing after a jmp, the length is set to 5 (the size of the queue of the 8088), this make the buffer queue to be popped
-	//The position in the queue is also set to 5 because in the implementaion, the amount of elements to pop is substracted to the position in the queue. If there is 4 (or less) elements in the queue when poping, the new pos is 4 - 5 = -1 = 2^32 in unsigned and the queu will be always considered as full and no new instructions will be fetched
-	//This parameter is only usefull for conditionnal jmp. If the jmp didn't happens, only the <instructionLength> octet have to be removed from the queue (the 8086::clock function takes care of that)
+	//When flushing after a jmp, the length is set to 5 (the size of the queue of the 8088), this make the buffer queue
+    // to be popped.
+    //
+	//The position in the queue is also set to 5 because in the implementation, the amount of elements to pop is
+    // subtracted to the position in the queue. If there is 4 (or less) elements in the queue when piping, the new pos
+    // is 4 - 5 = -1 = (2^32 - 1) in unsigned and the queue will always be considered as full and no new instructions will
+    // be fetched
+	//<didJump> is only usefull for conditional jmp. If the jmp didn't happen, only <instructionLength> octets have to
+    // be removed from the queue (the 8086::clock function takes care of that)
 	if (didJump)
 	{
 		cpu.eu.instructionLength  = 5;

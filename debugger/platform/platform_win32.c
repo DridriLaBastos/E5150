@@ -64,12 +64,13 @@ static void mapRemove(const unsigned int entry)
 	mapCount -= 1;
 }
 
+//The function will create the command line based on the values inside processArgs
 //TODO: may benefit on some error checking
 process_t processCreate(const char* processArgs[], const size_t processCommandLineArgsCount)
 {
-	//For each arguments for the process we want to add a space inbetween, this creates processCommandLineArgsCount - 1 spaces.
+	//For each argument of the process we want to add a space inbetween, this creates processCommandLineArgsCount - 1 spaces.
 	//We add 1 more to the size for the last null character
-	//Then we add the size of each arguments of the process to create the final size of the process launch command line
+	//Then we add the size of each argument of the process to create the final size of the process launch command line
 	size_t processCommandLineSize = processCommandLineArgsCount;
 
 	for (int i = 0; i < processCommandLineArgsCount; ++i)
@@ -77,8 +78,8 @@ process_t processCreate(const char* processArgs[], const size_t processCommandLi
 		processCommandLineSize += strlen(processArgs[i]);
 	}
 
+    //TODO: Is it possible for this to return nullptr ?
 	char* processLaunchCommandLine = _malloca(processCommandLineSize);
-	//TODO: Is it possible for this to return nullptr ?
 	ZeroMemory(processLaunchCommandLine, processCommandLineSize);
 
 	size_t processCmdIndex = 0;
@@ -154,12 +155,16 @@ enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
 {
 	COMPUTE_WIN32_PIPE_PATH(fifoFileName);
 	//TODO: Not sure about that, seems to work.
-	//What is the difference between MESSAGE_MODE and BYTE_MODE ? My (little) understanding is that with message the pipe want to read the n number of bytes we gives
-	//in Write/Read File. With byte it's up to me to verify that I get the number of bytes I asked to send or receive.
-	//What is the difference between PIPE_TYPE_MESSAGE with PIPE_READ_MODE message and PIPE_TYPE_MESSAGE with PIPE_READ_MODE message ?
+	//What is the difference between MESSAGE_MODE and BYTE_MODE ? My (little) understanding is that with MESSAGE_MODE
+    // the pipe tries to read/write the n number bytes we give. With BYTE_MODE it's up to me to verify that I get the
+    // number of bytes I asked to send or receive.
+    //
+	//What is the difference between PIPE_TYPE_MESSAGE with PIPE_READMODE_MESSAGE and PIPE_TYPE_BYTE with PIPE_READ_MODE message ?
 	//
-	//What I did for now is a pipe a byte ut with a readmode of message : it's still byte but we want to read the whole number of bytes sent... ? Is it good ? Bad ? Okay but stupid ?
+	//What I did for now is a byte pipe with READMODE_MESSAGE : it's still byte but we want to read/write the whole
+    // number of bytes we asked... ? Is it good ? Bad ? Okay but stupid ?
 	//I have no idea...
+    //Update some weeks later : it seems to work fine with only integers to read/write
 	const HANDLE namedPipeHandle = CreateNamedPipe(pipeSystemPath, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 256, 256, 0, NULL);
 
 	if (namedPipeHandle == INVALID_HANDLE_VALUE) { return PLATFORM_ERROR; }
@@ -175,7 +180,6 @@ int fifoOpen(const char* fifoFileName, const int openFlags)
 
 	const HANDLE hFifo = map[mapEntryIndex].handle;
 	const BOOL b = ConnectNamedPipe(hFifo, NULL);
-
 
 	return _open_osfhandle(hFifo, openFlags);
 }

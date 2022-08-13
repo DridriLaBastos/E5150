@@ -25,7 +25,6 @@ void registerCommunicationFifos (const int _fromDest, const int _toDest)
 
 void isEmulator(void) { contextCharIndex = 1; }
 
-//TODO: To be safer : send the amount of data that will be sent and of the mirroring functions [read,write]FromDebugger
 int writeToRegisteredDest(const void* const indata, const size_t size)
 {
 #ifdef DEBUG_DE_COM

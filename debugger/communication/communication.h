@@ -12,6 +12,7 @@ DLL_EXPORT void registerCommunicationFifos(const int fromDest, const int toDest)
 DLL_EXPORT int writeToRegisteredDest(const void* const indata, const size_t size);
 DLL_EXPORT int readFromRegisteredDest(void* const outdata, const size_t size);
 
+//Debug function to know if the emulator or the debugger is executed
 void isEmulator(void);
 
 #define READ_FROM_EMULATOR(ptr,size) readFromRegisteredDest(ptr,size)

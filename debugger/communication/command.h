@@ -6,23 +6,29 @@
 #include "debugger/platform.h"
 
 /**
- * This file contains the C declarations of the functions called from the debugger to send
- * command information to the emulator.
+ * This file contains the C declarations of the functions called from the debugger to send command information and
+ * configuration to the emulator.
  *
- * Each functions return 0 if the command should the debugger cli runs (for example after a display command we still
- * want the debugger to ask the user for a command), or non 0 value (usually 1) if the command should stop the debugger cli
- * (for example after a step or a continue command).
+ * The functions declared in this file are called from the debugger. The return value of the function will dictate
+ * the debugger the value to send to the emulator. If the function returns à 0, the same value is sent to the debugger.
+ * Any other value will be translated to a 1.
  *
- * The commands are separated in two categories : pass commands and non-pass commands.
+ * The command associated to each functions are divided into two groups : pass-command and non-pass command.
  *
- * Pass commands are the commands that should let the emulation continue after their execution. The debugger expects the return
- * value of the execution of those command to be non 0. Example of pass commands are step or continue. When one of those commands
- * are requested, the emulation should continue for the amount of time requested (clock or instructions).
- * When a pass command returns a 0 value, the debugger should consider that an error happen during the execution of the command and
- * should let the emulation continue.
+ * A non-pass command will block forever the emulation and get back to the debugger cli when the function called to
+ * performs its execution ends. The display command is such a command. At the end of the execution of the command, the
+ * debugger prompt should be displayed again.
  *
- * The quit command is a special case : whether an error happens or not, if the emulator received the quit command it will always quit
- * even if the command returns a non-zero value.
+ * A pass command will instruct the emulator to run the simulation for a certain amount of time (or endlessly). After the
+ * end of the execution of the function associated to the command, the debugger will let the emulator running.
+ * The continue or step commands are such command. When the function associated to the command ends its
+ * execution, the emulator should run the amount of time specified and only after ask for the debugger prompt.
+ *
+ * Functions associated to non-pass command should always return 0. Functions associated to a pass-command should return
+ * 0 on error and anything else for success.
+ *
+ * The quit command is a special case : whether the function returns a 0 or not, the emulator will always quit and kill
+ * the debugger.
  */
 
 typedef enum

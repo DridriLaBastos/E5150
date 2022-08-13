@@ -1,5 +1,8 @@
 #include "core/arch.hpp"
 
+#include <cstddef>
+#include <cstdint>
+
 /* Exemple de fonctionnement */
 int main (void)
 {
@@ -21,5 +24,6 @@ int main (void)
 	#endif
 
 	arch.startSimulation();
+
 	return EXIT_SUCCESS;
 }

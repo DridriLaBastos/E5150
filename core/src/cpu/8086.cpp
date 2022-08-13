@@ -231,7 +231,7 @@ void CPU::handleInterrupts(void)
 	else if (DIVIDE)
 	{
 		DIVIDE = false;
-		INTERRUPT_SEQUENCE_CLOCK_COUNT = 51;//Guessed TODO: search the clock count for now I assume it is equivalent to int 0
+		INTERRUPT_SEQUENCE_CLOCK_COUNT = 51;//Guessed TODO: search the clock count, for now I assume it is equivalent to int 0
 		INTERRUPT_VECTOR = 0;
 	}
 	else if (INTO)
