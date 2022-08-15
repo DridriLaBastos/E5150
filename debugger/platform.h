@@ -48,7 +48,7 @@ extern "C" {
 	 *
 	 *
 	 * Calls the relevant platform code to create a new process. The function always returns into the parent process
-	 * (unlike unix `fork` function). The return value identifies if an error occurs during the process creation or not.
+	 * (unlike unix `fork` function). The return value identifies if an error occurred during the process creation or not.
 	 *
 	 * The first element of the processArgs array will be interpreted as the command line to run and passed.
 	 * The whole array will also be passed as the argument to the program. Thus the cmd line to run the program is also

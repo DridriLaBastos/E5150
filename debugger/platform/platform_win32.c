@@ -68,7 +68,7 @@ static void mapRemove(const unsigned int entry)
 //TODO: may benefit on some error checking
 process_t processCreate(const char* processArgs[], const size_t processCommandLineArgsCount)
 {
-	//For each argument of the process we want to add a space inbetween, this creates processCommandLineArgsCount - 1 spaces.
+	//We want to add a space between each argument of the process, this creates processCommandLineArgsCount - 1 spaces.
 	//We add 1 more to the size for the last null character
 	//Then we add the size of each argument of the process to create the final size of the process launch command line
 	size_t processCommandLineSize = processCommandLineArgsCount;
