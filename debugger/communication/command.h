@@ -24,8 +24,8 @@
  * The continue or step commands are such command. When the function associated to the command ends its
  * execution, the emulator should run the amount of time specified and only after ask for the debugger prompt.
  *
- * Functions associated to non-pass command should always return 0. Functions associated to a pass-command should return
- * 0 on error and anything else for success.
+ * Functions associated to non-pass command should always return non 0. Functions associated to a pass-command should return
+ * non 0 on error and 0 for success.
  *
  * The quit command is a special case : whether the function returns a 0 or not, the emulator will always quit and kill
  * the debugger.

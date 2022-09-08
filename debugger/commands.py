@@ -59,19 +59,17 @@ quit_parser = subparser.add_parser(commands["quit"][0], aliases=commands["quit"]
                                    description="Quit the emulation")
 
 _decom: ctypes.CDLL = None
-parseOK = False
-
+shouldQuit = False
 
 def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str) -> bool:
     global _decom
-    global parseOK
+    global shouldQuit
 
     assert (_decom != None)
 
     chunks = command.split()
-    parseOK = False
     result = parser.parse_args(chunks)
-    parseOK = True
+
     if result.command in commands["continue"]:
         return _decom.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks)
     elif result.command == "step":
@@ -87,6 +85,7 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str
     elif result.command in commands["display"]:
         return _decom.sendDisplayCommandInfo(-1 if result.log_level is None else result.log_level)
     elif result.command in commands["quit"]:
+        shouldQuit = True
         return _decom.sendQuitCommandInfo()
 
-    return _decom.sendUnknownCommandInfo()
+    return False

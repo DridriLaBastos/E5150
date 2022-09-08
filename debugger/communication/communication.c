@@ -39,9 +39,12 @@ int readFromRegisteredDest(void* const outdata, const size_t size)
 {
 #ifdef DEBUG_DE_COM
 	static unsigned int called = 0;
+	const int readStatus = read(fromDest,outdata,size);
 	called += 1;
 	printf("%c READ %d: %zu bytes\n", context[contextCharIndex], called, size);
-#endif
+	return readStatus;
+#else
 	return read(fromDest,outdata,size);
+#endif
 }
 

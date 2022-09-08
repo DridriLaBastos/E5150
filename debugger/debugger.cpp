@@ -473,5 +473,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }
 
 		shouldStop |= context.type == COMMAND_TYPE_QUIT;
-	} while (!shouldStop && !context.type);
+		E5150_DEBUG("from debugger {}", shouldStop);
+	} while (!shouldStop);
+	E5150_DEBUG("Emulator <-> debugger loop stopped");
 }

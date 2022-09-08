@@ -26,15 +26,18 @@ class DebuggerShell(cmd.Cmd):
 		decom.readFromRegisteredDest(ctypes.byref(instructionExecCount), ctypes.sizeof(ctypes.c_int64))
 		self.prompt = f"({instructionExecCount.value}) > "
 		return super().cmdloop()
-	
+
 	def postcmd(self, stop: bool, line: str) -> bool:
-		if commands.parseOK:
-			decom.writeToRegisteredDest(ctypes.pointer(ctypes.c_int8(commands.parseOK)),1)
-			tmp = ctypes.c_int8 (1 if commands.parseOK else 0)
-			decom.readFromRegisteredDest(ctypes.byref(tmp),1) # Emulator finishes to execute the command
-		return super().postcmd(stop, line)
+		if stop is None:
+			return False
+		stopi8 = ctypes.c_uint8(stop)
+		stopi8Ptr = ctypes.pointer(stopi8)
+		decom.writeToRegisteredDest(stopi8Ptr,1)
+		tmp = ctypes.c_uint8(0)
+		decom.readFromRegisteredDest(ctypes.byref(tmp),1) # Emulator finishes to execute the command
+		return commands.shouldQuit
 	
-	def default(self, line: str) -> None:
+	def default(self, line: str) -> bool:
 		return self._parse(line)
 	
 	###########################
