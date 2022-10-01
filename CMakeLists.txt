@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12) # file GLOB CONFIGURE_DEPENDS is only available from CMake 3.12+
 
 project(E5150
 		VERSION 0.1
