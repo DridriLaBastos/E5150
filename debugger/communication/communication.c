@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #endif
 
+//#define DEBUG_DE_COM
+
 #ifdef DEBUG_DE_COM
 #include <stdio.h>
 #endif
@@ -30,7 +32,10 @@ int writeToRegisteredDest(const void* const indata, const size_t size)
 #ifdef DEBUG_DE_COM
 	static unsigned int called = 0;
 	called += 1;
-	printf("%c WRITE %d: %zu bytes\n", context[contextCharIndex], called, size);
+	printf("%c WRITE %d: %zu bytes", context[contextCharIndex], called, size);
+	for (size_t i = 0; i < size; ++i)
+	{ printf(" %#x",((uint8_t*)indata)[i]); }
+	putchar('\n');
 #endif
 	return write(toDest,indata,size);
 }
@@ -41,7 +46,10 @@ int readFromRegisteredDest(void* const outdata, const size_t size)
 	static unsigned int called = 0;
 	const int readStatus = read(fromDest,outdata,size);
 	called += 1;
-	printf("%c READ %d: %zu bytes\n", context[contextCharIndex], called, size);
+	printf("%c READ %d: %zu bytes", context[contextCharIndex], called, size);
+	for (size_t i = 0; i < size; ++i)
+	{ printf(" %#x",((uint8_t*)outdata)[i]); }
+	putchar('\n');
 	return readStatus;
 #else
 	return read(fromDest,outdata,size);

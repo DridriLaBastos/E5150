@@ -408,7 +408,7 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 			return true;
 
 		default:
-			E5150_WARNING("Unknown way execute a pass command (continue/step). Command aborted");
+			E5150_WARNING("Unknown way to execute a pass command (continue/step). Command aborted");
 			break;
 	}
 	return false;
@@ -438,7 +438,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	
 	context.clear();
 	printCpuInfos();
-	if(WRITE_TO_DEBUGGER(&cpu.instructionExecutedCount,8) == -1) { return; }
+	//if(WRITE_TO_DEBUGGER(&cpu.instructionExecutedCount,8) == -1) { return; }
 	
 	do
 	{
@@ -470,10 +470,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				break;
 		}
 		if (READ_FROM_DEBUGGER(&shouldStop,1) < 0) { break; }
-		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }
-
 		shouldStop |= context.type == COMMAND_TYPE_QUIT;
-		E5150_DEBUG("from debugger {}", shouldStop);
+		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }
 	} while (!shouldStop);
-	E5150_DEBUG("Emulator <-> debugger loop stopped");
 }
