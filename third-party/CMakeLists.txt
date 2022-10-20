@@ -42,3 +42,14 @@ else()
 	message(DEBUG "xed lib built at ${XED_LIB_PATH}")
 endif()
 
+file(GLOB IMGUI_COMMON_SRC CONFIGURE_DEPENDS imgui/*.cpp)
+
+add_library(imgui STATIC ${IMGUI_COMMON_SRC})
+
+if(APPLE)
+	target_sources(imgui
+			PRIVATE imgui/backends/imgui_impl_osx.mm imgui/backends/imgui_impl_metal.mm)
+else()
+	message(FATAL_ERROR System ${CMAKE_SYSTEM_NAME} not supported yet)
+endif()
+

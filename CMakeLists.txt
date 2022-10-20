@@ -5,11 +5,8 @@ project(E5150
 		DESCRIPTION "Clock accurate emulator of the IBM PC 5150"
 		LANGUAGES C CXX)
 
-add_subdirectory(third-party)
-add_subdirectory(test)
-
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+# set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 option(ENABLE_DEBUGGER "Compile the integrated debugger" ON)
@@ -21,6 +18,12 @@ endif()
 if (WIN32)
 add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
 endif()
+
+include_directories(. third-party/spdlog/include third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
+
+add_subdirectory(third-party)
+add_subdirectory(test)
+add_subdirectory(gui)
 
 #Maybe using a configuration file later
 #configure_file(config.hpp.in config.hpp)
@@ -35,9 +38,7 @@ set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
 add_executable(epc main.cpp ${EMULATOR_SRC})
 add_dependencies(epc asm-test)
 
-include_directories(. third-party/spdlog/include ${CMAKE_BINARY_DIR}/third-party/include)
-
-target_link_libraries(epc ${XED_LIB_PATH})
+target_link_libraries(epc ${XED_LIB_PATH} imgui gui)
 target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX>:core/pch.hpp>)
 
 if (ENABLE_DEBUGGER)
@@ -65,6 +66,15 @@ if (ENABLE_DEBUGGER)
 
 	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
 	add_dependencies(epc decom)
+endif()
+
+if(APPLE)
+	find_library(APP_KIT NAMES AppKit REQUIRED)
+	find_library(METAL_KIT NAMES MetalKit REQUIRED)
+	find_library(METAL NAMES Metal REQUIRED)
+	find_library(QUARTZ_CORE QuartzCore REQUIRED)
+	find_library(GAME_CONTROLLER GameController REQUIRED)
+	target_link_libraries(epc ${APP_KIT} ${METAL_KIT} ${METAL} ${QUARTZ_CORE} ${GAME_CONTROLLER})
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

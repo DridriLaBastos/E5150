@@ -1,16 +1,17 @@
-#include "core/arch.hpp"
-
 #include <cstddef>
 #include <cstdint>
 
+#include "core/arch.hpp"
+#include "gui/gui.hpp"
+
 /* Exemple de fonctionnement */
-int main (void)
+int main (const int argc, const char* argv [])
 {
 #ifdef DEBUGGER
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
 #endif
-	E5150::Arch arch;
+	//E5150::Arch arch;
 
 	#if 1
 		//Loading IBM BIOS
@@ -23,7 +24,7 @@ int main (void)
 		ram.load("test/bios.bin",0x500);
 	#endif
 
-	arch.startSimulation();
-
+	//arch.startSimulation();
+	GUI::init(argc,argv);
 	return EXIT_SUCCESS;
 }
