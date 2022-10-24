@@ -11,7 +11,3 @@
 	path = third-party/imgui
 	url = https://github.com/ocornut/imgui
 	branch = docking
-[submodule "third-party/glfw"]
-	path = third-party/glfw
-	url = https://github.com/glfw/glfw.git
-	branch = 3.3.8
