@@ -1,7 +1,7 @@
 #ifndef GUI_HPP
 #define GUI_HPP
 
-namespace GUI {
+namespace E5150::GUI {
 	int init (int argc, const char* argv[]);
 }
 

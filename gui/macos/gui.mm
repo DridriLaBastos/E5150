@@ -12,6 +12,9 @@
 #include "imgui.h"
 #include "backends/imgui_impl_metal.h"
 #include "backends/imgui_impl_osx.h"
+
+#include "gui/gui.hpp"
+
 @interface AppViewController : NSViewController<NSWindowDelegate>
 @end
 
@@ -253,9 +256,7 @@
 // Application main() function
 //-----------------------------------------------------------------------------------
 
-#include "gui/gui.hpp"
-
-int GUI::init(int argc, const char * argv[]) {
+int E5150::GUI::init(int argc, const char * argv[]) {
 	//https://stackoverflow.com/questions/314256/how-do-i-create-a-cocoa-window-programmatically
 	@autoreleasepool {
 		[NSApplication sharedApplication];
