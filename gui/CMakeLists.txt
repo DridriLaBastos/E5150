@@ -4,6 +4,8 @@ file(GLOB GUI_COMMON_SRC CONFIGURE_DEPENDS common/*.cpp)
 
 add_library(gui STATIC)
 
+#TODO: adding precompiled header
+
 if(APPLE)
 	file(GLOB GUI_PLATFORM_SRC CONFIGURE_DEPENDS macos/*.mm macos/*.cpp)
 elseif(WIN32)

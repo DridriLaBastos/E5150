@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.12) # file GLOB CONFIGURE_DEPENDS is only available from CMake 3.12+
+# file GLOB CONFIGURE_DEPENDS available from 3.12
+# target_precompiled_headers available from 3.16
+cmake_minimum_required(VERSION 3.16) # file GLOB CONFIGURE_DEPENDS is only available from CMake 3.12+
 
 project(E5150
 		VERSION 0.1
@@ -51,7 +53,7 @@ if (ENABLE_DEBUGGER)
 		set(PLATFORM_SRC ${DEBUGGER_SRC_PATH}/platform/platform_win32.c)
 		set(DEBUGGER_PLATFORM_STRING "win32")
 	else()
-		message(FATAL_ERROR "Architecture not recognized, cannot build debugger platform dependent code.")
+		message(FATAL_ERROR "Architecture ${CMAKE_SYSTEM} not recognized, cannot build debugger platform dependent code.")
 	endif()
 
 	find_package(Python3 COMPONENTS Interpreter REQUIRED)
