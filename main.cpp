@@ -25,6 +25,6 @@ int main (const int argc, const char* argv [])
 	#endif
 
 	//arch.startSimulation();
-	E5150::GUI::init(argc,argv);
+	E5150::GUI::platformInit(argc,argv);
 	return EXIT_SUCCESS;
 }

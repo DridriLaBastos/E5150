@@ -2,7 +2,8 @@
 #define GUI_HPP
 
 namespace E5150::GUI {
-	int init (int argc, const char* argv[]);
+	int platformInit (int argc, const char* argv[]);
+	void drawGui(void);
 }
 
 #endif

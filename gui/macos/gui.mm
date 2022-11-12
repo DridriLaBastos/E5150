@@ -173,6 +173,11 @@
 		ImGui::End();
 	}
 
+	// Show E5150 GUI
+	{
+		E5150::GUI::drawGui();
+	}
+
 	// Rendering
 	ImGui::Render();
 	ImDrawData* draw_data = ImGui::GetDrawData();
@@ -244,6 +249,7 @@
 													backing:NSBackingStoreBuffered
 													  defer:NO];
 		self.window.contentViewController = rootViewController;
+		[self.window setTitle:@"E5150"];
 		[self.window center];
 		[self.window makeKeyAndOrderFront:self];
 	}
@@ -256,7 +262,7 @@
 // Application main() function
 //-----------------------------------------------------------------------------------
 
-int E5150::GUI::init(int argc, const char * argv[]) {
+int E5150::GUI::platformInit(int argc, const char * argv[]) {
 	//https://stackoverflow.com/questions/314256/how-do-i-create-a-cocoa-window-programmatically
 	@autoreleasepool {
 		[NSApplication sharedApplication];
