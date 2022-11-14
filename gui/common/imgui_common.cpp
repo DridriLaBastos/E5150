@@ -1,3 +1,4 @@
+#include <mutex>
 #include <thread>
 
 #include "gui/gui.hpp"
@@ -26,22 +27,23 @@ static void simulationThread() {
 	arch.startSimulation();
 }
 
+void E5150::GUI::guiInit()
+{
+	spdlog::default_logger()->sinks().clear();
+	spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<std::mutex>>());
+	auto imguiSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
+	imguiSink->init();
+}
+
 void E5150::GUI::drawGui()
 {
-	static unsigned int cooldown = 0;
-
-	spdlog::default_logger()->sinks().clear();
-	spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<spdlog::details::null_mutex>>());
-
-	auto imguiSink = (SpdlogImGuiColorSink<spdlog::details::null_mutex>*)spdlog::default_logger()->sinks().back().get();
-	imguiSink->init();
-
+	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	spdlog::info("This is an info");
 	spdlog::warn("This is a warning");
 	spdlog::debug("This is a debug");
 	spdlog::trace("This is a trace");
 
-	imguiSink->imguiDraw();
+	consoleSink->imguiDraw();
 
 	/*if (!simulationStarted)
 	{

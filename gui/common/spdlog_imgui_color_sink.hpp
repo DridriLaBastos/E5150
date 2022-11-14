@@ -23,7 +23,7 @@ public:
 	void init()
 	{
 		mLogTextBuffer.reserve(1024*1024);
-		mLogTextBuffer.append("");
+		mLogTextBuffer.append("");//To be sure that the size is not 0
 	}
 
 protected:

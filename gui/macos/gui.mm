@@ -271,6 +271,10 @@ int E5150::GUI::platformInit(int argc, const char * argv[]) {
 
 		[NSApp setDelegate:appDelegate];
 		[NSApp activateIgnoringOtherApps:YES];
-		[NSApp run];
 	}
+}
+
+void E5150::GUI::platformUILoop()
+{
+	[NSApp run];
 }
