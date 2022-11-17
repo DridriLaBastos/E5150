@@ -3,6 +3,8 @@
 
 #include <set>
 #include <array>
+#include <atomic>
+#include <thread>
 #include <string>
 #include <chrono>
 #include <memory>

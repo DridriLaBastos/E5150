@@ -6,7 +6,7 @@
 
 /* Exemple de fonctionnement */
 int main (const int argc, const char* argv [])
-{
+{/*
 #ifdef DEBUGGER
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
@@ -22,11 +22,12 @@ int main (const int argc, const char* argv [])
 		ram.load("test/jmp.bin", 0xFFFF0);
 		//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
 		ram.load("test/bios.bin",0x500);
-	#endif
+	#endif*/
 
 	//arch.startSimulation();
 	E5150::GUI::platformInit(argc,argv);
 	E5150::GUI::guiInit();
 	E5150::GUI::platformUILoop();
+	E5150::GUI::guiDeinit();
 	return EXIT_SUCCESS;
 }

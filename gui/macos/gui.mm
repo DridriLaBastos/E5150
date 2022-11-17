@@ -175,7 +175,7 @@
 
 	// Show E5150 GUI
 	{
-		E5150::GUI::drawGui();
+		E5150::GUI::guiDraw();
 	}
 
 	// Rendering
