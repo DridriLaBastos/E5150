@@ -51,7 +51,7 @@ namespace E5150
 			static constexpr unsigned int FDC_BASE_CLOCK =  4000000;
 			static constexpr unsigned int CLOCK_PER_BLOCK = 1500000;
 			static constexpr unsigned int NS_PER_CLOCK = 1.f/CPU_BASE_CLOCK*1e9+.5f;
-			static constexpr unsigned int BLOCK_PER_SECOND = (unsigned int)((float)CPU_BASE_CLOCK / (float)CLOCK_PER_BLOCK);
+			static constexpr unsigned int BLOCK_PER_SECOND = CPU_BASE_CLOCK / CLOCK_PER_BLOCK;
 	};
 }
 

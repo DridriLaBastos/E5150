@@ -94,7 +94,7 @@ void E5150::Arch::startSimulation()
 				_pit.clock();
 				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
 				{
-					++fdcClock;
+					fdcClock += 1;
 					emulationStat.fdcClock += 1;
 					_fdc.clock();
 				}
