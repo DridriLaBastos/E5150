@@ -9,12 +9,6 @@
 
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
 
-static void stop(const int signum)
-{
-	E5150::Util::_continue = false;
-	E5150_INFO("Simulation stopped by 'signals {}'", signum);
-}
-
 bool E5150::Util::_continue;
 bool E5150::Util::_stop;
 unsigned int E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
@@ -49,19 +43,6 @@ E5150::Arch::Arch()
 	E5150::Util::_stop = true;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = EMULATION_MAX_LOG_LEVEL;
 	E5150::Util::undef = (unsigned int)(unsigned long)(&ram);
-
-#ifdef DEBUGGER
-	Debugger::init();
-#endif
-
-#ifndef WIN32 //Those signals values aren't defined in windows
-	signal(SIGSTOP, stop);
-	signal(SIGQUIT, stop);
-	signal(SIGKILL, stop);
-#endif
-	signal(SIGABRT, stop);
-	signal(SIGINT, stop);
-	signal(SIGTERM, stop);
 }
 
 void E5150::Arch::startSimulation()
@@ -136,8 +117,4 @@ void E5150::Arch::startSimulation()
 	catch (const std::exception& e)
 	{ E5150_ERROR(e.what()); }
 	E5150_INFO("Simulation quit !");
-
-	#ifdef DEBUGGER
-		Debugger::deinit();
-	#endif
 }

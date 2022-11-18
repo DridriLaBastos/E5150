@@ -1,10 +1,11 @@
-#include <mutex>
-#include <thread>
-
 #include "gui/gui.hpp"
 #include "core/pch.hpp"
 #include "core/arch.hpp"
 #include "spdlog_imgui_color_sink.hpp"
+
+#ifdef DEBUGGER
+#include "debugger/debugger.hpp"
+#endif
 
 using gui_clock = std::chrono::high_resolution_clock;
 
@@ -35,12 +36,32 @@ static void simulationThread() {
 
 static std::thread t;
 
+static void stop(const int signum)
+{
+	puts("Please close the window to quit");
+}
+
 void E5150::GUI::guiInit()
 {
 	spdlog::default_logger()->sinks().clear();
 	spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<std::mutex>>());
 	auto imguiSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	imguiSink->init();
+
+	#ifndef WIN32 //Those signals values aren't defined in windows
+		signal(SIGSTOP, stop);
+		signal(SIGQUIT, stop);
+		signal(SIGKILL, stop);
+	#endif
+	
+	signal(SIGABRT, stop);
+	signal(SIGINT, stop);
+	signal(SIGTERM, stop);
+
+	#ifdef DEBUGGER
+		Debugger::init();
+	#endif
+
 	t = std::thread(simulationThread);
 }
 
@@ -103,5 +124,9 @@ void E5150::GUI::guiDraw()
 
 void E5150::GUI::guiDeinit()
 {
+	E5150::Util::_continue = false;
 	t.join();
+#ifdef DEBUGGER
+	Debugger::deinit();
+#endif
 }

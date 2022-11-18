@@ -217,6 +217,7 @@
 
 - (void)windowWillClose:(NSNotification *)notification
 {
+	E5150::GUI::guiDeinit();
 	ImGui_ImplMetal_Shutdown();
 	ImGui_ImplOSX_Shutdown();
 	ImGui::DestroyContext();
