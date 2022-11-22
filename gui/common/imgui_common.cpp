@@ -105,7 +105,6 @@ void E5150::GUI::guiDraw()
 	ImGui::Text("CPU clock executed : %6d / %6d", CPUClockDelta, EXPECTED_CPU_CLOCK_COUNT);
 	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
 	ImGui::Text("Clock accuracy cpu : %d%%  fdc %d%%", CPUClockAccuracy, FDCClockAccuracy);
-	ImGui::Text("Instruction executed : %.3fM", (float)Arch::emulationStat.instructionExecutedCount/1e6);
 	ImGui::End();
 
 	/*if (!simulationStarted)

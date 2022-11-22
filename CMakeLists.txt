@@ -21,7 +21,7 @@ if (WIN32)
 add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
 endif()
 
-include_directories(. third-party/spdlog/include third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
+include_directories(. third-party/spdlog/include third-party third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
 
 add_subdirectory(third-party)
 add_subdirectory(test)

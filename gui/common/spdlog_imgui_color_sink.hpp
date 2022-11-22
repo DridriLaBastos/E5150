@@ -5,7 +5,7 @@
 #ifndef E5150_SPDLOG_IMGUI_SINK_HPP
 #define E5150_SPDLOG_IMGUI_SINK_HPP
 
-#include "imgui.h"
+#include "imgui/imgui.h"
 
 #include "spdlog/sinks/base_sink.h"
 

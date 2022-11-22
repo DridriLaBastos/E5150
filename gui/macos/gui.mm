@@ -9,9 +9,9 @@
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-#include "imgui.h"
-#include "backends/imgui_impl_metal.h"
-#include "backends/imgui_impl_osx.h"
+#include "imgui/imgui.h"
+#include "imgui/backends/imgui_impl_metal.h"
+#include "imgui/backends/imgui_impl_osx.h"
 
 #include "gui/gui.hpp"
 
