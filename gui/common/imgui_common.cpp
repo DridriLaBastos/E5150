@@ -1,3 +1,5 @@
+#include <csignal>
+
 #include "gui/gui.hpp"
 #include "core/pch.hpp"
 #include "core/arch.hpp"
