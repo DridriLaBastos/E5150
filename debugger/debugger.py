@@ -1,6 +1,7 @@
 from io import FileIO
 import cmd
 import argparse
+import sys
 import commands
 import os
 import ctypes
@@ -88,12 +89,12 @@ if __name__ == "__main__":
 
 	decom.readFromRegisteredDest(ctypes.byref(synchronizationData), ctypes.sizeof(synchronizationData))
 
-	if synchronizationData.value == 0xDEAB12CD:
-		print(f"[E5150 DEBUGGER]: Connected to emulator")
-	else:
-		print(f"[E5150 DEBUGGER]: Wrong synchronization data, expected 0xDEAB12CD, got 0x{synchronizationData.value:x}")
+	if synchronizationData.value != 0xDEAB12CD:
+		sys.exit(f"[E5150 DEBUGGER]: Wrong synchronization data, expected 0xDEAB12CD, got 0x{synchronizationData.value:X}")
 
+	print(f"[E5150 DEBUGGER]: Connected to emulator")
 	shell = DebuggerShell()
 
+	#TODO: review tgis while True loop, I want everything o be treated inside the cmdloop function
 	while True:
 		shell.cmdloop()

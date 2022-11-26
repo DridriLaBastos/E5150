@@ -420,12 +420,12 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	COMMAND_TYPE commandType;
 	uint8_t shouldStop;
 	const uint8_t commandEndSynchro = 0;//Only here to notify to the debugger that the emulator finished executing the command
-	bool unizializedDebuggerWarningNotPrinted = true;
+	bool uninitializedDebuggerWarningNotPrinted = true;
 
 	if (!debuggerInitialized) {
-		if (unizializedDebuggerWarningNotPrinted) {
+		if (uninitializedDebuggerWarningNotPrinted) {
 			E5150_WARNING("Debugger was not successfully initialized. Debugger features will not be available.");
-			unizializedDebuggerWarningNotPrinted = false;
+			uninitializedDebuggerWarningNotPrinted = false;
 		}
 		return;
 	}

@@ -13,6 +13,10 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 option(ENABLE_DEBUGGER "Compile the integrated debugger" ON)
 
+if (ENABLE_DEBUGGER)
+add_compile_definitions(DEBUGGER)
+endif()
+
 if (NOT WIN32)
 	add_compile_options(-Wno-switch)
 endif()
@@ -63,7 +67,6 @@ if (ENABLE_DEBUGGER)
 	target_compile_definitions(epc	PRIVATE DECOM_LIB_PATH="$<TARGET_FILE:decom>"
 									PRIVATE DEBUGGER_PYTHON_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/debugger/debugger.py"
 									PRIVATE DEBUGGER_PLATFORM_STRING="${DEBUGGER_PLATFORM_STRING}"
-									PRIVATE DEBUGGER
 									PRIVATE PYTHON3_EXECUTABLE_PATH="${Python3_EXECUTABLE}")
 
 	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})

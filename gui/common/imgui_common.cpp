@@ -25,13 +25,19 @@ static void simulationThread() {
 	ram.load("test/ibm_bios.bin", 0xFE000);
 #else
 	//Loading custom test code
-		ram.load("test/interrupts.bin",0);
-		ram.load("test/jmp.bin", 0xFFFF0);
-		//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
-		ram.load("test/bios.bin",0x500);
+	ram.load("test/interrupts.bin",0);
+	ram.load("test/jmp.bin", 0xFFFF0);
+	//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
+	ram.load("test/bios.bin",0x500);
 #endif
 
+#ifdef DEBUGGER
+	E5150::Debugger::init();
+#endif
 	arch.startSimulation();
+#ifdef DEBUGGER
+	E5150::Debugger::deinit();
+#endif
 }
 
 static std::thread t;
@@ -58,10 +64,6 @@ void E5150::GUI::guiInit()
 	signal(SIGINT, stop);
 	signal(SIGTERM, stop);
 
-	#ifdef DEBUGGER
-		Debugger::init();
-	#endif
-
 	t = std::thread(simulationThread);
 }
 
@@ -70,6 +72,7 @@ void E5150::GUI::guiDraw()
 	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	static unsigned int instructionExecuted = 0;
 	static uint64_t lastFrameCPUClockCount = 0;
+	static unsigned int lastFrameCPUInstructionCount = 0;
 	static uint64_t lastFrameFDCClockCount = 0;
 	static unsigned int CPUClockDelta = 0;
 	static unsigned int FDCClockDelta = 0;
@@ -83,7 +86,7 @@ void E5150::GUI::guiDraw()
 	const auto timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdateTime);
 	if (timeSinceLastUpdate >= std::chrono::milliseconds(MS_PER_UPDATE))
 	{
-		const unsigned int deltaInstructions = cpu.instructionExecutedCount - instructionExecuted;
+		instructionExecuted = cpu.instructionExecutedCount - lastFrameCPUInstructionCount;
 
 		const uint64_t currentCPUClockCount = Arch::emulationStat.cpuClock;
 		const uint64_t currentFDCClockCount = Arch::emulationStat.fdcClock;
@@ -94,7 +97,7 @@ void E5150::GUI::guiDraw()
 		CPUClockAccuracy = CPUClockDelta * 100 / EXPECTED_CPU_CLOCK_COUNT;
 		FDCClockAccuracy = FDCClockDelta * 100 / EXPECTED_FDC_CLOCK_COUNT;
 
-		instructionExecuted = Arch::emulationStat.instructionExecutedCount;
+		lastFrameCPUInstructionCount = cpu.instructionExecutedCount;
 		lastFrameCPUClockCount = currentCPUClockCount;
 		lastFrameFDCClockCount = currentFDCClockCount;
 
@@ -105,6 +108,7 @@ void E5150::GUI::guiDraw()
 	ImGui::Text("CPU clock executed : %6d / %6d", CPUClockDelta, EXPECTED_CPU_CLOCK_COUNT);
 	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
 	ImGui::Text("Clock accuracy cpu : %d%%  fdc %d%%", CPUClockAccuracy, FDCClockAccuracy);
+	ImGui::Text("Instruction executed : %.3fM",instructionExecuted / 1e6);
 	ImGui::End();
 
 	/*if (!simulationStarted)
@@ -125,7 +129,4 @@ void E5150::GUI::guiDeinit()
 {
 	E5150::Util::_continue = false;
 	t.join();
-#ifdef DEBUGGER
-	Debugger::deinit();
-#endif
 }
