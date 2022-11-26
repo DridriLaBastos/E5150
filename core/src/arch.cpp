@@ -1,5 +1,3 @@
-#include <csignal>
-
 #include "core/arch.hpp"
 #include "core/util.hpp"
 

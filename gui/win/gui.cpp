@@ -47,6 +47,8 @@ static IDXGISwapChain3* g_pSwapChain = NULL;
 static HANDLE                       g_hSwapChainWaitableObject = NULL;
 static ID3D12Resource* g_mainRenderTargetResource[NUM_BACK_BUFFERS] = {};
 static D3D12_CPU_DESCRIPTOR_HANDLE  g_mainRenderTargetDescriptor[NUM_BACK_BUFFERS] = {};
+static WNDCLASSEXW wc;
+static HWND hwnd;
 
 // Forward declarations of helper functions
 bool CreateDeviceD3D(HWND hWnd);
@@ -57,21 +59,14 @@ void WaitForLastSubmittedFrame();
 FrameContext* WaitForNextFrameResources();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-// Main code
-int E5150::GUI::init(int, const char**)
+void E5150::GUI::platformUILoop()
 {
-    // Create application window
-    //ImGui_ImplWin32_EnableDpiAwareness();
-    WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"ImGui Example", NULL };
-    ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
-
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
     {
         CleanupDeviceD3D();
         ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-        return 1;
+        return;
     }
 
     // Show the window
@@ -244,6 +239,17 @@ int E5150::GUI::init(int, const char**)
     CleanupDeviceD3D();
     ::DestroyWindow(hwnd);
     ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+}
+
+
+// Main code
+int E5150::GUI::platformInit(int, const char**)
+{
+    // Create application window
+    //ImGui_ImplWin32_EnableDpiAwareness();
+	wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"ImGui Example", NULL };
+    ::RegisterClassExW(&wc);
+	hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX12 Example", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
 
     return 0;
 }
