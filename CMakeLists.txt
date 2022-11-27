@@ -62,7 +62,7 @@ if (ENABLE_DEBUGGER)
 
 	find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
-	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
+	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/gui.cpp ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
 		# TODO: gives this as install path
 	target_compile_definitions(epc	PRIVATE DECOM_LIB_PATH="$<TARGET_FILE:decom>"
 									PRIVATE DEBUGGER_PYTHON_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/debugger/debugger.py"

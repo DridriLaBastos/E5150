@@ -113,6 +113,10 @@ void E5150::GUI::guiDraw()
 	ImGui::Text("Instruction executed : %.3fM",instructionExecuted / 1e6);
 	ImGui::End();
 
+#ifdef DEBUGGER
+	E5150::Debugger::GUI::drawConsole();
+#endif
+
 	/*if (!simulationStarted)
 	{
 		ImGui::Begin("Home");
