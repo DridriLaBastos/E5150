@@ -44,8 +44,8 @@ static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction
 		{
 			if (streamPullCode == PLATFORM_ERROR)
 			{
-				E5150_DEBUG("Exit with error %d", errorGetCode());
-				E5150_ERROR(errorGetDescription());
+				E5150_DEBUG("Exit with error %d", platformGetLastErrorCode());
+				E5150_ERROR(platformGetLastErrorDescription());
 			}
 			else
 			{
@@ -65,8 +65,10 @@ static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction
 	}
 }
 
-static void pullStdoutThreadFunction() { pullChildStreamThreadFunction(readChildStdout,DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT); }
-static void pullStderrThreadFunction() { pullChildStreamThreadFunction(readChildStderr,DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR); }
+static void pullStdoutThreadFunction() {
+	pullChildStreamThreadFunction(platformReadChildSTDOUT, DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT); }
+static void pullStderrThreadFunction() {
+	pullChildStreamThreadFunction(platformReadChildSTDERR, DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR); }
 
 void E5150::Debugger::GUI::initConsole()
 {

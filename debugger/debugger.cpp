@@ -50,11 +50,13 @@ void E5150::Debugger::init()
 	context.clear();
 	isEmulator();
 
-	if (const PLATFORM_CODE code = fifoCreate(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_SUCCESS)
+	if (const PLATFORM_CODE code = platformCreateFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_SUCCESS)
 	{
 		if (code == PLATFORM_ERROR)
 		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+			E5150_WARNING("Cannot initiate send channel communication with the debugger. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'",
+						  platformGetLastErrorCode(),
+						  platformGetLastErrorDescription());
 			return;
 		}
 
@@ -62,11 +64,13 @@ void E5150::Debugger::init()
 		E5150_WARNING("\tIf this behaviour persists, remove the file '" EMULATOR_TO_DEBUGGER_FIFO_FILENAME "'");
 	}
 
-	if (const PLATFORM_CODE code = fifoCreate(DEBUGGER_TO_EMULATOR_FIFO_FILENAME); code != PLATFORM_SUCCESS)
+	if (const PLATFORM_CODE code = platformCreateFifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME); code != PLATFORM_SUCCESS)
 	{
 		if (code == PLATFORM_ERROR)
 		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger.  Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'", errorGetCode(), errorGetDescription());
+			E5150_WARNING("Cannot initiate send channel communication with the debugger.  Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'",
+						  platformGetLastErrorCode(),
+						  platformGetLastErrorDescription());
 			return;
 		}
 
@@ -84,15 +88,17 @@ void E5150::Debugger::init()
 		nullptr
 	};
 
-	debuggerProcess = processCreate(debuggerArgs,std::size(debuggerArgs));
+	debuggerProcess = platformCreateProcess(debuggerArgs, std::size(debuggerArgs));
 
 	if (debuggerProcess == -1)
 	{
-		E5150_WARNING("Unable to create the debugger subprocess. Emulation will continue without the debugger. [PLATFORM ERROR {}] '{}'.", errorGetCode(), errorGetDescription());
+		E5150_WARNING("Unable to create the debugger subprocess. Emulation will continue without the debugger. [PLATFORM ERROR {}] '{}'.",
+					  platformGetLastErrorCode(),
+					  platformGetLastErrorDescription());
 		return;
 	}
 
-	toDebugger = fifoOpen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
+	toDebugger = platformOpenFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
 	if (toDebugger < 0)
 	{
 		E5150_WARNING("Unable to open send to debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
@@ -100,7 +106,7 @@ void E5150::Debugger::init()
 		return;
 	}
 
-	fromDebugger = fifoOpen(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, O_RDONLY);
+	fromDebugger = platformOpenFifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, O_RDONLY);
 	if (fromDebugger < 0)
 	{
 		E5150_WARNING("Unable to open receive from debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
@@ -126,8 +132,9 @@ void E5150::Debugger::deinit()
 
 	if (debuggerProcess >= 0)
 	{
-		if (processTerminate(debuggerProcess) != PLATFORM_SUCCESS)
-		{ E5150_INFO("Cannot stop debugger process. [PLATFORM ERROR {}]: {}", errorGetCode(), errorGetDescription()); }
+		if (platformTerminateProcess(debuggerProcess) != PLATFORM_SUCCESS)
+		{ E5150_INFO("Cannot stop debugger process. [PLATFORM ERROR {}]: {}", platformGetLastErrorCode(),
+					 platformGetLastErrorDescription()); }
 		else { debuggerProcess = -1; }
 	}
 

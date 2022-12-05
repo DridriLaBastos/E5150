@@ -13,7 +13,7 @@
 static int stdoutfd[2];
 static int stderrfd[2];
 
-process_t processCreate(const char* processCommandLineArgs[], const size_t processCommandLineArgsCount)
+process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount)
 {
 	pipe(stdoutfd);
 	pipe(stderrfd);
@@ -34,7 +34,7 @@ process_t processCreate(const char* processCommandLineArgs[], const size_t proce
 		execFunctionArgs[processCommandLineArgsCount] = NULL;
 
 		for (int i = 0; i < processCommandLineArgsCount; ++i)
-		{ execFunctionArgs[i] = processCommandLineArgs[i]; }
+		{ execFunctionArgs[i] = processArgs[i]; }
 
 		//TODO: How to notify the emulator that the creation of the debugger failed ? Maybe using signal SIGUSR1/2?
 		exit(execvp(execFunctionArgs[0], execFunctionArgs));
@@ -45,7 +45,7 @@ process_t processCreate(const char* processCommandLineArgs[], const size_t proce
 	return createdPID;
 }
 
-enum PLATFORM_CODE processTerminate(process_t process)
+enum PLATFORM_CODE platformTerminateProcess(const process_t process)
 {
 	if (kill(process,SIGTERM) < 0)
 	{
@@ -55,7 +55,7 @@ enum PLATFORM_CODE processTerminate(process_t process)
 	return waitpid(process,NULL,WUNTRACED) == process ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-enum PLATFORM_CODE fifoCreate (const char* fifoFileName)
+enum PLATFORM_CODE platformCreateFifo (const char* fifoFileName)
 {
 	const int fifo = mkfifo(fifoFileName,S_IRWXG|S_IRWXO|S_IRWXU);
 
@@ -66,11 +66,11 @@ enum PLATFORM_CODE fifoCreate (const char* fifoFileName)
 	return fifoAlreadyExists ? PLATFORM_FIFO_ALREADY_CREATED : PLATFORM_ERROR;
 }
 
-int fifoOpen(const char* fifoFileName, const int openFlags)
+int platformOpenFifo(const char* fifoFileName, const int openFlags)
 { return open(fifoFileName,openFlags); }
 
-const char* errorGetDescription(void) { return strerror(errno); }
-const uint64_t errorGetCode(void) { return errno; }
+const char* platformGetLastErrorDescription(void) { return strerror(errno); }
+const uint64_t platformGetLastErrorCode(void) { return errno; }
 
 static enum PLATFORM_CODE readFromChildFD(const int fd, char* const c)
 {
@@ -80,5 +80,5 @@ static enum PLATFORM_CODE readFromChildFD(const int fd, char* const c)
 		return PLATFORM_SUCCESS;
 	return r == 0 ? PLATFORM_STREAM_ENDS : PLATFORM_ERROR;
 }
-enum PLATFORM_CODE readChildStdout(char* const c) { return readFromChildFD(stdoutfd[0],c); }
-enum PLATFORM_CODE readChildStderr(char* const c) { return readFromChildFD(stderrfd[0],c); }
+enum PLATFORM_CODE platformReadChildSTDOUT(char* const c) { return readFromChildFD(stdoutfd[0], c); }
+enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChildFD(stderrfd[0], c); }

@@ -60,17 +60,17 @@ extern "C" {
 	 * @param[in] processCommandLineArgsCount total number of paramters given to the process
 	 * @return -1 in case of failure or a value >= 0 that identifies the created process on the platform layer
 	 */
-	process_t processCreate(const char* processArgs[], const size_t processCommandLineArgsCount);
-	enum PLATFORM_CODE processTerminate(const process_t);
+	process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount);
+	enum PLATFORM_CODE platformTerminateProcess(const process_t);
 
-	const char* errorGetDescription(void);
-	const uint64_t errorGetCode(void);
+	const char* platformGetLastErrorDescription(void);
+	const uint64_t platformGetLastErrorCode(void);
 
-	enum PLATFORM_CODE fifoCreate(const char* fifoFileName);
-	int fifoOpen(const char* fifoFileName, const int openFlags);
+	enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName);
+	int platformOpenFifo(const char* fifoFileName, const int openFlags);
 
-	enum PLATFORM_CODE readChildStdout(char* const c);
-	enum PLATFORM_CODE readChildStderr(char* const c);
+	enum PLATFORM_CODE platformReadChildSTDOUT(char* const c);
+	enum PLATFORM_CODE platformReadChildSTDERR(char* const c);
 
 #ifdef __cplusplus
 }
