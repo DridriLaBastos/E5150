@@ -15,32 +15,6 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::Arch::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::Arch::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void simulationThread() {
-#ifdef DEBUGGER
-	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
-	spdlog::set_level(spdlog::level::debug);
-#endif
-	E5150::Arch arch;
-
-#if 1
-	//Loading IBM BIOS
-	ram.load("test/ibm_bios.bin", 0xFE000);
-#else
-	//Loading custom test code
-	ram.load("test/interrupts.bin",0);
-	ram.load("test/jmp.bin", 0xFFFF0);
-	//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
-	ram.load("test/bios.bin",0x500);
-#endif
-
-#ifdef DEBUGGER
-	E5150::Debugger::init();
-#endif
-	arch.startSimulation();
-#ifdef DEBUGGER
-	E5150::Debugger::deinit();
-#endif
-}
 
 static std::thread t;
 
@@ -56,17 +30,41 @@ void E5150::GUI::guiInit()
 	auto imguiSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	imguiSink->init();
 
+#ifdef DEBUGGER
+	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
+	spdlog::set_level(spdlog::level::debug);
+#endif
+
+#ifdef DEBUGGER
+	E5150::Debugger::init();
+	E5150::Debugger::GUI::initConsole();
+#endif
+
+	E5150::Arch arch;
+
 	#ifndef WIN32 //Those signals values aren't defined in windows
 		signal(SIGSTOP, stop);
 		signal(SIGQUIT, stop);
 		signal(SIGKILL, stop);
 	#endif
-	
+
 	signal(SIGABRT, stop);
 	signal(SIGINT, stop);
 	signal(SIGTERM, stop);
 
-	t = std::thread(simulationThread);
+	#if 1
+		//Loading IBM BIOS
+		ram.load("test/ibm_bios.bin", 0xFE000);
+	#else
+		//Loading custom test code
+		ram.load("test/interrupts.bin",0);
+		ram.load("test/jmp.bin", 0xFFFF0);
+		//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
+		ram.load("test/bios.bin",0x500);
+	#endif
+
+	//TODO: launching the thread arch shouldn't be done inside the gui init function
+	//t = std::thread(&E5150::Arch::startSimulation,&arch);
 }
 
 void E5150::GUI::guiDraw()
@@ -134,5 +132,9 @@ void E5150::GUI::guiDraw()
 void E5150::GUI::guiDeinit()
 {
 	E5150::Util::_continue = false;
+#ifdef DEBUGGER
+	E5150::Debugger::GUI::endConsole();
+	E5150::Debugger::deinit();
+#endif
 	t.join();
 }

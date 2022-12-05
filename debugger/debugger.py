@@ -1,3 +1,4 @@
+import time
 from io import FileIO
 import cmd
 import argparse
@@ -93,8 +94,18 @@ if __name__ == "__main__":
 		sys.exit(f"[E5150 DEBUGGER]: Wrong synchronization data, expected 0xDEAB12CD, got 0x{synchronizationData.value:X}")
 
 	print(f"[E5150 DEBUGGER]: Connected to emulator")
-	shell = DebuggerShell()
+	#shell = DebuggerShell()
 
 	#TODO: review tgis while True loop, I want everything o be treated inside the cmdloop function
 	while True:
-		shell.cmdloop()
+		commandLineLength = ctypes.c_size_t(0)
+		decom.readFromRegisteredDest(ctypes.byref(commandLineLength),ctypes.sizeof(commandLineLength))
+		print(f"CMD length : {commandLineLength}",file=sys.stderr)
+
+		cmdLine = ctypes.create_string_buffer(commandLineLength.value)
+		decom.readFromRegisteredDest(ctypes.byref(cmdLine),commandLineLength)
+
+		try:
+			commands.parse(fromEmulator,toEmulator,decomPath,cmdLine.raw.decode("ascii"))
+		except:
+			pass

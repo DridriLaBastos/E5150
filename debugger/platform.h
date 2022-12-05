@@ -34,7 +34,8 @@ enum PLATFORM_CODE
 {
 	PLATFORM_SUCCESS,
 	PLATFORM_ERROR,
-	PLATFORM_FIFO_ALREADY_CREATED
+	PLATFORM_FIFO_ALREADY_CREATED,
+	PLATFORM_STREAM_ENDS
 };
 
 typedef int process_t;
@@ -67,6 +68,9 @@ extern "C" {
 
 	enum PLATFORM_CODE fifoCreate(const char* fifoFileName);
 	int fifoOpen(const char* fifoFileName, const int openFlags);
+
+	enum PLATFORM_CODE readChildStdout(char* const c);
+	enum PLATFORM_CODE readChildStderr(char* const c);
 
 #ifdef __cplusplus
 }
