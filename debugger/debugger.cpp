@@ -80,12 +80,13 @@ void E5150::Debugger::init()
 
 	const char* debuggerArgs [] = {
 		PATH(PYTHON3_EXECUTABLE_PATH),
-		"-u",//Python unbuffured mode
+		"-u",//Python unbuffered mode
 		PATH(DEBUGGER_PYTHON_SCRIPT_PATH),
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
 		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
 		PATH(DECOM_LIB_PATH),
-		nullptr
+		//nullptr <-- Why this works on macos (maybe unix)
+		"\0"
 	};
 
 	debuggerProcess = platformCreateProcess(debuggerArgs, std::size(debuggerArgs));

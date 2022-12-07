@@ -183,6 +183,11 @@ void E5150::GUI::platformUILoop()
             ImGui::End();
         }
 
+        // 4. Show emulator windows
+        {
+            E5150::GUI::guiDraw();
+        }
+
         // Rendering
         ImGui::Render();
 

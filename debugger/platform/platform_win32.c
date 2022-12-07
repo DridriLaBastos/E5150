@@ -8,11 +8,15 @@
 #include <io.h>
 #include <fcntl.h>
 #include <Windows.h>
+#include <namedpipeapi.h>
 
 const int FIFO_OPEN_RDONLY = _O_RDONLY;
 const int FIFO_OPEN_WRONLY = _O_WRONLY;
 
 static const char* namedPipeSystemPath = "\\\\.\\pipe\\";
+
+static HANDLE childStdoutRead;
+static HANDLE childStdoutWrite;
 
 //+1 for the last NULL character
 #define COMPUTE_WIN32_PIPE_PATH(pipeName)	const size_t pipeSystemPathLength = strlen(pipeName) + strlen(namedPipeSystemPath) + 1;\
@@ -66,7 +70,7 @@ static void mapRemove(const unsigned int entry)
 
 //The function will create the command line based on the values inside processArgs
 //TODO: may benefit on some error checking
-process_t processCreate(const char* processArgs[], const size_t processCommandLineArgsCount)
+process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount)
 {
 	//We want to add a space between each argument of the process, this creates processCommandLineArgsCount - 1 spaces.
 	//We add 1 more to the size for the last null character
@@ -100,7 +104,17 @@ process_t processCreate(const char* processArgs[], const size_t processCommandLi
 
 	si.cb = sizeof(si);
 
-	BOOL processCreationSucceed = CreateProcess(NULL, processLaunchCommandLine, NULL, NULL, FALSE, 0, NULL, NULL,&si,&pi);
+	SECURITY_ATTRIBUTES pipeSecurityAttributes;
+	pipeSecurityAttributes.bInheritHandle = 1;
+	pipeSecurityAttributes.lpSecurityDescriptor = NULL;
+	pipeSecurityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
+
+	/*BOOL result = CreatePipe(&childStdoutRead, &childStdoutWrite,&pipeSecurityAttributes,0);
+
+	if (!result)
+	{ return -1; }*/
+
+	BOOL result = CreateProcess(NULL, processLaunchCommandLine, NULL, NULL, FALSE, 0, NULL, NULL,&si,&pi);
 
 	//TODO: Why does WaitForSingleObject fails with timeout ?
 	/*if (processCreationSucceed) {
@@ -110,10 +124,10 @@ process_t processCreate(const char* processArgs[], const size_t processCommandLi
 		
 	}*/
 
-	return processCreationSucceed ? pi.dwProcessId : -1;
+	return result ? pi.dwProcessId : -1;
 }
 
-enum PLATFORM_CODE processTerminate(const process_t process)
+enum PLATFORM_CODE platformTerminateProcess(const process_t process)
 {
 	BOOL b = GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, process);
 	if (!b) { return PLATFORM_ERROR; }
@@ -126,7 +140,7 @@ enum PLATFORM_CODE processTerminate(const process_t process)
 	return GetExitCodeProcess(h, &processExitCode) ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-const char* errorGetDescription(void)
+const char* platformGetLastErrorDescription(void)
 {
 	static char messageDescription[ERROR_MESSAGE_MAX_SIZE];
 
@@ -149,9 +163,9 @@ const char* errorGetDescription(void)
 	return messageDescription;
 }
 
-const uint64_t errorGetCode() { return GetLastError(); }
+const uint64_t platformGetLastErrorCode() { return GetLastError(); }
 
-enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
+enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName)
 {
 	COMPUTE_WIN32_PIPE_PATH(fifoFileName);
 	//TODO: Not sure about that, seems to work.
@@ -173,7 +187,7 @@ enum PLATFORM_CODE fifoCreate(const char* fifoFileName)
 	return PLATFORM_SUCCESS;
 }
 
-int fifoOpen(const char* fifoFileName, const int openFlags)
+int platformOpenFifo(const char* fifoFileName, const int openFlags)
 {
 	const int mapEntryIndex = mapFindIndex(fifoFileName);
 	if (mapEntryIndex < 0) { return -1; }
@@ -182,4 +196,16 @@ int fifoOpen(const char* fifoFileName, const int openFlags)
 	const BOOL b = ConnectNamedPipe(hFifo, NULL);
 
 	return _open_osfhandle(hFifo, openFlags);
+}
+
+//TODO: How to detect end of file ?
+enum PLATFORM_CODE platformReadChildSTDOUT(char* const c)
+{
+	BOOL result = ReadFile(childStdoutRead,&c,sizeof(char),NULL,NULL);
+	return result ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+}
+
+enum PLATFORM_CODE platformReadChildSTDERR(char* const c)
+{
+	return PLATFORM_STREAM_ENDS;
 }

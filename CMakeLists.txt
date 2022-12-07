@@ -81,7 +81,7 @@ if(APPLE)
 	find_library(GAME_CONTROLLER GameController REQUIRED)
 	target_link_libraries(epc ${APP_KIT} ${METAL_KIT} ${METAL} ${QUARTZ_CORE} ${GAME_CONTROLLER})
 elseif(WIN32)
-	target_link_libraries(epc d3d12.lib d3dcompiler.lib dxgi.lib)
+	target_link_libraries(epc d3d11.lib d3dcompiler.lib dxgi.lib)
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

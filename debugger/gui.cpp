@@ -24,6 +24,7 @@ static int execCommand(void)
 	const size_t commandLength = strnlen(&debuggerCommandInputBuffer[3],256-3);
 	WRITE_TO_DEBUGGER(&commandLength,sizeof(commandLength));
 	WRITE_TO_DEBUGGER(&debuggerCommandInputBuffer[3],commandLength);
+	return 0;
 }
 
 static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction)(char* const),const DEBUG_CONSOLE_ENTRY_TYPE type)
@@ -44,7 +45,7 @@ static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction
 		{
 			if (streamPullCode == PLATFORM_ERROR)
 			{
-				E5150_DEBUG("Exit with error %d", platformGetLastErrorCode());
+				E5150_DEBUG("Exit with error {}", platformGetLastErrorCode());
 				E5150_ERROR(platformGetLastErrorDescription());
 			}
 			else

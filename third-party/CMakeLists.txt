@@ -50,7 +50,7 @@ if(APPLE)
 	target_sources(imgui
 			PRIVATE imgui/backends/imgui_impl_osx.mm imgui/backends/imgui_impl_metal.mm)
 elseif(WIN32)
-	target_sources(imgui PRIVATE imgui/backends/imgui_impl_dx12.cpp imgui/backends/imgui_impl_win32.cpp)
+	target_sources(imgui PRIVATE imgui/backends/imgui_impl_dx11.cpp imgui/backends/imgui_impl_win32.cpp)
 else()
 	message(FATAL_ERROR "System ${CMAKE_SYSTEM_NAME} not supported yet")
 endif()
