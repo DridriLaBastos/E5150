@@ -17,11 +17,13 @@ static const char* namedPipeSystemPath = "\\\\.\\pipe\\";
 
 static HANDLE childStdoutRead;
 static HANDLE childStdoutWrite;
+static HANDLE childStderrRead;
+static HANDLE childStderrWrite;
 
 //+1 for the last NULL character
 #define COMPUTE_WIN32_PIPE_PATH(pipeName)	const size_t pipeSystemPathLength = strlen(pipeName) + strlen(namedPipeSystemPath) + 1;\
 											const char* pipeSystemPath = _malloca(pipeSystemPathLength);\
-											strcpy(pipeSystemPath,namedPipeSystemPath);\
+											strcpy_s(pipeSystemPath,pipeSystemPathLength,namedPipeSystemPath);\
 											strncat(pipeSystemPath,pipeName,pipeSystemPathLength)
 #define ERROR_MESSAGE_MAX_SIZE 256
 
@@ -96,6 +98,23 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 	}
 	processLaunchCommandLine[processCommandLineSize - 1] = '\0';
 
+	SECURITY_ATTRIBUTES pipeSecurityAttributes;
+	pipeSecurityAttributes.bInheritHandle = TRUE;
+	pipeSecurityAttributes.lpSecurityDescriptor = NULL;
+	pipeSecurityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
+
+	BOOL result = CreatePipe(&childStdoutRead, &childStdoutWrite,&pipeSecurityAttributes,0);
+	if (!result)
+	{ return -1; }
+
+	result = CreatePipe(&childStderrRead, &childStderrWrite, &pipeSecurityAttributes,0);
+	if (!result)
+	{ return -1; }
+
+	//Child should not inherit the read handle of both stderr and stdout
+	SetHandleInformation(&childStdoutRead, HANDLE_FLAG_INHERIT,0);
+	SetHandleInformation(&childStderrRead, HANDLE_FLAG_INHERIT,0);
+
 	PROCESS_INFORMATION pi;
 	STARTUPINFO si;
 
@@ -103,18 +122,11 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 	ZeroMemory(&si, sizeof(si));
 
 	si.cb = sizeof(si);
+	si.hStdOutput = childStdoutWrite;
+	si.hStdError = childStderrWrite;
+	si.dwFlags = STARTF_USESTDHANDLES;
 
-	SECURITY_ATTRIBUTES pipeSecurityAttributes;
-	pipeSecurityAttributes.bInheritHandle = 1;
-	pipeSecurityAttributes.lpSecurityDescriptor = NULL;
-	pipeSecurityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-
-	/*BOOL result = CreatePipe(&childStdoutRead, &childStdoutWrite,&pipeSecurityAttributes,0);
-
-	if (!result)
-	{ return -1; }*/
-
-	BOOL result = CreateProcess(NULL, processLaunchCommandLine, NULL, NULL, FALSE, 0, NULL, NULL,&si,&pi);
+	result = CreateProcess(NULL, processLaunchCommandLine, NULL, NULL, TRUE, 0, NULL, NULL,&si,&pi);
 
 	//TODO: Why does WaitForSingleObject fails with timeout ?
 	/*if (processCreationSucceed) {
@@ -124,7 +136,16 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 		
 	}*/
 
-	return result ? pi.dwProcessId : -1;
+	if (!result)
+	{
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+		CloseHandle(childStderrWrite);
+		CloseHandle(childStdoutWrite);
+		return -1;
+	}
+
+	return pi.dwProcessId;
 }
 
 enum PLATFORM_CODE platformTerminateProcess(const process_t process)
@@ -198,14 +219,12 @@ int platformOpenFifo(const char* fifoFileName, const int openFlags)
 	return _open_osfhandle(hFifo, openFlags);
 }
 
-//TODO: How to detect end of file ?
-enum PLATFORM_CODE platformReadChildSTDOUT(char* const c)
+static enum PLATFORM_CODE readFromChildHandle(char* const c, HANDLE h)
 {
-	BOOL result = ReadFile(childStdoutRead,&c,sizeof(char),NULL,NULL);
+	BOOL result = ReadFile(h,c,sizeof(char),NULL,NULL);
 	return result ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-enum PLATFORM_CODE platformReadChildSTDERR(char* const c)
-{
-	return PLATFORM_STREAM_ENDS;
-}
+//TODO: How to detect end of file ?
+enum PLATFORM_CODE platformReadChildSTDOUT(char* const c) { return readFromChildHandle(c,childStdoutRead); }
+enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChildHandle(c,childStderrRead); }
