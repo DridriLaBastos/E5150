@@ -100,7 +100,6 @@ if __name__ == "__main__":
 	while True:
 		commandLineLength = ctypes.c_size_t(0)
 		decom.readFromRegisteredDest(ctypes.byref(commandLineLength),ctypes.sizeof(commandLineLength))
-		print(f"CMD length : {commandLineLength}",file=sys.stderr)
 
 		cmdLine = ctypes.create_string_buffer(commandLineLength.value)
 		decom.readFromRegisteredDest(ctypes.byref(cmdLine),commandLineLength)

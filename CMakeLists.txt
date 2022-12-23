@@ -1,6 +1,5 @@
-# file GLOB CONFIGURE_DEPENDS available from 3.12
 # target_precompiled_headers available from 3.16
-cmake_minimum_required(VERSION 3.16) # file GLOB CONFIGURE_DEPENDS is only available from CMake 3.12+
+cmake_minimum_required(VERSION 3.16)
 
 project(E5150
 		VERSION 0.1
@@ -25,7 +24,7 @@ if (WIN32)
 add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
 endif()
 
-include_directories(. third-party/spdlog/include third-party third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
+include_directories(${CMAKE_SOURCE_DIR} third-party/spdlog/include third-party third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
 
 add_subdirectory(third-party)
 add_subdirectory(test)

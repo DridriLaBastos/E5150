@@ -30,6 +30,7 @@ void E5150::GUI::guiInit()
 	auto imguiSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	imguiSink->init();
 
+	E5150_INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 #ifdef DEBUGGER
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);

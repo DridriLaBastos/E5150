@@ -29,12 +29,11 @@ E5150::Arch::EmulationStat E5150::Arch::emulationStat;
 
 E5150::Arch::Arch()
 {
-	E5150_INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 	#ifndef STOP_AT_INSTRUCTION
 	//	E5150_INFO("Configured : {} regs.clk per regs.block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
 	#endif
 	E5150_INFO("This program use the library Intel XED to decode the instructions");
-	E5150_INFO("This library is accregs.esregs.siregs.ble at : https://intelxed.github.io");
+	E5150_INFO("This library is accessible at : https://intelxed.github.io");
 	E5150_INFO("xed version : {}\n",xed_get_version());
 
 	E5150::Util::_continue = true;
