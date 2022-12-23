@@ -278,9 +278,12 @@ static void printCpuInfos(void)
 
 static void handleContinueCommand()
 {
+	PassCommandInfo  info;
+	READ_FROM_DEBUGGER(&info,sizeof(PassCommandInfo));
+
 	context.type = COMMAND_TYPE_CONTINUE;
-	READ_FROM_DEBUGGER(&context.passType, sizeof(PASS_TYPE));
-	READ_FROM_DEBUGGER(&context.count, sizeof(unsigned int));
+	context.passType = info.passType;
+	context.count = info.passCount;
 
 	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = 0;
@@ -288,43 +291,34 @@ static void handleContinueCommand()
 
 static void handleStepCommand()
 {
-	uint8_t passFlags;
-	READ_FROM_DEBUGGER(&passFlags,1);
-
-	if ((passFlags & PASS_TYPE_CLOCKS) && (passFlags & PASS_TYPE_STEP_THROUGH))
-	{
-		E5150_INFO("Using pass flag with clock has no effects");
-		passFlags &= ~PASS_TYPE_STEP_THROUGH;
-	}
-
-	if ((passFlags & PASS_TYPE_INSTRUCTIONS) && (passFlags & PASS_TYPE_STEP_THROUGH))
-	{ passFlags = PASS_TYPE_STEP_THROUGH; }
+	PassCommandInfo info;
+	READ_FROM_DEBUGGER(&info,sizeof(PassCommandInfo));
 
 	context.type = COMMAND_TYPE_STEP;
-	context.passType = passFlags;
+	context.passType = info.passType;
 	context.count = 1;
 }
 
 static void handleDisplayCommand()
 {
-	int newLogLevel;
-	READ_FROM_DEBUGGER(&newLogLevel, sizeof(newLogLevel));
+	DisplayCommandInfo info;
+	READ_FROM_DEBUGGER(&info, sizeof(DisplayCommandInfo));
 
-	if (newLogLevel < 0)
+	if (info.newLogLevel < 0)
 	{
 		E5150_INFO("Current log level : {}", E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 		return;
 	}
 
-	if (newLogLevel > EMULATION_MAX_LOG_LEVEL)
+	if (info.newLogLevel > EMULATION_MAX_LOG_LEVEL)
 	{
 		E5150_INFO("Log level selected to high, log level applied will be the highest value : {}", EMULATION_MAX_LOG_LEVEL);
 		E5150::Util::CURRENT_EMULATION_LOG_LEVEL = EMULATION_MAX_LOG_LEVEL;
 		return;
 	}
 
-	E5150_INFO("Log level set to the new level {}", newLogLevel);
-	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = newLogLevel;
+	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = info.newLogLevel;
+	E5150_INFO("Log level set to the new level {}", E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 }
 
 static void handleQuitCommand(void)
@@ -416,7 +410,11 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 			//still maintain its execution state until a new instruction have been decoded.
 			context.count -= (instructionExecuted) && (context.count > 0);
 			return (context.count > 0) || (!instructionDecoded);
-		//case STEP_TROUGH
+
+		case PASS_TYPE_INSTRUCTION_STEP_THROUGH:
+			E5150_WARNING("Instruction step throught command not yet implemented");
+			return false;
+
 		case PASS_TYPE_INFINITE:
 			return true;
 
@@ -445,6 +443,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 
 	if (context.type == COMMAND_TYPE_CONTINUE || context.type == COMMAND_TYPE_STEP)
 	{
+		//Is the execution of the pass command done ?
 		if (executePassCommand(instructionExecuted, instructionDecoded)) { return; }
 		if (context.type == COMMAND_TYPE_CONTINUE) { E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel; }
 	}
@@ -452,12 +451,14 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	context.clear();
 	//printCpuInfos();
 	//if(WRITE_TO_DEBUGGER(&cpu.instructionExecutedCount,8) == -1) { return; }
-	
+
 	do
 	{
+		//1 - Reading the command to execute
 		if (READ_FROM_DEBUGGER(&commandType,sizeof(COMMAND_TYPE)) == -1) { break; }
-		const COMMAND_RECEIVED_STATUS commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
+		const uint8_t commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_FAILURE;
 
+		//2 - telling the debugger the status of the command reception
 		if(WRITE_TO_DEBUGGER( &commandReceivedStatus, sizeof(commandReceivedStatus)) == -1) { break; }
 
 		switch (commandType)
@@ -482,8 +483,14 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 				E5150_WARNING("Unknown response from debugger, behaviour may be unpredictable");
 				break;
 		}
+
+		//3 - Getting from the debugger if the emulator should wait for another command
 		if (READ_FROM_DEBUGGER(&shouldStop,1) < 0) { break; }
 		shouldStop |= context.type == COMMAND_TYPE_QUIT;
+
+		E5150_DEBUG("Should stop : {}",shouldStop);
+
+		//4 - Synchronization point : the debugger will wait to get a value before running another loop
 		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }
 	} while (!shouldStop);
 }

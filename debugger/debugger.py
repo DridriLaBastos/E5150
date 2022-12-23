@@ -94,17 +94,28 @@ if __name__ == "__main__":
 		sys.exit(f"[E5150 DEBUGGER]: Wrong synchronization data, expected 0xDEAB12CD, got 0x{synchronizationData.value:X}")
 
 	print(f"[E5150 DEBUGGER]: Connected to emulator")
-	#shell = DebuggerShell()
 
-	#TODO: review tgis while True loop, I want everything o be treated inside the cmdloop function
+	emulatorStatusOctet = ctypes.c_uint8(0)
+
 	while True:
+		# 1 - Get the command line length from the emulator GUI
 		commandLineLength = ctypes.c_size_t(0)
 		decom.readFromRegisteredDest(ctypes.byref(commandLineLength),ctypes.sizeof(commandLineLength))
 
+		# 2 - Get the command line from the emulator
 		cmdLine = ctypes.create_string_buffer(commandLineLength.value)
 		decom.readFromRegisteredDest(ctypes.byref(cmdLine),commandLineLength)
+		cmdLine.raw.decode('ascii')
+		print(f"* [{commandLineLength.value}] : '{cmdLine.value}'")
 
+		# 3 - Parse the command and send the result to the emulator following its protocol
 		try:
-			commands.parse(fromEmulator,toEmulator,decomPath,cmdLine.raw.decode("ascii"))
+			emulatorStatusOctet.value = 1 if commands.parse(fromEmulator,toEmulator,decomPath,cmdLine) else 0
 		except:
-			pass
+			emulatorStatusOctet.value = 1 # In case of an error we want the emulator to still wait for a command
+
+		# 4 - Send the shouldStop value to the emulator
+		decom.writeToRegisteredDest(ctypes.byref(emulatorStatusOctet),ctypes.sizeof(emulatorStatusOctet))
+
+		# 5 - Emulator end of loop synchronization
+		decom.readFromRegisteredDest(ctypes.byref(emulatorStatusOctet), ctypes.sizeof(emulatorStatusOctet))

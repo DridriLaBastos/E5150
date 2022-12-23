@@ -33,8 +33,8 @@
 
 typedef enum
 {
-	COMMAND_RECEIVED_SUCCESS,
-	COMMAND_RECEIVED_FAILURE
+	COMMAND_RECEIVED_SUCCESS = 1,
+	COMMAND_RECEIVED_FAILURE = 0
 } COMMAND_RECEIVED_STATUS;
 
 typedef enum
@@ -50,11 +50,24 @@ typedef enum {
 	PASS_TYPE_INFINITE 		= 1 << 0,
 	PASS_TYPE_INSTRUCTIONS	= 1 << 1,
 	PASS_TYPE_CLOCKS		= 1 << 2,
-	PASS_TYPE_STEP_THROUGH	= 1 << 3
+	PASS_TYPE_INSTRUCTION_STEP_THROUGH	= 1 << 3
 } PASS_TYPE;
 
 typedef enum
 { DISPLAY_TYPE_INSTRUCTIONS, DISPLAY_TYPE_REGISTERS, DISPLAY_TYPE_FLAGS, DISPLAY_TYPE_LOGLEVEL } DISPLAY_TYPE;
+
+typedef struct {
+	union {
+		unsigned int instructionCount;
+		unsigned int clockCounts;
+		unsigned int passCount;
+	};
+	PASS_TYPE passType;
+} PassCommandInfo;
+
+typedef struct {
+	unsigned int newLogLevel;
+} DisplayCommandInfo;
 
 DLL_EXPORT int sendContinueCommandInfo(const int instructionCounts, const int clockCounts);
 DLL_EXPORT int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const int passFlag);

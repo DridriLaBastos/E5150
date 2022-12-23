@@ -13,6 +13,9 @@ static COMMAND_RECEIVED_STATUS sendCommandToEmulatorAndGetStatus(const COMMAND_T
 	return commandReceivedStatus;
 }
 
+static void sendPassCommandToEmulator(const PassCommandInfo* const info)
+{ WRITE_TO_EMULATOR(info, sizeof(PassCommandInfo)); }
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////                                CONTINUE
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -22,27 +25,27 @@ int sendContinueCommandInfo(const int instructionCounts, const int clockCounts)
 	const COMMAND_RECEIVED_STATUS status = sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_CONTINUE);
 	if (status) { return false; }
 
+	PassCommandInfo info;
+
 	PASS_TYPE passType;
 	unsigned int passCount;
 
 	if (instructionCounts > 0)
 	{
-		passType = PASS_TYPE_INSTRUCTIONS;
-		passCount = instructionCounts;
+		info.passType = PASS_TYPE_INSTRUCTIONS;
+		info.instructionCount = instructionCounts;
 	}
 	else if (clockCounts > 0)
 	{
-		passType = PASS_TYPE_CLOCKS;
-		passCount = clockCounts;
+		info.passType = PASS_TYPE_CLOCKS;
+		info.instructionCount = clockCounts;
 	}
 	else
 	{
-		passType = PASS_TYPE_INFINITE;
-		passCount = -1;
+		info.passType = PASS_TYPE_INFINITE;
+		info.passCount = 0;
 	}
-
-	WRITE_TO_EMULATOR(&passType, sizeof(passType));
-	WRITE_TO_EMULATOR(&passCount, sizeof(passCount));
+	sendPassCommandToEmulator(&info);
 	return true;
 }
 
@@ -55,13 +58,13 @@ int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const in
 	const COMMAND_RECEIVED_STATUS status = sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_STEP);
 	if (status) { return false; }
 
-	uint8_t stepFlags = 0;
+	PassCommandInfo info; info.passCount = 1;
 
-	if (instructionFlag) { stepFlags |= PASS_TYPE_INSTRUCTIONS; }
-	if (clockFlag) { stepFlags |= PASS_TYPE_CLOCKS; }
-	if (passFlag) { stepFlags |= PASS_TYPE_STEP_THROUGH; }
+	if (instructionFlag) { info.passType = PASS_TYPE_INSTRUCTIONS; }
+	if (clockFlag) { info.passType = PASS_TYPE_CLOCKS; }
+	if (passFlag) { info.passType = PASS_TYPE_INSTRUCTION_STEP_THROUGH; }
 
-	WRITE_TO_EMULATOR(&stepFlags,sizeof(stepFlags));
+	sendPassCommandToEmulator(&info);
 	return true;
 }
 
@@ -72,7 +75,7 @@ int sendStepCommandInfo(const int instructionFlag, const int clockFlag, const in
 int sendDisplayCommandInfo(const int newLogLevel)
 {
 	sendCommandToEmulatorAndGetStatus(COMMAND_TYPE_DISPLAY);
-	WRITE_TO_EMULATOR(&newLogLevel, sizeof(newLogLevel));
+	WRITE_TO_EMULATOR(&(DisplayCommandInfo) { .newLogLevel=newLogLevel }, sizeof(DisplayCommandInfo));
 	return false;
 }
 

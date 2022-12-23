@@ -72,7 +72,6 @@ def parse(fromEmulator: FileIO, toEmulator: FileIO, decomPath: str, command: str
 	chunks = command.split()
 
 	result = parser.parse_args(chunks)
-	return True
 
 	if result.command in commands["continue"]:
 		return _decom.sendContinueCommandInfo(result.pass_instructions, result.pass_clocks)
