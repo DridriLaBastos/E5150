@@ -60,7 +60,7 @@ void E5150::Debugger::init()
 			return;
 		}
 
-		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
+		E5150_INFO("Write channel file exists. This usually means that the program was not properly closed previously");
 		E5150_WARNING("\tIf this behaviour persists, remove the file '" EMULATOR_TO_DEBUGGER_FIFO_FILENAME "'");
 	}
 
@@ -85,8 +85,11 @@ void E5150::Debugger::init()
 		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
 		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
 		PATH(DECOM_LIB_PATH),
-		//nullptr <-- Why this works on macos (maybe unix)
+#ifdef WIN32
 		"\0"
+#else
+		nullptr
+#endif
 	};
 
 	debuggerProcess = platformCreateProcess(debuggerArgs, std::size(debuggerArgs));
@@ -426,16 +429,16 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 
 //TODO: IMPORTANT: Debugger error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
 void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
-{	
+{
 	COMMAND_TYPE commandType;
 	uint8_t shouldStop;
 	const uint8_t commandEndSynchro = 0;//Only here to notify to the debugger that the emulator finished executing the command
-	bool uninitializedDebuggerWarningNotPrinted = true;
+	static bool uninitializedDebuggerWarningPrinted = false;
 
 	if (!debuggerInitialized) {
-		if (uninitializedDebuggerWarningNotPrinted) {
+		if (!uninitializedDebuggerWarningPrinted) {
 			E5150_WARNING("Debugger was not successfully initialized. Debugger features will not be available.");
-			uninitializedDebuggerWarningNotPrinted = false;
+			uninitializedDebuggerWarningPrinted = true;
 		}
 		return;
 	}
@@ -447,7 +450,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	}
 	
 	context.clear();
-	printCpuInfos();
+	//printCpuInfos();
 	//if(WRITE_TO_DEBUGGER(&cpu.instructionExecutedCount,8) == -1) { return; }
 	
 	do
