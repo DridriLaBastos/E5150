@@ -8,6 +8,7 @@ static char debuggerCommandInputBuffer [256] = { ' ', '#', ' '};
 static std::thread pullDebuggerStdoutThread;
 static std::thread pullDebuggerStderrThread;
 static std::mutex imguiDebugConsoleMutex;
+static void (*hotReloadDraw) (void) = nullptr;
 
 enum class DEBUG_CONSOLE_ENTRY_TYPE
 { COMMAND, DEBUGGER_STDERR, DEBUGGER_STDOUT };

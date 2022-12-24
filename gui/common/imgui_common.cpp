@@ -4,10 +4,14 @@
 #include "core/pch.hpp"
 #include "core/arch.hpp"
 #include "spdlog_imgui_color_sink.hpp"
+#include "debugger/platform.h"
 
 #ifdef DEBUGGER
 #include "debugger/debugger.hpp"
 #endif
+
+//char* HOT_RELOAD_DRAW_NAME = "hotReloadDraw";
+#define HOT_RELOAD_DRAW_NAME "hotReloadDraw"
 
 using gui_clock = std::chrono::high_resolution_clock;
 
@@ -15,6 +19,9 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::Arch::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::Arch::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
+static void(*hotReloadDraw)(void) = nullptr;
+static uint64_t hotReloadModuleDrawLastModificationTime = 0;
+static module_t hotReloadModuleID = 0;
 
 static std::thread t;
 
@@ -25,10 +32,32 @@ static void stop(const int signum)
 
 void E5150::GUI::init()
 {
-	spdlog::default_logger()->sinks().clear();
-	spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<std::mutex>>());
-	auto imguiSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
-	imguiSink->init();
+	hotReloadModuleID = platformDylib_Load(HOT_RELOAD_DRAW_PATH);
+
+	if (hotReloadModuleID < 0)
+	{
+		E5150_WARNING("Unable to load UI drawing code : {}",platformGetLastErrorDescription());
+	}
+	else
+	{
+		if (platformFile_GetLastModificationTime(HOT_RELOAD_DRAW_PATH,&hotReloadModuleDrawLastModificationTime))
+		{
+			E5150_WARNING("Unable to get UI draw library access time : {}",platformGetLastErrorDescription());
+		}
+
+		if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
+		{
+			E5150_WARNING("Unable to get UI draw function : {}", platformGetLastErrorDescription());
+		}
+	}
+
+	if (hotReloadDraw)
+	{
+		spdlog::default_logger()->sinks().clear();
+		spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<std::mutex>>());
+		auto imguiSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
+		imguiSink->init();
+	}
 
 	E5150_INFO("Welcome to E5150, the emulator of an IBM PC 5150");
 #ifdef DEBUGGER
@@ -68,8 +97,46 @@ void E5150::GUI::init()
 	t = std::thread(&E5150::Arch::startSimulation,&arch);
 }
 
+static void reloadHotReloadDrawFunction(void)
+{
+	void* lastLoadedCode = hotReloadDraw;
+	void* newCode = nullptr;
+
+	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,&newCode))
+	{
+		E5150_WARNING("Unable to reload UI draw function : {}",platformGetLastErrorDescription());
+		E5150_WARNING("Previously loaded code will be used");
+		newCode = lastLoadedCode;
+	}
+
+	hotReloadDraw = (void(*)(void))newCode;
+}
+
 void E5150::GUI::draw()
 {
+	uint64_t accessTime;
+	const PLATFORM_CODE platformCode = platformFile_GetLastModificationTime(HOT_RELOAD_DRAW_PATH,&accessTime);
+
+	if (accessTime != hotReloadModuleDrawLastModificationTime)
+	{
+		hotReloadModuleDrawLastModificationTime = accessTime;
+
+		if (platformCode == PLATFORM_ERROR)
+		{
+			E5150_WARNING("Cannot open drawing function code : {}",platformGetLastErrorDescription());
+			E5150_WARNING("Previous code will be used");
+		}
+		else
+		{
+			//TODO: Reload drawing function code
+		}
+	}
+
+	if (hotReloadDraw)
+	{
+		hotReloadDraw();
+	}
+#if 0
 	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	static unsigned int instructionExecuted = 0;
 	static uint64_t lastFrameCPUClockCount = 0;
@@ -128,6 +195,7 @@ void E5150::GUI::draw()
 			simulationStarted = true;
 		}
 	}*/
+#endif
 }
 
 void E5150::GUI::clean()

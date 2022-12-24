@@ -32,13 +32,14 @@
 
 enum PLATFORM_CODE
 {
-	PLATFORM_SUCCESS,
+	PLATFORM_SUCCESS = 0,
 	PLATFORM_ERROR,
 	PLATFORM_FIFO_ALREADY_CREATED,
 	PLATFORM_STREAM_ENDS
 };
 
 typedef int process_t;
+typedef int module_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,6 +72,11 @@ extern "C" {
 
 	enum PLATFORM_CODE platformReadChildSTDOUT(char* const c);
 	enum PLATFORM_CODE platformReadChildSTDERR(char* const c);
+
+	enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime);
+
+	module_t platformDylib_Load(const char* const libpath);
+	enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const char* const symbolname, void** address);
 
 #ifdef __cplusplus
 }

@@ -2,7 +2,12 @@ project("E5150 gui")
 
 file(GLOB GUI_COMMON_SRC CONFIGURE_DEPENDS common/*.cpp)
 
-add_library(gui STATIC)
+add_library(gui STATIC common/imgui_common.cpp)
+add_library(hot_reload_draw MODULE common/hot_reload_draw.cpp)
+
+target_compile_definitions(gui PRIVATE HOT_RELOAD_DRAW_PATH="$<TARGET_FILE:hot_reload_draw>")
+
+add_dependencies(gui hot_reload_draw)
 
 #TODO: adding precompiled header
 

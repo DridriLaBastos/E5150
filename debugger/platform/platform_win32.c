@@ -233,3 +233,42 @@ static enum PLATFORM_CODE readFromChildHandle(char* const c, HANDLE h)
 //TODO: How to detect end of file ?
 enum PLATFORM_CODE platformReadChildSTDOUT(char* const c) { return readFromChildHandle(c,childStdoutRead); }
 enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChildHandle(c,childStderrRead); }
+
+enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime)
+{
+	HANDLE hfile = CreateFile(filename,GENERIC_READ,FILE_SHARE_WRITE|FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_READONLY,NULL);
+
+	if (hfile == INVALID_HANDLE_VALUE)
+	{ return PLATFORM_ERROR; }
+
+	FILETIME lastAccessTime;
+	if (!GetFileTime(hfile,NULL,&lastAccessTime,NULL))
+	{
+		return PLATFORM_ERROR;
+	}
+
+	const uint64_t fileDatetime = lastAccessTime.dwLowDateTime | ((uint64_t)lastAccessTime.dwHighDateTime << 32);
+	*datetime = fileDatetime;
+	return PLATFORM_SUCCESS;
+}
+
+static HMODULE hmodules[64];
+static size_t hmoduleIndex = 0;
+
+module_t platformDylib_Load(const char* const libpath)
+{
+	HMODULE hmodule = LoadLibrary(libpath);
+
+	if (hmodule == NULL)
+	{ return -1; }
+
+	hmodules[hmoduleIndex] = hmodules;
+	return hmoduleIndex++;
+}
+
+enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const char* const symbolname, void** address)
+{
+	const FARPROC arproc = GetProcAddress(hmodules[module],TEXT(symbolname));
+	*address = arproc;
+	return arproc ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+}
