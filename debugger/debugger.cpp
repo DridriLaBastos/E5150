@@ -19,6 +19,7 @@ static int fromDebugger = -1;
 static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
+static bool debuggerHasQuit = false;
 
 static struct
 {
@@ -106,7 +107,7 @@ void E5150::Debugger::init()
 	if (toDebugger < 0)
 	{
 		E5150_WARNING("Unable to open send to debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
-		deinit();
+		clean();
 		return;
 	}
 
@@ -114,7 +115,7 @@ void E5150::Debugger::init()
 	if (fromDebugger < 0)
 	{
 		E5150_WARNING("Unable to open receive from debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
-		deinit();
+		clean();
 		return;
 	}
 
@@ -124,12 +125,12 @@ void E5150::Debugger::init()
 	if (WRITE_TO_DEBUGGER(&debuggerSynchronizationData, sizeof(debuggerSynchronizationData)) < 0)
 	{
 		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
-		deinit();
+		clean();
 		return;
 	}
 }
 
-void E5150::Debugger::deinit()
+void E5150::Debugger::clean()
 {
     if (!debuggerInitialized)
         return;
@@ -141,6 +142,8 @@ void E5150::Debugger::deinit()
 					 platformGetLastErrorDescription()); }
 		else { debuggerProcess = -1; }
 	}
+
+	Debugger::GUI::clean();
 
 	if (toDebugger >= 0)
 	{
@@ -322,10 +325,7 @@ static void handleDisplayCommand()
 }
 
 static void handleQuitCommand(void)
-{
-	E5150::Util::_continue = false;
-}
-
+{ debuggerHasQuit = true; }
 
 static bool isControlTransferIn( const xed_iclass_enum_t& iclass )
 {
@@ -381,9 +381,7 @@ static void printClockLevelBIUEmulationLog(void)
 }
 
 static void printClockLevelEUEmulationLog(void)
-{
-	const auto& EUInfo = cpu.eu.getDebugWorkingState();
-}
+{ const auto& EUInfo = cpu.eu.getDebugWorkingState(); }
 
 /**
  * @brief Executes the continue and step commands
@@ -432,6 +430,9 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	uint8_t shouldStop;
 	const uint8_t commandEndSynchro = 0;//Only here to notify to the debugger that the emulator finished executing the command
 	static bool uninitializedDebuggerWarningPrinted = false;
+
+	if (debuggerHasQuit)
+	{ return; }
 
 	if (!debuggerInitialized) {
 		if (!uninitializedDebuggerWarningPrinted) {
@@ -487,8 +488,6 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 		//3 - Getting from the debugger if the emulator should wait for another command
 		if (READ_FROM_DEBUGGER(&shouldStop,1) < 0) { break; }
 		shouldStop |= context.type == COMMAND_TYPE_QUIT;
-
-		E5150_DEBUG("Should stop : {}",shouldStop);
 
 		//4 - Synchronization point : the debugger will wait to get a value before running another loop
 		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }

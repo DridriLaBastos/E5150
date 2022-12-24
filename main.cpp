@@ -3,9 +3,12 @@
 /* Exemple de fonctionnement */
 int main (const int argc, const char* argv [])
 {
-	E5150::GUI::platformInit(argc,argv);
-	E5150::GUI::guiInit();
-	E5150::GUI::platformUILoop();
-	E5150::GUI::guiDeinit();
+	E5150::GUI::PLATFORM::init(argc,argv);
+	E5150::GUI::init();
+
+	E5150::GUI::PLATFORM::UILoop();
+
+	E5150::GUI::clean();
+	E5150::GUI::PLATFORM::clean();
 	return EXIT_SUCCESS;
 }

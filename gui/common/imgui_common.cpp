@@ -23,7 +23,7 @@ static void stop(const int signum)
 	puts("Please close the window to quit");
 }
 
-void E5150::GUI::guiInit()
+void E5150::GUI::init()
 {
 	spdlog::default_logger()->sinks().clear();
 	spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<std::mutex>>());
@@ -38,7 +38,7 @@ void E5150::GUI::guiInit()
 
 #ifdef DEBUGGER
 	E5150::Debugger::init();
-	E5150::Debugger::GUI::initConsole();
+	E5150::Debugger::GUI::init();
 #endif
 
 	E5150::Arch arch;
@@ -65,10 +65,10 @@ void E5150::GUI::guiInit()
 	#endif
 
 	//TODO: launching the thread arch shouldn't be done inside the gui init function
-	//t = std::thread(&E5150::Arch::startSimulation,&arch);
+	t = std::thread(&E5150::Arch::startSimulation,&arch);
 }
 
-void E5150::GUI::guiDraw()
+void E5150::GUI::draw()
 {
 	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	static unsigned int instructionExecuted = 0;
@@ -113,7 +113,7 @@ void E5150::GUI::guiDraw()
 	ImGui::End();
 
 #ifdef DEBUGGER
-	E5150::Debugger::GUI::drawConsole();
+	E5150::Debugger::GUI::draw();
 #endif
 
 	/*if (!simulationStarted)
@@ -130,12 +130,11 @@ void E5150::GUI::guiDraw()
 	}*/
 }
 
-void E5150::GUI::guiDeinit()
+void E5150::GUI::clean()
 {
 	E5150::Util::_continue = false;
 #ifdef DEBUGGER
-	E5150::Debugger::GUI::endConsole();
-	E5150::Debugger::deinit();
+	E5150::Debugger::clean();
 #endif
 	t.join();
 }

@@ -2,11 +2,14 @@
 #define GUI_HPP
 
 namespace E5150::GUI {
-	int platformInit (int argc, const char* argv[]);
-	void platformUILoop(void);
-	void guiInit(void);
-	void guiDraw(void);
-	void guiDeinit(void);
+	namespace PLATFORM {
+		int init (const int argc, const char** argv);
+		void UILoop(void);
+		void clean(void);
+	}
+	void init(void);
+	void draw(void);
+	void clean(void);
 }
 
 #endif

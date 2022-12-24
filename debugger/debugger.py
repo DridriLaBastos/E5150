@@ -105,8 +105,7 @@ if __name__ == "__main__":
 		# 2 - Get the command line from the emulator
 		cmdLine = ctypes.create_string_buffer(commandLineLength.value)
 		decom.readFromRegisteredDest(ctypes.byref(cmdLine),commandLineLength)
-		cmdLine.raw.decode('ascii')
-		print(f"* [{commandLineLength.value}] : '{cmdLine.value}'")
+		cmdLine = cmdLine.raw.decode('ascii')
 
 		# 3 - Parse the command and send the result to the emulator following its protocol
 		try:

@@ -175,7 +175,7 @@
 
 	// Show E5150 GUI
 	{
-		E5150::GUI::guiDraw();
+		E5150::GUI::draw();
 	}
 
 	// Rendering
@@ -217,10 +217,7 @@
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-	E5150::GUI::guiDeinit();
-	ImGui_ImplMetal_Shutdown();
-	ImGui_ImplOSX_Shutdown();
-	ImGui::DestroyContext();
+	[NSApp stop:nullptr];
 }
 
 @end
@@ -263,7 +260,7 @@
 // Application main() function
 //-----------------------------------------------------------------------------------
 
-int E5150::GUI::platformInit(int argc, const char * argv[]) {
+int E5150::GUI::PLATFORM::init(const int argc, const char * argv[]) {
 	//https://stackoverflow.com/questions/314256/how-do-i-create-a-cocoa-window-programmatically
 	@autoreleasepool {
 		[NSApplication sharedApplication];
@@ -275,7 +272,12 @@ int E5150::GUI::platformInit(int argc, const char * argv[]) {
 	}
 }
 
-void E5150::GUI::platformUILoop()
+void E5150::GUI::PLATFORM::UILoop()
+{ [NSApp run]; }
+
+void E5150::GUI::PLATFORM::clean(void)
 {
-	[NSApp run];
+	ImGui_ImplMetal_Shutdown();
+	ImGui_ImplOSX_Shutdown();
+	ImGui::DestroyContext();
 }

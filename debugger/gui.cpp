@@ -71,19 +71,19 @@ static void pullStdoutThreadFunction() {
 static void pullStderrThreadFunction() {
 	pullChildStreamThreadFunction(platformReadChildSTDERR, DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR); }
 
-void E5150::Debugger::GUI::initConsole()
+void E5150::Debugger::GUI::init()
 {
 	pullDebuggerStdoutThread = std::thread(pullStdoutThreadFunction);
 	pullDebuggerStderrThread = std::thread(pullStderrThreadFunction);
 }
 
-void E5150::Debugger::GUI::endConsole()
+void E5150::Debugger::GUI::clean()
 {
 	pullDebuggerStdoutThread.join();
 	pullDebuggerStderrThread.join();
 }
 
-void E5150::Debugger::GUI::drawConsole()
+void E5150::Debugger::GUI::draw()
 {
 	ImGui::Begin("Debugger");
 
