@@ -26,7 +26,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static WNDCLASSEXW wc;
 static HWND hwnd;
 
-int E5150::GUI::platformInit(int argc, const char* argv[])
+int E5150::GUI::PLATFORM::init(int argc, const char* argv[])
 {
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
@@ -37,7 +37,7 @@ int E5150::GUI::platformInit(int argc, const char* argv[])
 }
 
 // Main code
-void E5150::GUI::platformUILoop()
+void E5150::GUI::PLATFORM::UILoop()
 {
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -165,7 +165,7 @@ void E5150::GUI::platformUILoop()
 
         // 4. Show emulator windows
         {
-            E5150::GUI::guiDraw();
+            E5150::GUI::draw();
         }
 
         // Rendering
@@ -186,16 +186,18 @@ void E5150::GUI::platformUILoop()
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
-    // Cleanup
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-
-    CleanupDeviceD3D();
-    ::DestroyWindow(hwnd);
-    ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-
     return;
+}
+
+void E5150::GUI::PLATFORM::clean() {
+	// Cleanup
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
+	CleanupDeviceD3D();
+	::DestroyWindow(hwnd);
+	::UnregisterClassW(wc.lpszClassName, wc.hInstance);
 }
 
 // Helper functions

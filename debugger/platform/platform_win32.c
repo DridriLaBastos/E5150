@@ -221,7 +221,12 @@ int platformOpenFifo(const char* fifoFileName, const int openFlags)
 
 static enum PLATFORM_CODE readFromChildHandle(char* const c, HANDLE h)
 {
-	BOOL result = ReadFile(h,c,sizeof(char),NULL,NULL);
+	DWORD numberOfBytesRead;
+	BOOL result = ReadFile(h,c,sizeof(char),&numberOfBytesRead,NULL);
+
+	if (result && (numberOfBytesRead == 0))
+	{ return PLATFORM_STREAM_ENDS; }
+
 	return result ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
