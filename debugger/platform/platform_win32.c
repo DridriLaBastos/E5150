@@ -236,7 +236,7 @@ enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChild
 
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime)
 {
-	HANDLE hfile = CreateFile(filename,GENERIC_READ,FILE_SHARE_WRITE|FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_READONLY,NULL);
+	HANDLE hfile = CreateFile(filename,0,FILE_SHARE_WRITE|FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_READONLY,NULL);
 
 	if (hfile == INVALID_HANDLE_VALUE)
 	{ return PLATFORM_ERROR; }
@@ -262,13 +262,26 @@ module_t platformDylib_Load(const char* const libpath)
 	if (hmodule == NULL)
 	{ return -1; }
 
-	hmodules[hmoduleIndex] = hmodules;
+	hmodules[hmoduleIndex] = hmodule;
 	return hmoduleIndex++;
 }
 
 enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const char* const symbolname, void** address)
 {
-	const FARPROC arproc = GetProcAddress(hmodules[module],TEXT(symbolname));
+    HMODULE hmodule = hmodules[module];
+	const FARPROC arproc = GetProcAddress(hmodule,symbolname);
 	*address = arproc;
 	return arproc ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+}
+
+enum PLATFORM_CODE platformDylib_UpdateDylib(const module_t module, const char* const libpath)
+{
+    HMODULE hmodule = LoadLibrary(libpath);
+
+    if (hmodule == NULL)
+    { return PLATFORM_ERROR; }
+
+    FreeLibrary(hmodules[module]);
+    hmodules[module] = hmodule;
+    return PLATFORM_SUCCESS;
 }
