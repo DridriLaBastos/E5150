@@ -77,6 +77,7 @@ extern "C" {
 
 	module_t platformDylib_Load(const char* const libpath);
 	enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const char* const symbolname, void** address);
+	enum PLATFORM_CODE platformDylib_UpdateDylib(const module_t module, const char* const libpath);
 
 #ifdef __cplusplus
 }

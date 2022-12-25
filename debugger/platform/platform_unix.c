@@ -1,10 +1,12 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <dlfcn.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/uio.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
@@ -12,6 +14,7 @@
 
 static int stdoutfd[2];
 static int stderrfd[2];
+static bool dynamicLinkerError = false;
 
 process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount)
 {
@@ -69,8 +72,14 @@ enum PLATFORM_CODE platformCreateFifo (const char* fifoFileName)
 int platformOpenFifo(const char* fifoFileName, const int openFlags)
 { return open(fifoFileName,openFlags); }
 
-const char* platformGetLastErrorDescription(void) { return strerror(errno); }
-const uint64_t platformGetLastErrorCode(void) { return errno; }
+const char* platformGetLastErrorDescription(void)
+{
+	const char* errorstr = dynamicLinkerError ? dlerror() : strerror(errno);
+	dynamicLinkerError = false;
+	return errorstr;
+}
+const uint64_t platformGetLastErrorCode(void)
+{ return errno; }
 
 static enum PLATFORM_CODE readFromChildFD(const int fd, char* const c)
 {
@@ -82,3 +91,59 @@ static enum PLATFORM_CODE readFromChildFD(const int fd, char* const c)
 }
 enum PLATFORM_CODE platformReadChildSTDOUT(char* const c) { return readFromChildFD(stdoutfd[0], c); }
 enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChildFD(stderrfd[0], c); }
+
+enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime)
+{
+	struct stat filestat;
+	if(stat(filename,&filestat))
+	{
+		dynamicLinkerError = true;
+		return PLATFORM_ERROR;
+	}
+
+	*datetime = filestat.st_mtimespec.tv_nsec;
+	return PLATFORM_SUCCESS;
+}
+
+static void* modules [64];
+static size_t moduleIndex = 0;
+
+module_t platformDylib_Load(const char* const libpath)
+{
+	void* handle = dlopen(libpath,RTLD_LAZY);
+
+	if (!handle)
+	{
+		dynamicLinkerError = true;
+		return PLATFORM_ERROR;
+	}
+
+	modules[moduleIndex] = handle;
+	return moduleIndex++;
+}
+
+enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const char* const symbolname, void** address)
+{
+	void* handle = dlsym(modules[module],symbolname);
+
+	//TODO: see man page, NULL return not always means error
+	*address = handle;
+	return handle ? PLATFORM_SUCCESS : PLATFORM_ERROR;
+}
+
+enum PLATFORM_CODE platformDylib_UpdateDylib(const module_t module, const char* const libpath)
+{
+	void* handle = dlopen(libpath,RTLD_LAZY);//Returns the same handle as in the first call
+
+	if (!handle)
+	{ return PLATFORM_ERROR; }
+
+	dlclose(handle);
+	dlclose(handle);
+
+	//TODO: what happens here when already loaded module points to the close dylib ?
+	//		(nothing good I supposed)
+
+	handle = dlopen(libpath,RTLD_LAZY);
+	modules[module] = handle;
+}

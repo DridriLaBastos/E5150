@@ -99,17 +99,8 @@ void E5150::GUI::init()
 
 static void reloadHotReloadDrawFunction(void)
 {
-	void* lastLoadedCode = hotReloadDraw;
-	void* newCode = nullptr;
-
-	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,&newCode))
-	{
-		E5150_WARNING("Unable to reload UI draw function : {}",platformGetLastErrorDescription());
-		E5150_WARNING("Previously loaded code will be used");
-		newCode = lastLoadedCode;
-	}
-
-	hotReloadDraw = (void(*)(void))newCode;
+	platformDylib_UpdateDylib(hotReloadModuleID, HOT_RELOAD_DRAW_PATH);
+	platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw);
 }
 
 void E5150::GUI::draw()
@@ -128,14 +119,12 @@ void E5150::GUI::draw()
 		}
 		else
 		{
-			//TODO: Reload drawing function code
+			reloadHotReloadDrawFunction();
 		}
 	}
 
 	if (hotReloadDraw)
-	{
-		hotReloadDraw();
-	}
+	{ hotReloadDraw(); }
 #if 0
 	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	static unsigned int instructionExecuted = 0;
