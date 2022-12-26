@@ -3,7 +3,7 @@
 #include <malloc.h>
 #include <string.h>
 
-#include "../platform.h"
+#include "platform/platform.h"
 
 #include <io.h>
 #include <fcntl.h>

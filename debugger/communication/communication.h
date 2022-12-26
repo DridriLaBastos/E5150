@@ -1,7 +1,7 @@
 #ifndef __COMMUNICATION_H__
 #define __COMMUNICATION_H__
 
-#include "debugger/platform.h"
+#include "platform/platform.h"
 
 #ifdef __cplusplus
 extern "C" {

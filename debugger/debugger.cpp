@@ -7,7 +7,7 @@
 #include <cerrno>
 #include <cstring>
 
-#include "platform.h"
+#include "platform/platform.h"
 
 using namespace E5150;
 

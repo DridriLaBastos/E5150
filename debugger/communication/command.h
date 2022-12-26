@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "debugger/platform.h"
+#include "platform/platform.h"
 
 /**
  * This file contains the C declarations of the functions called from the debugger to send command information and

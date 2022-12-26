@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +11,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#include "../platform.h"
+#include "platform/platform.h"
 
 static int stdoutfd[2];
 static int stderrfd[2];
@@ -95,9 +96,10 @@ enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChild
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime)
 {
 	struct stat filestat;
-	if(stat(filename,&filestat))
+	const int r = stat(filename,&filestat);
+	if(r)
 	{
-		dynamicLinkerError = true;
+		printf("stat error : %d\n",r);
 		return PLATFORM_ERROR;
 	}
 
@@ -133,17 +135,25 @@ enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const c
 
 enum PLATFORM_CODE platformDylib_UpdateDylib(const module_t module, const char* const libpath)
 {
-	void* handle = dlopen(libpath,RTLD_LAZY);//Returns the same handle as in the first call
+	void* handle = modules[module];//Returns the same handle as in the first call
 
-	if (!handle)
-	{ return PLATFORM_ERROR; }
-
-	dlclose(handle);
-	dlclose(handle);
+	if (dlclose(handle))
+	{
+		dynamicLinkerError = true;
+		return PLATFORM_ERROR;
+	}
 
 	//TODO: what happens here when already loaded module points to the close dylib ?
 	//		(nothing good I supposed)
 
 	handle = dlopen(libpath,RTLD_LAZY);
+
+	if (!handle)
+	{
+		dynamicLinkerError = true;
+		return PLATFORM_ERROR;
+	}
+
 	modules[module] = handle;
+	return PLATFORM_SUCCESS;
 }
