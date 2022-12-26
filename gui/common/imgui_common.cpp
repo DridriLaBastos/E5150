@@ -1,10 +1,12 @@
 #include <csignal>
 
+#include "gui_states.hpp"
 #include "gui/gui.hpp"
 #include "core/pch.hpp"
 #include "core/arch.hpp"
 #include "spdlog_imgui_color_sink.hpp"
-#include "debugger/platform.h"
+#include "platform/platform.h"
+#include "core/emulation_constants.hpp"
 
 #ifdef DEBUGGER
 #include "debugger/debugger.hpp"
@@ -16,10 +18,10 @@
 using gui_clock = std::chrono::high_resolution_clock;
 
 static constexpr unsigned int MS_PER_UPDATE = 1000;
-static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::Arch::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
-static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::Arch::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
+static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
+static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void(*hotReloadDraw)(void) = nullptr;
+static void (*hotReloadDraw)(const EmulationGUIState* const) = nullptr;
 static uint64_t hotReloadModuleDrawLastModificationTime = 0;
 static module_t hotReloadModuleID = 0;
 
@@ -99,8 +101,20 @@ void E5150::GUI::init()
 
 static void reloadHotReloadDrawFunction(void)
 {
-	platformDylib_UpdateDylib(hotReloadModuleID, HOT_RELOAD_DRAW_PATH);
-	platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw);
+	if (platformDylib_UpdateDylib(hotReloadModuleID, HOT_RELOAD_DRAW_PATH))
+	{
+		E5150_WARNING("Unable to load GUI draw library : {}",platformGetLastErrorDescription());
+		hotReloadDraw = nullptr;
+		return;
+	}
+
+	if(platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
+	{
+		E5150_WARNING("Unable to bind GUI draw function : {}", platformGetLastErrorDescription());
+		return;
+	}
+
+	E5150_INFO("GUI draw function successfully reloaded !");
 }
 
 void E5150::GUI::draw()
@@ -114,8 +128,8 @@ void E5150::GUI::draw()
 
 		if (platformCode == PLATFORM_ERROR)
 		{
-			E5150_WARNING("Cannot open drawing function code : {}",platformGetLastErrorDescription());
-			E5150_WARNING("Previous code will be used");
+			E5150_WARNING("Cannot access GUI draw library file property : {}",platformGetLastErrorDescription());
+			E5150_WARNING("Previous code reused, library not reloaded");
 		}
 		else
 		{
@@ -124,7 +138,14 @@ void E5150::GUI::draw()
 	}
 
 	if (hotReloadDraw)
-	{ hotReloadDraw(); }
+	{
+		EmulationGUIState emulationGuiData;
+		emulationGuiData.cpuClock = E5150::Arch::emulationStat.cpuClock;
+		emulationGuiData.fdcClock = E5150::Arch::emulationStat.fdcClock;
+		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
+
+		hotReloadDraw(&emulationGuiData);
+	}
 #if 0
 	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 	static unsigned int instructionExecuted = 0;

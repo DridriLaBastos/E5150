@@ -44,14 +44,20 @@ endif()
 
 file(GLOB IMGUI_COMMON_SRC CONFIGURE_DEPENDS imgui/*.cpp)
 
-add_library(imgui STATIC ${IMGUI_COMMON_SRC})
+add_library(imgui SHARED ${IMGUI_COMMON_SRC})
 
 if(APPLE)
 	target_sources(imgui
 			PRIVATE imgui/backends/imgui_impl_osx.mm imgui/backends/imgui_impl_metal.mm)
+	find_library(APP_KIT NAMES AppKit REQUIRED)
+	find_library(METAL_KIT NAMES MetalKit REQUIRED)
+	find_library(METAL NAMES Metal REQUIRED)
+	find_library(QUARTZ_CORE QuartzCore REQUIRED)
+	find_library(GAME_CONTROLLER GameController REQUIRED)
+	target_link_libraries(imgui ${APP_KIT} ${METAL_KIT} ${METAL} ${QUARTZ_CORE} ${GAME_CONTROLLER})
 elseif(WIN32)
 	target_sources(imgui PRIVATE imgui/backends/imgui_impl_dx11.cpp imgui/backends/imgui_impl_win32.cpp)
+	target_link_libraries(imgui d3d11.lib d3dcompiler.lib dxgi.lib)
 else()
 	message(FATAL_ERROR "System ${CMAKE_SYSTEM_NAME} not supported yet")
 endif()
-

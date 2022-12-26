@@ -38,31 +38,36 @@ file(GLOB CPU_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/cpu/*.cpp")
 file(GLOB FLOPPY_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/floppy/*.cpp")
 
 set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
+set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
+
+if(UNIX)
+	set(PLATFORM_SRC platform/platform_unix.c)
+elseif(WIN32)
+	set(PLATFORM_SRC platform/platform_win32.c)
+else()
+	message(FATAL_ERROR "Architecture ${CMAKE_SYSTEM} not recognized, cannot build debugger platform dependent code.")
+endif()
 
 # Adding the header only files as sources to make theme appear in IDE, only using source_group isn't enougth if th source file isn't used
-add_executable(epc main.cpp ${EMULATOR_SRC})
+add_executable(epc main.cpp ${EMULATOR_SRC} ${PLATFORM_SRC})
 add_dependencies(epc asm-test)
 
 target_link_libraries(epc ${XED_LIB_PATH} imgui gui)
 target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX>:core/pch.hpp>)
 
 if (ENABLE_DEBUGGER)
-	set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
+	find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 	if(UNIX)
-		set(PLATFORM_SRC ${DEBUGGER_SRC_PATH}/platform/platform_unix.c)
 		set(DEBUGGER_PLATFORM_STRING "unix")
 	elseif(WIN32)
-		set(PLATFORM_SRC ${DEBUGGER_SRC_PATH}/platform/platform_win32.c)
 		set(DEBUGGER_PLATFORM_STRING "win32")
 	else()
 		message(FATAL_ERROR "Architecture ${CMAKE_SYSTEM} not recognized, cannot build debugger platform dependent code.")
 	endif()
 
-	find_package(Python3 COMPONENTS Interpreter REQUIRED)
-
 	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/gui.cpp ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
-		# TODO: gives this as install path
+	# TODO: gives this as install path
 	target_compile_definitions(epc	PRIVATE DECOM_LIB_PATH="$<TARGET_FILE:decom>"
 									PRIVATE DEBUGGER_PYTHON_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/debugger/debugger.py"
 									PRIVATE DEBUGGER_PLATFORM_STRING="${DEBUGGER_PLATFORM_STRING}"
@@ -70,17 +75,6 @@ if (ENABLE_DEBUGGER)
 
 	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
 	add_dependencies(epc decom)
-endif()
-
-if(APPLE)
-	find_library(APP_KIT NAMES AppKit REQUIRED)
-	find_library(METAL_KIT NAMES MetalKit REQUIRED)
-	find_library(METAL NAMES Metal REQUIRED)
-	find_library(QUARTZ_CORE QuartzCore REQUIRED)
-	find_library(GAME_CONTROLLER GameController REQUIRED)
-	target_link_libraries(epc ${APP_KIT} ${METAL_KIT} ${METAL} ${QUARTZ_CORE} ${GAME_CONTROLLER})
-elseif(WIN32)
-	target_link_libraries(epc d3d11.lib d3dcompiler.lib dxgi.lib)
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

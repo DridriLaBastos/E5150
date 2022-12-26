@@ -5,6 +5,8 @@ add_library(hot_reload_draw MODULE common/hot_reload_draw.cpp)
 
 target_compile_definitions(gui PRIVATE HOT_RELOAD_DRAW_PATH="$<TARGET_FILE:hot_reload_draw>")
 
+target_link_libraries(hot_reload_draw imgui)
+
 add_dependencies(gui hot_reload_draw)
 
 #TODO: adding precompiled header

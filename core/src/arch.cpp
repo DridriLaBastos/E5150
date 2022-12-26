@@ -1,5 +1,6 @@
 #include "core/arch.hpp"
 #include "core/util.hpp"
+#include "core/emulation_constants.hpp"
 
 #ifdef DEBUGGER
 #include "debugger/debugger.hpp"
@@ -56,13 +57,13 @@ void E5150::Arch::startSimulation()
 		while (Util::_continue)
 		{
 			//The regs.simulation regs.simulatregs.es regs.blocks of clock instead of raw clock ticks, otherwise the timregs.es are too smregs.all to be accurately measured.
-			unsigned int clockToExecute = CLOCK_PER_BLOCK;
-			const unsigned int clocksLeftAfterThisBlock = CPU_BASE_CLOCK - (currentClock + CLOCK_PER_BLOCK);
+			unsigned int clockToExecute = E5150::CLOCK_PER_BLOCK;
+			const unsigned int clocksLeftAfterThisBlock = E5150::CPU_BASE_CLOCK - (currentClock + E5150::CLOCK_PER_BLOCK);
 			
-			if (clocksLeftAfterThisBlock < CLOCK_PER_BLOCK)
+			if (clocksLeftAfterThisBlock < E5150::CLOCK_PER_BLOCK)
 				clockToExecute += clocksLeftAfterThisBlock;
 
-			const auto realTimeForBlock = std::chrono::microseconds(clockToExecute * NS_PER_CLOCK / 1000);
+			const auto realTimeForBlock = std::chrono::microseconds(clockToExecute * E5150::NS_PER_CLOCK / 1000);
 			const auto blockBegin = std::chrono::high_resolution_clock::now();
 			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
 			{
@@ -85,8 +86,9 @@ void E5150::Arch::startSimulation()
 			const auto blockEnd = std::chrono::high_resolution_clock::now();
 			const auto timeForBlock = std::chrono::duration_cast<std::chrono::microseconds>(blockEnd - blockBegin);
 			const std::chrono::microseconds microsecondsToWait = realTimeForBlock - timeForBlock;
+
 			emulationStat.instructionExecutedCount = cpu.instructionExecutedCount;
-			
+
 			blockCount += 1;
 			timeForAllBlocks += timeForBlock;
 

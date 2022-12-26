@@ -1,7 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <dlfcn.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -96,12 +95,8 @@ enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChild
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime)
 {
 	struct stat filestat;
-	const int r = stat(filename,&filestat);
-	if(r)
-	{
-		printf("stat error : %d\n",r);
-		return PLATFORM_ERROR;
-	}
+	if(stat(filename,&filestat))
+	{ return PLATFORM_ERROR; }
 
 	*datetime = filestat.st_mtimespec.tv_nsec;
 	return PLATFORM_SUCCESS;
