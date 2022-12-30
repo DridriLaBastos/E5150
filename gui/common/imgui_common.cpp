@@ -1,4 +1,5 @@
 #include <csignal>
+#include <filesystem>
 
 #include "gui_states.hpp"
 #include "gui/gui.hpp"
@@ -14,16 +15,20 @@
 
 //char* HOT_RELOAD_DRAW_NAME = "hotReloadDraw";
 #define HOT_RELOAD_DRAW_NAME "hotReloadDraw"
+#define DRAW_LIBRARY_COPY_FILE_NAME DRAW_LIBRARY_PREFIX_BASE_NAME "_c" DRAW_LIBRARY_FILE_EXTENSION
 
 using gui_clock = std::chrono::high_resolution_clock;
+
+namespace fs = std::filesystem;
 
 static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
 static void (*hotReloadDraw)(const EmulationGUIState* const) = nullptr;
-static uint64_t hotReloadModuleDrawLastModificationTime = 0;
-static module_t hotReloadModuleID = 0;
+static module_t hotReloadModuleID = -1;
+fs::file_time_type libDrawLastWriteTime;
+static std::error_code errorCode;
 
 static std::thread t;
 
@@ -32,26 +37,66 @@ static void stop(const int signum)
 	puts("Please close the window to quit");
 }
 
-void E5150::GUI::init()
+static void reloadDrawLibrary()
 {
-	hotReloadModuleID = platformDylib_Load(HOT_RELOAD_DRAW_PATH);
+	const fs::file_time_type lastWriteTime = fs::last_write_time(DRAW_LIBRARY_FULL_PATH, errorCode);
+
+	if (errorCode)
+	{
+		E5150_WARNING("Unable to access draw library modification time : {}", platformGetLastErrorDescription());
+		goto errorDrawFunctionUnchanged;
+	}
+
+	if (lastWriteTime == libDrawLastWriteTime)
+	{ return; }
+
+	libDrawLastWriteTime = lastWriteTime;
+
+	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME,fs::copy_options::overwrite_existing,errorCode);
+
+	if (errorCode)
+	{
+		E5150_WARNING("Unable to make a copy of the draw library : {}", platformGetLastErrorDescription());
+		goto errorDrawFunctionUnchanged;
+	}
 
 	if (hotReloadModuleID < 0)
 	{
-		E5150_WARNING("Unable to load UI drawing code : {}",platformGetLastErrorDescription());
+		hotReloadModuleID = platformDylib_Load(DRAW_LIBRARY_COPY_FILE_NAME);
+
+		if (hotReloadModuleID < 0)
+		{
+			E5150_ERROR("Unable to load draw library : {}", platformGetLastErrorDescription());
+			E5150_WARNING("GUI not drawn");
+			return;
+		}
 	}
 	else
 	{
-		if (platformFile_GetLastModificationTime(HOT_RELOAD_DRAW_PATH,&hotReloadModuleDrawLastModificationTime))
+		if (platformDylib_UpdateDylib(hotReloadModuleID,DRAW_LIBRARY_COPY_FILE_NAME))
 		{
-			E5150_WARNING("Unable to get UI draw library access time : {}",platformGetLastErrorDescription());
-		}
-
-		if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
-		{
-			E5150_WARNING("Unable to get UI draw function : {}", platformGetLastErrorDescription());
+			E5150_WARNING("Unable to reload draw library : {}", platformGetLastErrorDescription());
+			goto errorDrawFunctionUnchanged;
 		}
 	}
+
+	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
+	{
+		E5150_ERROR("Unable to update draw function : {}",platformGetLastErrorDescription());
+		E5150_WARNING("GUI not drawn");
+		return;
+	}
+
+	E5150_INFO("Draw function successfully reloaded");
+	return;
+
+	errorDrawFunctionUnchanged:
+	E5150_WARNING("Draw function not updated, previous version used");
+}
+
+void E5150::GUI::init()
+{
+	reloadDrawLibrary();
 
 	if (hotReloadDraw)
 	{
@@ -74,68 +119,34 @@ void E5150::GUI::init()
 
 	E5150::Arch arch;
 
-	#ifndef WIN32 //Those signals values aren't defined in windows
-		signal(SIGSTOP, stop);
+#ifndef WIN32 //Those signals values aren't defined in windows
+	signal(SIGSTOP, stop);
 		signal(SIGQUIT, stop);
 		signal(SIGKILL, stop);
-	#endif
+#endif
 
 	signal(SIGABRT, stop);
 	signal(SIGINT, stop);
 	signal(SIGTERM, stop);
 
-	#if 1
-		//Loading IBM BIOS
-		ram.load("test/ibm_bios.bin", 0xFE000);
-	#else
-		//Loading custom test code
+#if 1
+	//Loading IBM BIOS
+	ram.load("test/ibm_bios.bin", 0xFE000);
+#else
+	//Loading custom test code
 		ram.load("test/interrupts.bin",0);
 		ram.load("test/jmp.bin", 0xFFFF0);
 		//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
 		ram.load("test/bios.bin",0x500);
-	#endif
+#endif
 
 	//TODO: launching the thread arch shouldn't be done inside the gui init function
 	t = std::thread(&E5150::Arch::startSimulation,&arch);
 }
 
-static void reloadHotReloadDrawFunction(void)
-{
-	if (platformDylib_UpdateDylib(hotReloadModuleID, HOT_RELOAD_DRAW_PATH))
-	{
-		E5150_WARNING("Unable to load GUI draw library : {}",platformGetLastErrorDescription());
-		hotReloadDraw = nullptr;
-		return;
-	}
-
-	if(platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
-	{
-		E5150_WARNING("Unable to bind GUI draw function : {}", platformGetLastErrorDescription());
-		return;
-	}
-
-	E5150_INFO("GUI draw function successfully reloaded !");
-}
-
 void E5150::GUI::draw()
 {
-	uint64_t accessTime;
-	const PLATFORM_CODE platformCode = platformFile_GetLastModificationTime(HOT_RELOAD_DRAW_PATH,&accessTime);
-
-	if (accessTime != hotReloadModuleDrawLastModificationTime)
-	{
-		hotReloadModuleDrawLastModificationTime = accessTime;
-
-		if (platformCode == PLATFORM_ERROR)
-		{
-			E5150_WARNING("Cannot access GUI draw library file property : {}",platformGetLastErrorDescription());
-			E5150_WARNING("Previous code reused, library not reloaded");
-		}
-		else
-		{
-			reloadHotReloadDrawFunction();
-		}
-	}
+	reloadDrawLibrary();
 
 	if (hotReloadDraw)
 	{
