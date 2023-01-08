@@ -252,6 +252,11 @@ enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, ui
 	return PLATFORM_SUCCESS;
 }
 
+enum PLATFORM_CODE platformFile_Copy(const char* from, const char* to)
+{
+	return CopyFile(from, to, FALSE) ? PLATFORM_SUCCESS : PLATFORM_SUCCESS;
+}
+
 static HMODULE hmodules[64];
 static size_t hmoduleIndex = 0;
 
@@ -274,14 +279,9 @@ enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const c
 	return arproc ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-enum PLATFORM_CODE platformDylib_UpdateDylib(const module_t module, const char* const libpath)
+enum PLATFORM_CODE platformDylib_Release(const module_t module)
 {
-    HMODULE hmodule = LoadLibrary(libpath);
-
-    if (hmodule == NULL)
-    { return PLATFORM_ERROR; }
-
-    FreeLibrary(hmodules[module]);
-    hmodules[module] = hmodule;
-    return PLATFORM_SUCCESS;
+	if (module < 0) { return PLATFORM_SUCCESS; }
+	hmoduleIndex -= 1;
+	return FreeLibrary(hmodules[module]) ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }

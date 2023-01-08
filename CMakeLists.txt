@@ -80,3 +80,8 @@ endif()
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc
 					WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 					DEPENDS epc)
+
+if(WIN32)
+	add_custom_command(TARGET epc POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:imgui> $<TARGET_FILE_DIR:epc>)
+endif()

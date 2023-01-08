@@ -74,6 +74,7 @@ enum PLATFORM_CODE platformReadChildSTDOUT(char* const c);
 enum PLATFORM_CODE platformReadChildSTDERR(char* const c);
 
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime);
+enum PLATFORM_CODE platformFile_Copy(const char* from, const char* to);
 
 /**
  * Load the dynamic library specified at libpath
@@ -95,7 +96,15 @@ module_t platformDylib_Load(const char* const libpath);
  * call to platformGetLastErrorCode and a description can be retrieved by a call to platformGetLastErrorDescription
  */
 enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const char* const symbolname, void** address);
-enum PLATFORM_CODE platformDylib_UpdateDylib(const module_t module, const char* const libpath);
+
+/**
+ * Release a previously loaded library.
+ *
+ * @param [in]module ID referencing the library to be unloaded on the platform side
+ * @retval PLATFORM_SUCCESS Library successfully unloaded
+ * @retval PLATFORM_ERROR An error happened on unloading
+ */
+enum PLATFORM_CODE platformDylib_Release(const module_t module);
 
 #ifdef __cplusplus
 }

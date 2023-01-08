@@ -52,39 +52,34 @@ static void reloadDrawLibrary()
 
 	libDrawLastWriteTime = lastWriteTime;
 
-	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME,fs::copy_options::overwrite_existing,errorCode);
+	//TODO: Why this fails on Windows ?
+	//fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME,fs::copy_options::overwrite_existing,errorCode);
 
-	if (errorCode)
+	if (platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME))
 	{
-		E5150_WARNING("Unable to make a copy of the draw library : {}", platformGetLastErrorDescription());
+		E5150_WARNING("Unable to make a copy of the draw library : {}", errorCode.message());
 		goto errorDrawFunctionUnchanged;
 	}
 
+	//TODO: Is this an error ? Why would it possible for Windows to fail to unload a dylib only used here ?
+	if (platformDylib_Release(hotReloadModuleID))
+	{
+		E5150_WARNING("Unable to unload the draw library : {}", platformGetLastErrorDescription());
+		goto errorDrawFunctionUnchanged;
+	}
+
+	hotReloadModuleID = platformDylib_Load(DRAW_LIBRARY_COPY_FILE_NAME);
+
 	if (hotReloadModuleID < 0)
 	{
-		hotReloadModuleID = platformDylib_Load(DRAW_LIBRARY_COPY_FILE_NAME);
-
-		if (hotReloadModuleID < 0)
-		{
-			E5150_ERROR("Unable to load draw library : {}", platformGetLastErrorDescription());
-			E5150_WARNING("GUI not drawn");
-			return;
-		}
-	}
-	else
-	{
-		if (platformDylib_UpdateDylib(hotReloadModuleID,DRAW_LIBRARY_COPY_FILE_NAME))
-		{
-			E5150_WARNING("Unable to reload draw library : {}", platformGetLastErrorDescription());
-			goto errorDrawFunctionUnchanged;
-		}
+		E5150_WARNING("Unable to reload the draw library file : {}", errorCode.message());
+		goto errorDrawFunctionReset;
 	}
 
 	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
 	{
-		E5150_ERROR("Unable to update draw function : {}",platformGetLastErrorDescription());
-		E5150_WARNING("GUI not drawn");
-		return;
+		E5150_ERROR("Unable to update draw function : {}",errorCode.message());
+		goto errorDrawFunctionReset;
 	}
 
 	E5150_INFO("Draw function successfully reloaded");
@@ -92,6 +87,14 @@ static void reloadDrawLibrary()
 
 	errorDrawFunctionUnchanged:
 	E5150_WARNING("Draw function not updated, previous version used");
+	return;
+
+	errorDrawFunctionReset:
+	E5150_WARNING("GUI not draw");
+	hotReloadModuleID = -1;
+	hotReloadDraw = nullptr;
+	//TODO: remake spdlog output to the console
+	return;
 }
 
 void E5150::GUI::init()
@@ -100,7 +103,7 @@ void E5150::GUI::init()
 
 	if (hotReloadDraw)
 	{
-		spdlog::default_logger()->sinks().clear();
+		//spdlog::default_logger()->sinks().clear();
 		spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<std::mutex>>());
 		auto imguiSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 		imguiSink->init();
@@ -154,6 +157,7 @@ void E5150::GUI::draw()
 		emulationGuiData.cpuClock = E5150::Arch::emulationStat.cpuClock;
 		emulationGuiData.fdcClock = E5150::Arch::emulationStat.fdcClock;
 		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
+		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
 		hotReloadDraw(&emulationGuiData);
 	}

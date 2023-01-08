@@ -6,10 +6,12 @@
 #define E5150_GUI_STATES_HPP
 
 #include <cstdint>
+#include "spdlog_imgui_color_sink.hpp"
 
 struct EmulationGUIState
 {
 	uint64_t cpuClock, fdcClock,instructionExecutedCount;
+	SpdlogImGuiColorSink<std::mutex>* consoleSink;
 };
 
 struct DebuggerGUIState
