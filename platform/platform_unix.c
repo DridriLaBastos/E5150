@@ -112,7 +112,7 @@ module_t platformDylib_Load(const char* const libpath)
 	if (!handle)
 	{
 		dynamicLinkerError = true;
-		return PLATFORM_ERROR;
+		return -1;
 	}
 
 	modules[moduleIndex] = handle;
@@ -151,4 +151,14 @@ enum PLATFORM_CODE platformDylib_UpdateDylib(const module_t module, const char* 
 
 	modules[module] = handle;
 	return PLATFORM_SUCCESS;
+}
+
+enum PLATFORM_CODE platformDylib_Release(const module_t module)
+{
+	if (module < 0) { return PLATFORM_SUCCESS; }
+	moduleIndex -= 1;
+
+	dynamicLinkerError = dlclose(modules[module]);
+
+	return dynamicLinkerError ? PLATFORM_ERROR : PLATFORM_SUCCESS;
 }

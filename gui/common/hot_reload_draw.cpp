@@ -60,7 +60,7 @@ extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState* const emulatio
 	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
 	ImGui::Text("Clock accuracy cpu : %d%%  fdc %d%%", CPUClockAccuracy, FDCClockAccuracy);
 	ImGui::Text("Instruction executed : %.3fM/s ( %4.3fM)",instructionExecuted / 1e6, emulationGuiState->instructionExecutedCount / 1e6);
-	ImGui::TextUnformatted("Bonjour");
+	// ImGui::TextUnformatted("Bonjour");
 
 	ImGui::End();
 }

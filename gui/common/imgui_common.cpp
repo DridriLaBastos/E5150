@@ -52,10 +52,16 @@ static void reloadDrawLibrary()
 
 	libDrawLastWriteTime = lastWriteTime;
 
+	#if _WIN32
+	const PLATFORM_CODE code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME);
+	errorCode = std::filesystem::filesystem_error(platformGetLastErrorDescription(),
+	DRAW_LIBRARY_FULL_PATH, DRAW_LIBRARY_COPY_FILE_NAME,
+	platformGetLastErrorCode());
+	#else
 	//TODO: Why this fails on Windows ?
-	//fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME,fs::copy_options::overwrite_existing,errorCode);
-
-	if (platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME))
+	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME,fs::copy_options::overwrite_existing,errorCode);
+	#endif
+	if (errorCode)
 	{
 		E5150_WARNING("Unable to make a copy of the draw library : {}", errorCode.message());
 		goto errorDrawFunctionUnchanged;
@@ -86,11 +92,11 @@ static void reloadDrawLibrary()
 	return;
 
 	errorDrawFunctionUnchanged:
-	E5150_WARNING("Draw function not updated, previous version used");
+	E5150_WARNING("\tDraw function not updated, previous version used");
 	return;
 
 	errorDrawFunctionReset:
-	E5150_WARNING("GUI not draw");
+	E5150_WARNING("\tGUI not draw");
 	hotReloadModuleID = -1;
 	hotReloadDraw = nullptr;
 	//TODO: remake spdlog output to the console
