@@ -1,0 +1,13 @@
+{
+	"cmake.buildDirectory": "${workspaceFolder}/cmake-build-${buildType}",
+	"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+	"C_Cpp.default.includePath": [
+		"${default}",
+		"${workspaceFolder}",
+		"${workspaceFolder}/cmake-build-${buildType}/third-party/include",
+		"${workspaceFolder}/third-party/",
+		"${workspaceFolder}/third-party/spdlog/include"
+	],
+	"C_Cpp.default.cppStandard": "c++17",
+	"C_Cpp.default.cStandard": "c11"
+}

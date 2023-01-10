@@ -35,12 +35,6 @@ build
 *.app
 *.bin
 
-#Visual Studio Code
-.vscode
-
-# Jet Brain
-.idea
-
 # Windows
 .vs
 .out
