@@ -52,14 +52,17 @@ static void reloadDrawLibrary()
 
 	libDrawLastWriteTime = lastWriteTime;
 
-	#if _WIN32
-	const PLATFORM_CODE code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME);
-	errorCode = std::filesystem::filesystem_error(platformGetLastErrorDescription(),
-	DRAW_LIBRARY_FULL_PATH, DRAW_LIBRARY_COPY_FILE_NAME,
-	platformGetLastErrorCode());
-	#else
 	//TODO: Why this fails on Windows ?
+	#ifndef _WIN32
 	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME,fs::copy_options::overwrite_existing,errorCode);
+	#else
+	const PLATFORM_CODE code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME);
+	errorCode.clear();
+
+	if (code)
+	{
+		errorCode.assign(platformGetLastErrorCode(), std::system_category());
+	}
 	#endif
 	if (errorCode)
 	{
