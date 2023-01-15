@@ -25,7 +25,7 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void (*hotReloadDraw)(const EmulationGUIState* const) = nullptr;
+static void (*hotReloadDraw)(const EmulationGUIState* const, const DebuggerGUIState* const) = nullptr;
 static module_t hotReloadModuleID = -1;
 fs::file_time_type libDrawLastWriteTime;
 static std::error_code errorCode;
@@ -168,7 +168,12 @@ void E5150::GUI::draw()
 		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
-		hotReloadDraw(&emulationGuiData);
+		DebuggerGUIState* debuggerState = nullptr;
+
+#ifdef DEBUGGER
+#endif
+
+		hotReloadDraw(&emulationGuiData, debuggerState);
 	}
 #if 0
 	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();

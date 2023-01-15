@@ -3,6 +3,8 @@
 #include "third-party/imgui/imgui.h"
 #include "communication/communication.h"
 
+using namespace E5150::Debugger::GUI;
+
 static char debuggerCommandInputBuffer [256] = { ' ', '#', ' '};
 
 static std::thread pullDebuggerStdoutThread;
@@ -10,10 +12,7 @@ static std::thread pullDebuggerStderrThread;
 static std::mutex imguiDebugConsoleMutex;
 static void (*hotReloadDraw) (void) = nullptr;
 
-enum class DEBUG_CONSOLE_ENTRY_TYPE
-{ COMMAND, DEBUGGER_STDERR, DEBUGGER_STDOUT };
-
-static std::vector<std::pair<DEBUG_CONSOLE_ENTRY_TYPE,std::string>> debugConsoleEntries;
+static E5150::Debugger::GUI::ConsoleEntries debugConsoleEntries;
 
 //TODO: Adding multiple time a std::string to the data means storing
 //additional '\0' end character. With a lot of logs this could be
@@ -21,14 +20,14 @@ static std::vector<std::pair<DEBUG_CONSOLE_ENTRY_TYPE,std::string>> debugConsole
 static int execCommand(void)
 {
 	//TODO: asynchronous send command to backend and wait for an answer
-	debugConsoleEntries.emplace_back(DEBUG_CONSOLE_ENTRY_TYPE::COMMAND,debuggerCommandInputBuffer);
+	debugConsoleEntries.emplace_back(CONSOLE_ENTRY_TYPE::COMMAND,debuggerCommandInputBuffer);
 	const size_t commandLength = strnlen(&debuggerCommandInputBuffer[3],256-3);
 	WRITE_TO_DEBUGGER(&commandLength,sizeof(commandLength));
 	WRITE_TO_DEBUGGER(&debuggerCommandInputBuffer[3],commandLength);
 	return 0;
 }
 
-static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction)(char* const),const DEBUG_CONSOLE_ENTRY_TYPE type)
+static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction)(char* const),const CONSOLE_ENTRY_TYPE type)
 {
 	std::string line;
 	char c;
@@ -51,7 +50,7 @@ static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction
 			}
 			else
 			{
-				E5150_DEBUG("Received EOF from debugger {} stream", type == DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ? "stdout" : "stderr");
+				E5150_DEBUG("Received EOF from debugger {} stream", type == CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ? "stdout" : "stderr");
 			}
 			//TODO: quit at each error. Maybe we want to have a case by case treatment. We could try to read
 			//again from the stream depending on he error and if its not EOM
@@ -68,9 +67,9 @@ static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction
 }
 
 static void pullStdoutThreadFunction() {
-	pullChildStreamThreadFunction(platformReadChildSTDOUT, DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT); }
+	pullChildStreamThreadFunction(platformReadChildSTDOUT, CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT); }
 static void pullStderrThreadFunction() {
-	pullChildStreamThreadFunction(platformReadChildSTDERR, DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR); }
+	pullChildStreamThreadFunction(platformReadChildSTDERR, CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR); }
 
 void E5150::Debugger::GUI::init()
 {
@@ -101,10 +100,10 @@ void E5150::Debugger::GUI::draw()
 		const auto& entry = debugConsoleEntries[i];
 		switch(entry.first)
 		{
-			case DEBUG_CONSOLE_ENTRY_TYPE::COMMAND:
+			case CONSOLE_ENTRY_TYPE::COMMAND:
 				ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1.0f, 0.8f, 0.6f, 1.0f));
 				break;
-			case DEBUG_CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR:
+			case CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR:
 				ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1.0f, 0.1f, 0.2f, 1.0f));
 				break;
 			default:
@@ -123,4 +122,10 @@ void E5150::Debugger::GUI::draw()
 	}
 
 	ImGui::End();
+}
+
+void E5150::Debugger::GUI::populateDebuggerGUIState(DebuggerGUIState *const state)
+{
+	state->debugConsoleDataAccessMutex = &imguiDebugConsoleMutex;
+	state->consoleEntries
 }
