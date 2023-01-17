@@ -1,17 +1,14 @@
 #include <csignal>
 #include <filesystem>
 
-#include "gui_states.hpp"
 #include "gui/gui.hpp"
 #include "core/pch.hpp"
 #include "core/arch.hpp"
-#include "spdlog_imgui_color_sink.hpp"
+#include "gui_states.hpp"
 #include "platform/platform.h"
-#include "core/emulation_constants.hpp"
-
-#ifdef DEBUGGER
 #include "debugger/debugger.hpp"
-#endif
+#include "spdlog_imgui_color_sink.hpp"
+#include "core/emulation_constants.hpp"
 
 //char* HOT_RELOAD_DRAW_NAME = "hotReloadDraw";
 #define HOT_RELOAD_DRAW_NAME "hotReloadDraw"
@@ -25,7 +22,7 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void (*hotReloadDraw)(const EmulationGUIState* const, const DebuggerGUIState* const) = nullptr;
+static void (*hotReloadDraw)(const EmulationGUIState&, E5150::Debugger::GUI::State* const) = nullptr;
 static module_t hotReloadModuleID = -1;
 fs::file_time_type libDrawLastWriteTime;
 static std::error_code errorCode;
@@ -168,12 +165,22 @@ void E5150::GUI::draw()
 		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
-		DebuggerGUIState* debuggerState = nullptr;
+		E5150::Debugger::GUI::State* debuggerGUIStatePtr = nullptr;
 
 #ifdef DEBUGGER
+		E5150::Debugger::GUI::State debuggerGUIState = E5150::Debugger::GUI::getState();
+		debuggerGUIStatePtr = &debuggerGUIState;
 #endif
 
-		hotReloadDraw(&emulationGuiData, debuggerState);
+		hotReloadDraw(emulationGuiData, debuggerGUIStatePtr);
+
+		//TODO: This should be done here, the debugger should automatically detect that a command is requested
+		//without having a call to be done inside the draw function. The purpose of the draw function id to diplay
+		//things, not to perform any treatments
+		//plus it adds another macro and it makes the code uglier
+#ifdef DEBUGGER
+		E5150::Debugger::sendCommand();
+#endif
 	}
 #if 0
 	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();

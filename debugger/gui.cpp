@@ -5,19 +5,16 @@
 
 using namespace E5150::Debugger::GUI;
 
-static char debuggerCommandInputBuffer [256] = { ' ', '#', ' '};
-
 static std::thread pullDebuggerStdoutThread;
 static std::thread pullDebuggerStderrThread;
 static std::mutex imguiDebugConsoleMutex;
-static void (*hotReloadDraw) (void) = nullptr;
 
-static E5150::Debugger::GUI::ConsoleEntries debugConsoleEntries;
+static std::vector<E5150::Debugger::GUI::ConsoleEntry> debugConsoleEntries;
 
 //TODO: Adding multiple time a std::string to the data means storing
 //additional '\0' end character. With a lot of logs this could be
 //a waste of memory.
-static int execCommand(void)
+/*static int execCommand(void)
 {
 	//TODO: asynchronous send command to backend and wait for an answer
 	debugConsoleEntries.emplace_back(CONSOLE_ENTRY_TYPE::COMMAND,debuggerCommandInputBuffer);
@@ -25,16 +22,16 @@ static int execCommand(void)
 	WRITE_TO_DEBUGGER(&commandLength,sizeof(commandLength));
 	WRITE_TO_DEBUGGER(&debuggerCommandInputBuffer[3],commandLength);
 	return 0;
-}
+}*/
 
 static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction)(char* const),const CONSOLE_ENTRY_TYPE type)
 {
 	std::string line;
 	char c;
-	bool streamOpened = true;
+	bool streamOpen = true;
 	PLATFORM_CODE streamPullCode;
 
-	while (streamOpened)
+	while (streamOpen)
 	{
 		do {
 			streamPullCode = childStreamPullFunction(&c);
@@ -54,12 +51,13 @@ static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction
 			}
 			//TODO: quit at each error. Maybe we want to have a case by case treatment. We could try to read
 			//again from the stream depending on he error and if its not EOM
-			streamOpened = false;
+			streamOpen = false;
 		}
 		else
 		{
 			imguiDebugConsoleMutex.lock();
 			debugConsoleEntries.emplace_back(type,line);
+			printf("%s",line.c_str());
 			imguiDebugConsoleMutex.unlock();
 			line.clear();
 		}
@@ -70,6 +68,24 @@ static void pullStdoutThreadFunction() {
 	pullChildStreamThreadFunction(platformReadChildSTDOUT, CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT); }
 static void pullStderrThreadFunction() {
 	pullChildStreamThreadFunction(platformReadChildSTDERR, CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR); }
+
+void E5150::Debugger::sendCommand()
+{
+	static size_t lastCommandEntryIndex = 0;
+
+	for (size_t i = lastCommandEntryIndex+1; i < debugConsoleEntries.size(); i += 1)
+	{
+		if (debugConsoleEntries[i].type == CONSOLE_ENTRY_TYPE::COMMAND)
+		{
+			lastCommandEntryIndex = i;
+			const auto& entry = debugConsoleEntries[i];
+			const size_t commandLength = entry.str.size();
+			WRITE_TO_DEBUGGER(&commandLength,sizeof(commandLength));
+			WRITE_TO_DEBUGGER(entry.str.c_str(),commandLength);
+			break;
+		}
+	}
+}
 
 void E5150::Debugger::GUI::init()
 {
@@ -83,7 +99,7 @@ void E5150::Debugger::GUI::clean()
 	pullDebuggerStderrThread.join();
 }
 
-void E5150::Debugger::GUI::draw()
+/*void E5150::Debugger::GUI::draw()
 {
 	ImGui::Begin("Debugger");
 
@@ -118,14 +134,13 @@ void E5150::Debugger::GUI::draw()
 
 	if (ImGui::InputText("Debugger command",&debuggerCommandInputBuffer[3],IM_ARRAYSIZE(debuggerCommandInputBuffer)-3,ImGuiInputTextFlags_EnterReturnsTrue))
 	{
-		execCommand();
+		//execCommand();
 	}
 
 	ImGui::End();
-}
+}*/
 
-void E5150::Debugger::GUI::populateDebuggerGUIState(DebuggerGUIState *const state)
+const E5150::Debugger::GUI::State E5150::Debugger::GUI::getState()
 {
-	state->debugConsoleDataAccessMutex = &imguiDebugConsoleMutex;
-	state->consoleEntries
+	return { .debugConsoleEntries = debugConsoleEntries, .debugConsoleMutex = imguiDebugConsoleMutex };
 }
