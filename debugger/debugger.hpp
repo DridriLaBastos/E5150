@@ -27,8 +27,8 @@ namespace E5150::Debugger
 
 		struct State
 		{
-			std::mutex& debugConsoleMutex;
-			std::vector<ConsoleEntry>& debugConsoleEntries;
+			std::mutex* debugConsoleMutex;
+			std::vector<ConsoleEntry>* debugConsoleEntries;
 		};
 
 		void init(void);

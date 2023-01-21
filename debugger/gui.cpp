@@ -142,5 +142,8 @@ void E5150::Debugger::GUI::clean()
 
 const E5150::Debugger::GUI::State E5150::Debugger::GUI::getState()
 {
-	return { .debugConsoleEntries = debugConsoleEntries, .debugConsoleMutex = imguiDebugConsoleMutex };
+	E5150::Debugger::GUI::State state;
+	state.debugConsoleEntries = &debugConsoleEntries;
+	state.debugConsoleMutex = &imguiDebugConsoleMutex;
+	return state;
 }

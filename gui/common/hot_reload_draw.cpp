@@ -25,17 +25,18 @@ static void drawDebuggerGui(E5150::Debugger::GUI::State* const state)
 	static char debuggerCommandInputBuffer [DEBUGGER_COMMAND_BUFFER_SIZE];
 	ImGui::Begin("Debugger");
 
-	state->debugConsoleMutex.lock();
-	size_t s = state->debugConsoleEntries.size();
-	state->debugConsoleMutex.unlock();
+	state->debugConsoleMutex->lock();
+	size_t s = state->debugConsoleEntries->size();
+	state->debugConsoleMutex->unlock();
 
 	for (size_t i = 0; i < s; ++i)
 	{
 		bool hasColor = true;
 		//Since a push back can potentialy invalidate data inside a vector, we need to lock it during the whole
 		//iteration
-		state->debugConsoleMutex.lock();
-		const auto& entry = state->debugConsoleEntries[i];
+		state->debugConsoleMutex->lock();
+		//TODO: I'd like to remove the call to the at function
+		const auto& entry = state->debugConsoleEntries->at(i);
 		switch(entry.type)
 		{
 			case E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND:
@@ -51,13 +52,13 @@ static void drawDebuggerGui(E5150::Debugger::GUI::State* const state)
 
 		ImGui::Text("%s%s",entry.prefix.c_str(),entry.str.c_str());
 		if (hasColor) { ImGui::PopStyleColor(); }
-		s = state->debugConsoleEntries.size();
-		state->debugConsoleMutex.unlock();
+		s = state->debugConsoleEntries->size();
+		state->debugConsoleMutex->unlock();
 	}
 
 	if (ImGui::InputText("Debugger command",debuggerCommandInputBuffer,DEBUGGER_COMMAND_BUFFER_SIZE,ImGuiInputTextFlags_EnterReturnsTrue))
 	{
-		state->debugConsoleEntries.emplace_back(E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND,debuggerCommandInputBuffer, " # ");
+		state->debugConsoleEntries->emplace_back(E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND,debuggerCommandInputBuffer, " # ");
 	}
 
 	ImGui::End();
