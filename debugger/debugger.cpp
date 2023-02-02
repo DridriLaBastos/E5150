@@ -20,6 +20,7 @@ static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
 static bool debuggerHasQuit = false;
+static std::atomic<bool> debuggerRunning = false;
 
 static struct
 {
@@ -450,6 +451,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	}
 	
 	context.clear();
+	debuggerRunning = true;
 	//printCpuInfos();
 	//if(WRITE_TO_DEBUGGER(&cpu.instructionExecutedCount,8) == -1) { return; }
 
@@ -457,7 +459,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	{
 		//1 - Reading the command to execute
 		if (READ_FROM_DEBUGGER(&commandType,sizeof(COMMAND_TYPE)) == -1) { break; }
-		const uint8_t commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_FAILURE;
+		const uint8_t commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
 
 		//2 - telling the debugger the status of the command reception
 		if(WRITE_TO_DEBUGGER( &commandReceivedStatus, sizeof(commandReceivedStatus)) == -1) { break; }
@@ -492,4 +494,11 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 		//4 - Synchronization point : the debugger will wait to get a value before running another loop
 		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }
 	} while (!shouldStop);
+
+	debuggerRunning = false;
+}
+
+bool E5150::Debugger::getDebuggerIsRunningState(void)
+{
+	return debuggerRunning.load();
 }

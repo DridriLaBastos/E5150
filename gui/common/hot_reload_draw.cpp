@@ -19,47 +19,90 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void drawDebuggerGui(E5150::Debugger::GUI::State* const state)
+static void drawDebuggerLoggingConsole(E5150::Debugger::GUI::State* const state)
 {
 	static constexpr size_t DEBUGGER_COMMAND_BUFFER_SIZE = 256;
 	static char debuggerCommandInputBuffer [DEBUGGER_COMMAND_BUFFER_SIZE];
-	ImGui::Begin("Debugger");
 
 	state->debugConsoleMutex->lock();
 	size_t s = state->debugConsoleEntries->size();
 	state->debugConsoleMutex->unlock();
 
-	for (size_t i = 0; i < s; ++i)
 	{
-		bool hasColor = true;
-		//Since a push back can potentialy invalidate data inside a vector, we need to lock it during the whole
-		//iteration
-		state->debugConsoleMutex->lock();
-		//TODO: I'd like to remove the call to the at function
-		const auto& entry = state->debugConsoleEntries->at(i);
-		switch(entry.type)
-		{
-			case E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND:
-				ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1.0f, 0.8f, 0.6f, 1.0f));
-				break;
-			case E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR:
-				ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(1.0f, 0.1f, 0.2f, 1.0f));
-				break;
-			default:
-				hasColor = false;
-				break;
+		const ImGuiWindowFlags consoleFlags = ImGuiWindowFlags_HorizontalScrollbar;
+		ImGui::BeginChild("Console",{0,ImGui::GetContentRegionAvail().y * 0.66f}, false, consoleFlags);
+		for (size_t i = 0; i < s; ++i) {
+			bool hasColor = true;
+			//Since a push back can potentialy invalidate data inside a vector, we need to lock it during the whole
+			//iteration
+			state->debugConsoleMutex->lock();
+
+			const auto &entry = (*(state->debugConsoleEntries))[i];
+
+			switch (entry.type) {
+				case E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND:
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.6f, 1.0f));
+					break;
+				case E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR:
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.1f, 0.2f, 1.0f));
+					break;
+				default:
+					hasColor = false;
+					break;
+			}
+
+			ImGui::Text("%s%s", entry.prefix.c_str(), entry.str.c_str());
+			if (hasColor) { ImGui::PopStyleColor(); }
+			s = state->debugConsoleEntries->size();
+			state->debugConsoleMutex->unlock();
 		}
-
-		ImGui::Text("%s%s",entry.prefix.c_str(),entry.str.c_str());
-		if (hasColor) { ImGui::PopStyleColor(); }
-		s = state->debugConsoleEntries->size();
-		state->debugConsoleMutex->unlock();
+		ImGui::EndChild();
 	}
+	ImGui::Text("(%llu)",state->i8086->instructionExecutedCount);
 
+	ImGui::SameLine();
 	if (ImGui::InputText("Debugger command",debuggerCommandInputBuffer,DEBUGGER_COMMAND_BUFFER_SIZE,ImGuiInputTextFlags_EnterReturnsTrue))
 	{
 		state->debugConsoleEntries->emplace_back(E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND,debuggerCommandInputBuffer, " # ");
 	}
+}
+
+static void drawCpuDebugStatus(E5150::Debugger::GUI::State* const state)
+{
+	ImGui::TextUnformatted("Instruction placeholder");
+	ImGui::Text("CS 0x%4X   ", state->i8086->regs.cs);
+	ImGui::SameLine();
+	ImGui::Text("DS 0x%4X   ", state->i8086->regs.ds);
+	ImGui::SameLine();
+	ImGui::Text("ES 0x%4X   ", state->i8086->regs.es);
+	ImGui::SameLine();
+	ImGui::Text("SS 0x%4X   ", state->i8086->regs.ss);
+	ImGui::SameLine();
+	ImGui::Text("IP 0x%4X   ", state->i8086->regs.ip);
+
+	ImGui::Text("AX 0x%4X   ", state->i8086->regs.ax);
+	ImGui::SameLine();
+	ImGui::Text("BX 0x%4X   ", state->i8086->regs.bx);
+	ImGui::SameLine();
+	ImGui::Text("CX 0x%4X   ", state->i8086->regs.cx);
+	ImGui::SameLine();
+	ImGui::Text("DX 0x%4X   ", state->i8086->regs.dx);
+
+	ImGui::Text("DI 0x%4X   ", state->i8086->regs.di);
+	ImGui::SameLine();
+	ImGui::Text("SI 0x%4X   ", state->i8086->regs.si);
+	ImGui::SameLine();
+	ImGui::Text("BP 0x%4X   ", state->i8086->regs.bp);
+	ImGui::SameLine();
+	ImGui::Text("SP 0x%4X   ", state->i8086->regs.sp);
+}
+
+static void drawDebuggerGui(E5150::Debugger::GUI::State* const state)
+{
+	ImGui::Begin("Debugger");
+
+	drawDebuggerLoggingConsole(state);
+	drawCpuDebugStatus(state);
 
 	ImGui::End();
 }

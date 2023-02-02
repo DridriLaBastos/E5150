@@ -1,5 +1,6 @@
 #include "debugger.hpp"
 #include "core/util.hpp"
+#include "core/arch.hpp"
 #include "third-party/imgui/imgui.h"
 #include "communication/communication.h"
 
@@ -145,5 +146,8 @@ const E5150::Debugger::GUI::State E5150::Debugger::GUI::getState()
 	E5150::Debugger::GUI::State state;
 	state.debugConsoleEntries = &debugConsoleEntries;
 	state.debugConsoleMutex = &imguiDebugConsoleMutex;
+	state.i8086 = &E5150::Arch::_cpu;
+	state.debuggerIsRunning = E5150::Debugger::getDebuggerIsRunningState();
+
 	return state;
 }

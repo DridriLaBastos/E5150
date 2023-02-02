@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "core/8086.hpp"
 #include "communication/command.h"
 
 namespace E5150::Debugger
@@ -11,6 +12,7 @@ namespace E5150::Debugger
 	void clean (void);
 	void wakeUp (const uint8_t instructionExecuted, const bool instructionDecoded);
 	void sendCommand(void);
+	bool getDebuggerIsRunningState(void);
 
 	namespace GUI {
 		enum class CONSOLE_ENTRY_TYPE
@@ -29,6 +31,8 @@ namespace E5150::Debugger
 		{
 			std::mutex* debugConsoleMutex;
 			std::vector<ConsoleEntry>* debugConsoleEntries;
+			CPU* i8086;
+			bool debuggerIsRunning;
 		};
 
 		void init(void);
