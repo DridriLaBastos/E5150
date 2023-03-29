@@ -159,7 +159,7 @@ extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiSt
 	drawEmulationConsole(emulationGuiState);
 	drawEmulationGui(emulationGuiState);
 
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 	drawDebuggerGui(debuggerGUIState);
 #endif
 }

@@ -3,6 +3,8 @@
 
 #include "platform/platform.h"
 
+#define CONNECTION_TEST_VALUE
+
 #ifdef __cplusplus
 extern "C" {
 #endif

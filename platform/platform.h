@@ -1,6 +1,7 @@
 #ifndef __PLATFORM_H__
 #define __PLATFORM_H__
 
+#include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -61,7 +62,7 @@ extern "C" {
  * @param[in] processCommandLineArgsCount total number of paramters given to the process
  * @return -1 in case of failure or a value >= 0 that identifies the created process on the platform layer
  */
-process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount);
+process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr);
 enum PLATFORM_CODE platformTerminateProcess(const process_t);
 
 const char* platformGetLastErrorDescription(void);

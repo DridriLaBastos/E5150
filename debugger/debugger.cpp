@@ -3,6 +3,7 @@
 #include "debugger.hpp"
 #include "communication/command.h"
 #include "communication/communication.h"
+#include "communication.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -81,12 +82,9 @@ void E5150::Debugger::init()
 	}
 
 	const char* debuggerArgs [] = {
-		PATH(PYTHON3_EXECUTABLE_PATH),
-		"-u",//Python unbuffered mode
-		PATH(DEBUGGER_PYTHON_SCRIPT_PATH),
-		EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
-		DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
-		PATH(DECOM_LIB_PATH),
+		PATH(DEBUGGER_SERVER_EXE),
+		"-i", EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
+		"-o", DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
 #ifdef WIN32
 		"\0"
 #else
@@ -94,7 +92,13 @@ void E5150::Debugger::init()
 #endif
 	};
 
-	debuggerProcess = platformCreateProcess(debuggerArgs, std::size(debuggerArgs));
+	FILE* debuggerStdout = nullptr;
+	FILE* debuggerStderr = nullptr;
+
+	debuggerProcess = platformCreateProcess(debuggerArgs, std::size(debuggerArgs),&debuggerStdout,&debuggerStderr);
+
+	E5150::DEBUGGER::setDebuggerServerStreamFilePtr(E5150::DEBUGGER::STREAM::STDOUT,debuggerStdout);
+	E5150::DEBUGGER::setDebuggerServerStreamFilePtr(E5150::DEBUGGER::STREAM::STDERR,debuggerStderr);
 
 	if (debuggerProcess == -1)
 	{
@@ -104,13 +108,16 @@ void E5150::Debugger::init()
 		return;
 	}
 
-	toDebugger = platformOpenFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
-	if (toDebugger < 0)
+	return;
+
+	//toDebugger = platformOpenFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
+	FILE* toDebugger = fopen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, "w");
+	/*if (toDebugger < 0)
 	{
 		E5150_WARNING("Unable to open send to debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
 		clean();
 		return;
-	}
+	}*/
 
 	fromDebugger = platformOpenFifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, O_RDONLY);
 	if (fromDebugger < 0)
@@ -120,15 +127,15 @@ void E5150::Debugger::init()
 		return;
 	}
 
-	registerCommunicationFifos(fromDebugger, toDebugger);
+	//registerCommunicationFifos(fromDebugger, toDebugger);
 
-	constexpr uint32_t debuggerSynchronizationData = 0xDEAB12CD;
-	if (WRITE_TO_DEBUGGER(&debuggerSynchronizationData, sizeof(debuggerSynchronizationData)) < 0)
+	/*if (WRITE_TO_DEBUGGER(&E5150::DEBUGGER::COMMUNICATION_TEST_VALUE, sizeof(E5150::DEBUGGER::COMMUNICATION_TEST_VALUE)) < 0)
 	{
 		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
 		clean();
 		return;
-	}
+	}*/
+	fwrite(&E5150::DEBUGGER::COMMUNICATION_TEST_VALUE,sizeof(E5150::DEBUGGER::COMMUNICATION_TEST_VALUE),1,toDebugger);
 }
 
 void E5150::Debugger::clean()

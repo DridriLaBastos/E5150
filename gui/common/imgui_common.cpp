@@ -116,12 +116,12 @@ void E5150::GUI::init()
 	}
 
 	E5150_INFO("Welcome to E5150, the emulator of an IBM PC 5150");
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
 #endif
 
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 	E5150::Debugger::init();
 	E5150::Debugger::GUI::init();
 #endif
@@ -150,7 +150,7 @@ void E5150::GUI::init()
 #endif
 
 	//TODO: launching the thread arch shouldn't be done inside the gui init function
-	t = std::thread(&E5150::Arch::startSimulation,&arch);
+	//t = std::thread(&E5150::Arch::startSimulation,&arch);
 }
 
 void E5150::GUI::draw()
@@ -167,88 +167,28 @@ void E5150::GUI::draw()
 
 		E5150::Debugger::GUI::State* debuggerGUIStatePtr = nullptr;
 
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 		E5150::Debugger::GUI::State debuggerGUIState = E5150::Debugger::GUI::getState();
 		debuggerGUIStatePtr = &debuggerGUIState;
 #endif
 
 		hotReloadDraw(emulationGuiData, debuggerGUIStatePtr);
 
-		//TODO: This should be done here, the debugger should automatically detect that a command is requested
+		//TODO: This should not be done here, the debugger should automatically detect that a command is requested
 		//without having a call to be done inside the draw function. The purpose of the draw function id to diplay
 		//things, not to perform any treatments
 		//plus it adds another macro and it makes the code uglier
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 		E5150::Debugger::sendCommand();
 #endif
 	}
-#if 0
-	static auto consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
-	static unsigned int instructionExecuted = 0;
-	static uint64_t lastFrameCPUClockCount = 0;
-	static unsigned int lastFrameCPUInstructionCount = 0;
-	static uint64_t lastFrameFDCClockCount = 0;
-	static unsigned int CPUClockDelta = 0;
-	static unsigned int FDCClockDelta = 0;
-	static unsigned int CPUClockAccuracy = 0;
-	static unsigned int FDCClockAccuracy = 0;
-	static auto lastUpdateTime = gui_clock::now();
-
-	consoleSink->imguiDraw();
-
-	const auto now = gui_clock::now();
-	const auto timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdateTime);
-	if (timeSinceLastUpdate >= std::chrono::milliseconds(MS_PER_UPDATE))
-	{
-		instructionExecuted = cpu.instructionExecutedCount - lastFrameCPUInstructionCount;
-
-		const uint64_t currentCPUClockCount = Arch::emulationStat.cpuClock;
-		const uint64_t currentFDCClockCount = Arch::emulationStat.fdcClock;
-
-		CPUClockDelta = currentCPUClockCount - lastFrameCPUClockCount;
-		FDCClockDelta = currentFDCClockCount - lastFrameFDCClockCount;
-
-		CPUClockAccuracy = CPUClockDelta * 100 / EXPECTED_CPU_CLOCK_COUNT;
-		FDCClockAccuracy = FDCClockDelta * 100 / EXPECTED_FDC_CLOCK_COUNT;
-
-		lastFrameCPUInstructionCount = cpu.instructionExecutedCount;
-		lastFrameCPUClockCount = currentCPUClockCount;
-		lastFrameFDCClockCount = currentFDCClockCount;
-
-		lastUpdateTime = now;
-	}
-
-	ImGui::Begin("Emulation Statistics");
-	ImGui::Text("CPU clock executed : %6d / %6d", CPUClockDelta, EXPECTED_CPU_CLOCK_COUNT);
-	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
-	ImGui::Text("Clock accuracy cpu : %d%%  fdc %d%%", CPUClockAccuracy, FDCClockAccuracy);
-	ImGui::Text("Instruction executed : %.3fM",instructionExecuted / 1e6);
-	ImGui::End();
-
-#ifdef DEBUGGER
-	E5150::Debugger::GUI::draw();
-#endif
-
-	/*if (!simulationStarted)
-	{
-		ImGui::Begin("Home");
-		const bool startSimulationRequest = ImGui::Button("Start simulation");
-		ImGui::End();
-
-		if (startSimulationRequest && !simulationStarted) {
-			E5150_INFO("Simulation is starting !");
-			const auto simThread = std::thread(simulationThread);
-			simulationStarted = true;
-		}
-	}*/
-#endif
 }
 
 void E5150::GUI::clean()
 {
 	E5150::Util::_continue = false;
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 	E5150::Debugger::clean();
 #endif
-	t.join();
+	//t.join();
 }

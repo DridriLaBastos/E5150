@@ -2,7 +2,7 @@
 #include "core/util.hpp"
 #include "core/emulation_constants.hpp"
 
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 #include "debugger/debugger.hpp"
 #endif
 
@@ -78,7 +78,7 @@ void E5150::Arch::startSimulation()
 					_fdc.clock();
 				}
 
-				#ifdef DEBUGGER
+				#ifdef DEBUGGER_ON
 				Debugger::wakeUp(EUStatus & I8086::EU::STATUS_INSTRUCTION_EXECUTED, EUStatus & I8086::EU::STATUS_INSTRUCTION_DECODED);
 				#endif
 			}

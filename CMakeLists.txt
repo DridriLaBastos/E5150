@@ -13,7 +13,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 option(ENABLE_DEBUGGER "Compile the integrated debugger" ON)
 
 if (ENABLE_DEBUGGER)
-add_compile_definitions(DEBUGGER)
+add_compile_definitions(DEBUGGER_ON)
 endif()
 
 if (NOT WIN32)
@@ -38,7 +38,6 @@ file(GLOB CPU_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/cpu/*.cpp")
 file(GLOB FLOPPY_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/floppy/*.cpp")
 
 set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
-set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
 
 if(UNIX)
 	set(PLATFORM_SRC platform/platform_unix.c)
@@ -56,25 +55,16 @@ target_link_libraries(epc ${XED_LIB_PATH} imgui gui)
 target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX>:core/pch.hpp>)
 
 if (ENABLE_DEBUGGER)
-	find_package(Python3 COMPONENTS Interpreter REQUIRED)
+	add_subdirectory(debugger/server)
 
-	if(UNIX)
-		set(DEBUGGER_PLATFORM_STRING "unix")
-	elseif(WIN32)
-		set(DEBUGGER_PLATFORM_STRING "win32")
-	else()
-		message(FATAL_ERROR "Architecture ${CMAKE_SYSTEM} not recognized, cannot build debugger platform dependent code.")
-	endif()
+	set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
 
-	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/gui.cpp ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
+	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/communication.cpp ${DEBUGGER_SRC_PATH}/gui.cpp ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
 	# TODO: gives this as install path
-	target_compile_definitions(epc	PRIVATE DECOM_LIB_PATH="$<TARGET_FILE:decom>"
-									PRIVATE DEBUGGER_PYTHON_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/debugger/debugger.py"
-									PRIVATE DEBUGGER_PLATFORM_STRING="${DEBUGGER_PLATFORM_STRING}"
-									PRIVATE PYTHON3_EXECUTABLE_PATH="${Python3_EXECUTABLE}")
+	target_compile_definitions(epc PRIVATE DEBUGGER_SERVER_EXE="${DEBUGGER_SERVER_EXE}")
 
 	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
-	add_dependencies(epc decom)
+	add_dependencies(epc decom debugger-server)
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

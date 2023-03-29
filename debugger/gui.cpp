@@ -3,6 +3,7 @@
 #include "core/arch.hpp"
 #include "third-party/imgui/imgui.h"
 #include "communication/communication.h"
+#include "communication.hpp"
 
 using namespace E5150::Debugger::GUI;
 
@@ -25,51 +26,6 @@ static std::vector<E5150::Debugger::GUI::ConsoleEntry> debugConsoleEntries;
 	return 0;
 }*/
 
-static void pullChildStreamThreadFunction(PLATFORM_CODE(*childStreamPullFunction)(char* const),const CONSOLE_ENTRY_TYPE type)
-{
-	std::string line;
-	char c;
-	bool streamOpen = true;
-	PLATFORM_CODE streamPullCode;
-
-	while (streamOpen)
-	{
-		do {
-			streamPullCode = childStreamPullFunction(&c);
-			line.push_back(c);
-		} while ((streamPullCode == PLATFORM_SUCCESS) && (c != '\n'));
-
-		if (streamPullCode != PLATFORM_SUCCESS)
-		{
-			if (streamPullCode == PLATFORM_ERROR)
-			{
-				E5150_DEBUG("Exit with error {}", platformGetLastErrorCode());
-				E5150_ERROR(platformGetLastErrorDescription());
-			}
-			else
-			{
-				E5150_DEBUG("Received EOF from debugger {} stream", type == CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ? "stdout" : "stderr");
-			}
-			//TODO: quit at each error. Maybe we want to have a case by case treatment. We could try to read
-			//again from the stream depending on he error and if its not EOM
-			streamOpen = false;
-		}
-		else
-		{
-			imguiDebugConsoleMutex.lock();
-			debugConsoleEntries.emplace_back(type,line);
-			printf("%s",line.c_str());
-			imguiDebugConsoleMutex.unlock();
-			line.clear();
-		}
-	}
-}
-
-static void pullStdoutThreadFunction() {
-	pullChildStreamThreadFunction(platformReadChildSTDOUT, CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT); }
-static void pullStderrThreadFunction() {
-	pullChildStreamThreadFunction(platformReadChildSTDERR, CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR); }
-
 void E5150::Debugger::sendCommand()
 {
 	static size_t lastCommandEntryIndex = 0;
@@ -88,10 +44,54 @@ void E5150::Debugger::sendCommand()
 	}
 }
 
+static void pullChildStreamThreadFunction(const CONSOLE_ENTRY_TYPE type)
+{
+	std::string line;
+	char c;
+	bool streamOpen = true;
+	const size_t freadNitemToRead = 1;
+	const size_t freadBytesToRead = freadNitemToRead * sizeof(c);
+	size_t freadReturnValue;
+	FILE* stream = E5150::DEBUGGER::getDebuggerServerStreamFilePtr((type == CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ? E5150::DEBUGGER::STREAM::STDOUT : E5150::DEBUGGER::STREAM::STDERR));
+
+	while (streamOpen)
+	{
+		do {
+			freadReturnValue = fread(&c,freadBytesToRead,freadNitemToRead,stream);
+			line.push_back(c);
+		} while ((freadReturnValue == freadBytesToRead) && (c != '\n'));
+
+		if (freadReturnValue != freadBytesToRead)
+		{
+			const int streamEof = feof(stream);
+			const int streamError = ferror(stream);
+
+			if (streamEof)
+			{
+				E5150_DEBUG("Received stream EOF");
+			}
+
+			if (streamError)
+			{
+				E5150_WARNING("Error while reading debuger stream - ERRNO({}) : '{}'",errno, strerror(errno));
+			}
+
+			streamOpen = false;
+		}
+		else
+		{
+			imguiDebugConsoleMutex.lock();
+			debugConsoleEntries.emplace_back(type,line);
+			imguiDebugConsoleMutex.unlock();
+			line.clear();
+		}
+	}
+}
+
 void E5150::Debugger::GUI::init()
 {
-	pullDebuggerStdoutThread = std::thread(pullStdoutThreadFunction);
-	pullDebuggerStderrThread = std::thread(pullStderrThreadFunction);
+	pullDebuggerStdoutThread = std::thread(pullChildStreamThreadFunction,CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT);
+	pullDebuggerStderrThread = std::thread(pullChildStreamThreadFunction,CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR);
 }
 
 void E5150::Debugger::GUI::clean()

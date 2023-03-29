@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +17,7 @@ static int stdoutfd[2];
 static int stderrfd[2];
 static bool dynamicLinkerError = false;
 
-process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount)
+process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr)
 {
 	pipe(stdoutfd);
 	pipe(stderrfd);
@@ -25,13 +26,13 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 
 	if (createdPID == 0)
 	{
+		//We are in child process
 		dup2(stdoutfd[1], STDOUT_FILENO);
 		dup2(stderrfd[1], STDERR_FILENO);
 
 		close(stdoutfd[0]);   close(stdoutfd[1]);
 		close(stderrfd[0]);   close(stderrfd[1]);
 
-		//We are in child process
 		char** execFunctionArgs = alloca(sizeof(char*) * (processCommandLineArgsCount + 1));
 
 		execFunctionArgs[processCommandLineArgsCount] = NULL;
@@ -40,10 +41,16 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 		{ execFunctionArgs[i] = processArgs[i]; }
 
 		//TODO: How to notify the emulator that the creation of the debugger failed ? Maybe using signal SIGUSR1/2?
-		exit(execvp(execFunctionArgs[0], execFunctionArgs));
+		execvp(execFunctionArgs[0], execFunctionArgs);
+		//If execvp returns -> an error happened
+		perror("execvp");
+		exit(EXIT_FAILURE);
 	}
 	close(stdoutfd[1]);
 	close(stderrfd[1]);
+
+	*childStdout = fdopen(stdoutfd[0],"r");
+	*childStderr = fdopen(stderrfd[0],"r");
 
 	return createdPID;
 }

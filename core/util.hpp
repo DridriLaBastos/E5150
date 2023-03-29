@@ -25,7 +25,7 @@ using Clock = std::chrono::high_resolution_clock;
 template <unsigned int REQUIRED_LOG_LEVEL, class... Args>
 void EMULATION_INFO_LOG(Args&&... args)
 {
-#ifdef DEBUGGER
+#ifdef DEBUGGER_ON
 	static_assert(REQUIRED_LOG_LEVEL > 0, "Log level of 0 is reserved for no log at all");
 	if (REQUIRED_LOG_LEVEL <= E5150::Util::CURRENT_EMULATION_LOG_LEVEL)
 		E5150_DEBUG(args...);
