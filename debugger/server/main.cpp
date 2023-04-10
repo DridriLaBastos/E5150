@@ -2,14 +2,10 @@
 // Created by Adrien COURNAND on 26/03/2023.
 //
 #include <fstream>
-#include <unistd.h>
 
 #include "debugger/communication.h"
 
-char cwd[PATH_MAX];
-
 int main(int argc, const char* argv[]) {
-	printf("[E5150 DEBUGGER SERVER] Debugger server running from '%s'\n", getcwd(cwd,PATH_MAX));
 
 	decom_InitCommunication(DECOM_CONFIGURE_DEBUGGER);
 

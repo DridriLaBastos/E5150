@@ -15,11 +15,6 @@ const int FIFO_OPEN_WRONLY = _O_WRONLY;
 
 static const char* namedPipeSystemPath = "\\\\.\\pipe\\";
 
-static HANDLE childStdoutRead;
-static HANDLE childStdoutWrite;
-static HANDLE childStderrRead;
-static HANDLE childStderrWrite;
-
 //+1 for the last NULL character
 #define COMPUTE_WIN32_PIPE_PATH(pipeName)	const size_t pipeSystemPathLength = strlen(pipeName) + strlen(namedPipeSystemPath) + 1;\
 											const char* pipeSystemPath = _malloca(pipeSystemPathLength);\
@@ -45,7 +40,7 @@ static int mapFindIndex(const char* id)
 	return -1;
 }
 
-static unsigned int mapInsert(const HANDLE const handle, const char* id)
+static unsigned int mapInsert(const HANDLE handle, const char* id)
 {
 	const int handleEntryPos = mapFindIndex(id);
 	if (handleEntryPos >= 0)
@@ -72,7 +67,7 @@ static void mapRemove(const unsigned int entry)
 
 //The function will create the command line based on the values inside processArgs
 //TODO: may benefit on some error checking
-process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount)
+process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr)
 {
 	//We want to add a space between each argument of the process, this creates processCommandLineArgsCount - 1 spaces.
 	//We add 1 more to the size for the last null character
@@ -102,6 +97,11 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 	pipeSecurityAttributes.bInheritHandle = TRUE;
 	pipeSecurityAttributes.lpSecurityDescriptor = NULL;
 	pipeSecurityAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
+
+	HANDLE childStdoutRead;
+	HANDLE childStdoutWrite;
+	HANDLE childStderrRead;
+	HANDLE childStderrWrite;
 
 	BOOL result = CreatePipe(&childStdoutRead, &childStdoutWrite,&pipeSecurityAttributes,0);
 	if (!result)
@@ -136,14 +136,24 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 		
 	}*/
 
+	//Don't need write access to stdout and stderr
+	CloseHandle(childStderrWrite);
+	CloseHandle(childStdoutWrite);
+
 	if (!result)
 	{
 		CloseHandle(pi.hProcess);
 		CloseHandle(pi.hThread);
-		CloseHandle(childStderrWrite);
-		CloseHandle(childStdoutWrite);
 		return -1;
 	}
+
+	const int stdoutfd = _open_osfhandle((intptr_t)childStdoutRead,_O_RDONLY);
+	const int stderrfd = _open_osfhandle((intptr_t)childStderrRead,_O_RDONLY);
+
+	//rb are microsoft extension to open in binary mode. It breaks AINSI compliance but since we are on Win32 platform
+	//code here, it is acceptable
+	*childStdout = _fdopen(stdoutfd,"rb");
+	*childStderr = _fdopen(stderrfd,"rb");
 
 	return pi.dwProcessId;
 }
@@ -216,7 +226,7 @@ int platformOpenFifo(const char* fifoFileName, const int openFlags)
 	const HANDLE hFifo = map[mapEntryIndex].handle;
 	const BOOL b = ConnectNamedPipe(hFifo, NULL);
 
-	return _open_osfhandle(hFifo, openFlags);
+	return _open_osfhandle((intptr_t) hFifo, openFlags);
 }
 
 static enum PLATFORM_CODE readFromChildHandle(char* const c, HANDLE h)
@@ -229,10 +239,6 @@ static enum PLATFORM_CODE readFromChildHandle(char* const c, HANDLE h)
 
 	return result ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
-
-//TODO: How to detect end of file ?
-enum PLATFORM_CODE platformReadChildSTDOUT(char* const c) { return readFromChildHandle(c,childStdoutRead); }
-enum PLATFORM_CODE platformReadChildSTDERR(char* const c) { return readFromChildHandle(c,childStderrRead); }
 
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime)
 {

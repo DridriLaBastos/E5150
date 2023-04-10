@@ -11,11 +11,12 @@
 static FILE* channelDebuggerToEmulator = NULL;
 static FILE* channelEmulatorToDebugger = NULL;
 
-static const char* const statusDescriptionNoError = "No error";
+#define STATUS_DESCRIPTION_NO_ERROR "No error"//To have compile time constant initialization
+static const char* const statusDescriptionNoError = STATUS_DESCRIPTION_NO_ERROR;
 static const char* const statusDescriptionUnknownStatus = "An error happened that has not been registered : this is a bug";
 static const char* const statusDescriptionNullChannel = "io function called on a null channel";
 static const char* const statusDescriptionNullBuffer = "buffer given for io function is null";
-static const char* lastErrorDescription = statusDescriptionNoError;
+static const char* lastErrorDescription = STATUS_DESCRIPTION_NO_ERROR;
 
 static DECOM_STATUS configureError(const DECOM_STATUS status)
 {

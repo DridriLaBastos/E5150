@@ -46,33 +46,14 @@ typedef int module_t;
 extern "C" {
 #endif
 
-/**
- * @brief Creates a new process.
- *
- *
- * Calls the relevant platform code to create a new process. The function always returns into the parent process
- * (unlike unix `fork` function). The return value identifies if an error occurred during the process creation or not.
- *
- * The first element of the processArgs array will be interpreted as the command line to run and passed.
- * The whole array will also be passed as the argument to the program. Thus the cmd line to run the program is also
- * the first argument of the program. If the array values are ["python", "main.py"], the function
- * will try to create the process `python`, and give it the argument `python main.py`.
- *
- * @param[in] processArgs cmd line arguments of the process (first is the process to be launch)
- * @param[in] processCommandLineArgsCount total number of paramters given to the process
- * @return -1 in case of failure or a value >= 0 that identifies the created process on the platform layer
- */
 process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr);
-enum PLATFORM_CODE platformTerminateProcess(const process_t);
+enum PLATFORM_CODE platformTerminateProcess(const process_t process);
 
 const char* platformGetLastErrorDescription(void);
 const uint64_t platformGetLastErrorCode(void);
 
 enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName);
 int platformOpenFifo(const char* fifoFileName, const int openFlags);
-
-enum PLATFORM_CODE platformReadChildSTDOUT(char* const c);
-enum PLATFORM_CODE platformReadChildSTDERR(char* const c);
 
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime);
 enum PLATFORM_CODE platformFile_Copy(const char* from, const char* to);
