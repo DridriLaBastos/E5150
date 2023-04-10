@@ -2,8 +2,7 @@
 #include "core/util.hpp"
 #include "core/arch.hpp"
 #include "third-party/imgui/imgui.h"
-#include "communication/communication.h"
-#include "communication.hpp"
+#include "communication.h"
 
 using namespace E5150::Debugger::GUI;
 
@@ -37,8 +36,8 @@ void E5150::Debugger::sendCommand()
 			lastCommandEntryIndex = i;
 			const auto& entry = debugConsoleEntries[i];
 			const size_t commandLength = entry.str.size();
-			WRITE_TO_DEBUGGER(&commandLength,sizeof(commandLength));
-			WRITE_TO_DEBUGGER(entry.str.c_str(),commandLength);
+			WRITE_TO_DEBUGGER((void*)&commandLength,sizeof(commandLength));
+			WRITE_TO_DEBUGGER((void*)entry.str.c_str(),commandLength);
 			break;
 		}
 	}
@@ -52,7 +51,9 @@ static void pullChildStreamThreadFunction(const CONSOLE_ENTRY_TYPE type)
 	const size_t freadNitemToRead = 1;
 	const size_t freadBytesToRead = freadNitemToRead * sizeof(c);
 	size_t freadReturnValue;
-	FILE* stream = E5150::DEBUGGER::getDebuggerServerStreamFilePtr((type == CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ? E5150::DEBUGGER::STREAM::STDOUT : E5150::DEBUGGER::STREAM::STDERR));
+	//TODO: intended error while developing debugger <-> communication
+	FILE* stream = E5150::Debugger::getDebuggerStdStream(type == CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ?
+			E5150::Debugger::DEBUGGER_STD_STREAM::STDOUT : E5150::Debugger::DEBUGGER_STD_STREAM::STDERR);
 
 	while (streamOpen)
 	{

@@ -59,12 +59,13 @@ if (ENABLE_DEBUGGER)
 
 	set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
 
-	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/communication.cpp ${DEBUGGER_SRC_PATH}/gui.cpp ${DEBUGGER_SRC_PATH}/communication/communication.c ${PLATFORM_SRC})
+	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/communication.c ${DEBUGGER_SRC_PATH}/gui.cpp ${PLATFORM_SRC})
 	# TODO: gives this as install path
 	target_compile_definitions(epc PRIVATE DEBUGGER_SERVER_EXE="${DEBUGGER_SERVER_EXE}")
 
-	add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
-	add_dependencies(epc decom debugger-server)
+	# TODO: Library should be build when using a custom debugger
+	#add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
+	add_dependencies(epc debugger-server)
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

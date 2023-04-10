@@ -14,7 +14,7 @@ FETCHCONTENT_DECLARE(
 )
 FetchContent_MakeAvailable(argparse)
 
-add_executable(debugger-server main.cpp)
+add_executable(debugger-server main.cpp ../communication.c)
 target_include_directories(debugger-server PRIVATE ${argparse_SOURCE_DIR}/include)
 target_compile_definitions(debugger-server PRIVATE DEBUGGER_VERSION="${PROJECT_VERSION}")
 

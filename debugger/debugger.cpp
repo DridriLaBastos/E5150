@@ -2,26 +2,18 @@
 #include "core/arch.hpp"
 #include "debugger.hpp"
 #include "communication/command.h"
-#include "communication/communication.h"
-#include "communication.hpp"
-
-#include <cerrno>
-#include <cstring>
+#include "communication.h"
 
 #include "platform/platform.h"
 
 using namespace E5150;
 
-#define EMULATOR_TO_DEBUGGER_FIFO_FILENAME ".ed.fifo"
-#define DEBUGGER_TO_EMULATOR_FIFO_FILENAME ".de.fifo"
-
-static int toDebugger = -1;
-static int fromDebugger = -1;
 static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
 static bool debuggerHasQuit = false;
 static std::atomic<bool> debuggerRunning = false;
+static FILE *debuggerStdout = nullptr, *debuggerStderr = nullptr;
 
 static struct
 {
@@ -51,7 +43,6 @@ static struct
 void E5150::Debugger::init()
 {
 	context.clear();
-	isEmulator();
 
 	if (const PLATFORM_CODE code = platformCreateFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_SUCCESS)
 	{
@@ -92,13 +83,7 @@ void E5150::Debugger::init()
 #endif
 	};
 
-	FILE* debuggerStdout = nullptr;
-	FILE* debuggerStderr = nullptr;
-
 	debuggerProcess = platformCreateProcess(debuggerArgs, std::size(debuggerArgs),&debuggerStdout,&debuggerStderr);
-
-	E5150::DEBUGGER::setDebuggerServerStreamFilePtr(E5150::DEBUGGER::STREAM::STDOUT,debuggerStdout);
-	E5150::DEBUGGER::setDebuggerServerStreamFilePtr(E5150::DEBUGGER::STREAM::STDERR,debuggerStderr);
 
 	if (debuggerProcess == -1)
 	{
@@ -108,34 +93,31 @@ void E5150::Debugger::init()
 		return;
 	}
 
-	return;
-
-	//toDebugger = platformOpenFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, O_WRONLY);
-	FILE* toDebugger = fopen(EMULATOR_TO_DEBUGGER_FIFO_FILENAME, "w");
-	/*if (toDebugger < 0)
+	if(const DECOM_STATUS status = decom_InitCommunication(DECOM_CONFIGURE_EMULATOR); status)
 	{
-		E5150_WARNING("Unable to open send to debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
-		clean();
-		return;
-	}*/
+		if (status == DECOM_STATUS_ED_CHANNEL_INIT_ERROR)
+		{
+			E5150_WARNING("Unable to open emulator to debugger channel. Emulation will continue without the debugger.");
+			E5150_WARNING("\t{}",decom_GetLastErrorDescription());
+			return;
+		}
 
-	fromDebugger = platformOpenFifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME, O_RDONLY);
-	if (fromDebugger < 0)
+		if (status == DECOM_STATUS_DE_CHANNEL_INIT_ERROR)
+		{
+			E5150_WARNING("Unable to open debugger to emulator channel. Emulation will continue without the debugger.");
+			E5150_WARNING("\t{}",decom_GetLastErrorDescription());
+			return;
+		}
+	}
+
+	if(decom_TestConnection(DECOM_CONFIGURE_EMULATOR,NULL))
 	{
-		E5150_WARNING("Unable to open receive from debugger channel. Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
-		clean();
+		E5150_WARNING("Unable to perform connection check with the debugger");
+		E5150_WARNING("\n{}",decom_GetLastErrorDescription());
 		return;
 	}
 
-	//registerCommunicationFifos(fromDebugger, toDebugger);
-
-	/*if (WRITE_TO_DEBUGGER(&E5150::DEBUGGER::COMMUNICATION_TEST_VALUE, sizeof(E5150::DEBUGGER::COMMUNICATION_TEST_VALUE)) < 0)
-	{
-		E5150_WARNING("Unable to send data to the debugger.  Emulation will continue without the debugger. [ERRNO {}]: '{}'", errno, strerror(errno));
-		clean();
-		return;
-	}*/
-	fwrite(&E5150::DEBUGGER::COMMUNICATION_TEST_VALUE,sizeof(E5150::DEBUGGER::COMMUNICATION_TEST_VALUE),1,toDebugger);
+	debuggerInitialized = true;
 }
 
 void E5150::Debugger::clean()
@@ -153,20 +135,8 @@ void E5150::Debugger::clean()
 
 	Debugger::GUI::clean();
 
-	if (toDebugger >= 0)
-	{
-		if (close(toDebugger)   == -1) { E5150_DEBUG("Error when closing " EMULATOR_TO_DEBUGGER_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
-		else { toDebugger = -1; }
-	}
-
-	if (fromDebugger >= 0)
-	{
-		if (close(fromDebugger) == -1) { E5150_DEBUG("Error when closing " DEBUGGER_TO_EMULATOR_FIFO_FILENAME ". [ERRNO {}] {}", errno, strerror(errno)); }
-		else { fromDebugger = -1; }
-	}
-
-	remove(FIFO_PATH(EMULATOR_TO_DEBUGGER_FIFO_FILENAME));
-	remove(FIFO_PATH(DEBUGGER_TO_EMULATOR_FIFO_FILENAME));
+	decom_SafeCloseChannel();
+	decom_CleanChannelArtifacts();
 
     debuggerInitialized = false;
 }
@@ -434,6 +404,7 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 //TODO: IMPORTANT: Debugger error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
 void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
+#if 0
 	COMMAND_TYPE commandType;
 	uint8_t shouldStop;
 	const uint8_t commandEndSynchro = 0;//Only here to notify to the debugger that the emulator finished executing the command
@@ -503,9 +474,15 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	} while (!shouldStop);
 
 	debuggerRunning = false;
+#endif
 }
 
 bool E5150::Debugger::getDebuggerIsRunningState(void)
 {
 	return debuggerRunning.load();
+}
+
+FILE* E5150::Debugger::getDebuggerStdStream(E5150::Debugger::DEBUGGER_STD_STREAM stream)
+{
+	return (stream ==  E5150::Debugger::DEBUGGER_STD_STREAM::STDOUT) ? debuggerStdout : debuggerStderr;
 }
