@@ -6,7 +6,7 @@
 #include "core/8086.hpp"
 #include "communication/command.h"
 
-namespace E5150::Debugger
+namespace E5150::DEBUGGER
 {
 	enum class DEBUGGER_STD_STREAM {
 		STDOUT, STDERR

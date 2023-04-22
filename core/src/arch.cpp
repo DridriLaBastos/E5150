@@ -79,7 +79,7 @@ void E5150::Arch::startSimulation()
 				}
 
 				#ifdef DEBUGGER_ON
-				Debugger::wakeUp(EUStatus & I8086::EU::STATUS_INSTRUCTION_EXECUTED, EUStatus & I8086::EU::STATUS_INSTRUCTION_DECODED);
+				DEBUGGER::wakeUp(EUStatus & I8086::EU::STATUS_INSTRUCTION_EXECUTED, EUStatus & I8086::EU::STATUS_INSTRUCTION_DECODED);
 				#endif
 			}
 

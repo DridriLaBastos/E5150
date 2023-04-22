@@ -19,7 +19,7 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void drawDebuggerLoggingConsole(E5150::Debugger::GUI::State* const state)
+static void drawDebuggerLoggingConsole(E5150::DEBUGGER::GUI::State* const state)
 {
 	static constexpr size_t DEBUGGER_COMMAND_BUFFER_SIZE = 256;
 	static char debuggerCommandInputBuffer [DEBUGGER_COMMAND_BUFFER_SIZE];
@@ -40,10 +40,10 @@ static void drawDebuggerLoggingConsole(E5150::Debugger::GUI::State* const state)
 			const auto &entry = (*(state->debugConsoleEntries))[i];
 
 			switch (entry.type) {
-				case E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND:
+				case E5150::DEBUGGER::GUI::CONSOLE_ENTRY_TYPE::COMMAND:
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.6f, 1.0f));
 					break;
-				case E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR:
+				case E5150::DEBUGGER::GUI::CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR:
 					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.1f, 0.2f, 1.0f));
 					break;
 				default:
@@ -63,11 +63,11 @@ static void drawDebuggerLoggingConsole(E5150::Debugger::GUI::State* const state)
 	ImGui::SameLine();
 	if (ImGui::InputText("Debugger command",debuggerCommandInputBuffer,DEBUGGER_COMMAND_BUFFER_SIZE,ImGuiInputTextFlags_EnterReturnsTrue))
 	{
-		state->debugConsoleEntries->emplace_back(E5150::Debugger::GUI::CONSOLE_ENTRY_TYPE::COMMAND,debuggerCommandInputBuffer, " # ");
+		state->debugConsoleEntries->emplace_back(E5150::DEBUGGER::GUI::CONSOLE_ENTRY_TYPE::COMMAND, debuggerCommandInputBuffer, " # ");
 	}
 }
 
-static void drawCpuDebugStatus(E5150::Debugger::GUI::State* const state)
+static void drawCpuDebugStatus(E5150::DEBUGGER::GUI::State* const state)
 {
 	ImGui::TextUnformatted("Instruction placeholder");
 	ImGui::Text("CS 0x%4X   ", state->i8086->regs.cs);
@@ -97,7 +97,7 @@ static void drawCpuDebugStatus(E5150::Debugger::GUI::State* const state)
 	ImGui::Text("SP 0x%4X   ", state->i8086->regs.sp);
 }
 
-static void drawDebuggerGui(E5150::Debugger::GUI::State* const state)
+static void drawDebuggerGui(E5150::DEBUGGER::GUI::State* const state)
 {
 	ImGui::Begin("Debugger");
 
@@ -154,7 +154,7 @@ static void drawEmulationGui(const EmulationGUIState& state)
 	ImGui::End();
 }
 
-extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiState, E5150::Debugger::GUI::State* const debuggerGUIState)
+extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiState, E5150::DEBUGGER::GUI::State* const debuggerGUIState)
 {
 	drawEmulationConsole(emulationGuiState);
 	drawEmulationGui(emulationGuiState);

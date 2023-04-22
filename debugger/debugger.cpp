@@ -1,8 +1,9 @@
 #include "core/util.hpp"
 #include "core/arch.hpp"
-#include "debugger.hpp"
-#include "communication/command.h"
-#include "communication.h"
+
+#include "debugger/debugger.hpp"
+#include "debugger/communication/command.h"
+#include "debugger/communication.h"
 
 #include "platform/platform.h"
 
@@ -40,7 +41,7 @@ static struct
 
 } context;
 
-void E5150::Debugger::init()
+void E5150::DEBUGGER::init()
 {
 	context.clear();
 
@@ -120,7 +121,7 @@ void E5150::Debugger::init()
 	debuggerInitialized = true;
 }
 
-void E5150::Debugger::clean()
+void E5150::DEBUGGER::clean()
 {
     if (!debuggerInitialized)
         return;
@@ -133,7 +134,7 @@ void E5150::Debugger::clean()
 		else { debuggerProcess = -1; }
 	}
 
-	Debugger::GUI::clean();
+	DEBUGGER::GUI::clean();
 
 	decom_SafeCloseChannel();
 	decom_CleanChannelArtifacts();
@@ -401,8 +402,8 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 	return false;
 }
 
-//TODO: IMPORTANT: Debugger error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
-void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
+//TODO: IMPORTANT: DEBUGGER error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
+void DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
 #if 0
 	COMMAND_TYPE commandType;
@@ -415,7 +416,7 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 
 	if (!debuggerInitialized) {
 		if (!uninitializedDebuggerWarningPrinted) {
-			E5150_WARNING("Debugger was not successfully initialized. Debugger features will not be available.");
+			E5150_WARNING("DEBUGGER was not successfully initialized. DEBUGGER features will not be available.");
 			uninitializedDebuggerWarningPrinted = true;
 		}
 		return;
@@ -477,12 +478,12 @@ void Debugger::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 #endif
 }
 
-bool E5150::Debugger::getDebuggerIsRunningState(void)
+bool E5150::DEBUGGER::getDebuggerIsRunningState(void)
 {
 	return debuggerRunning.load();
 }
 
-FILE* E5150::Debugger::getDebuggerStdStream(E5150::Debugger::DEBUGGER_STD_STREAM stream)
+FILE* E5150::DEBUGGER::getDebuggerStdStream(E5150::DEBUGGER::DEBUGGER_STD_STREAM stream)
 {
-	return (stream ==  E5150::Debugger::DEBUGGER_STD_STREAM::STDOUT) ? debuggerStdout : debuggerStderr;
+	return (stream ==  E5150::DEBUGGER::DEBUGGER_STD_STREAM::STDOUT) ? debuggerStdout : debuggerStderr;
 }

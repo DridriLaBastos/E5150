@@ -4,13 +4,13 @@
 #include "third-party/imgui/imgui.h"
 #include "communication.h"
 
-using namespace E5150::Debugger::GUI;
+using namespace E5150::DEBUGGER::GUI;
 
 static std::thread pullDebuggerStdoutThread;
 static std::thread pullDebuggerStderrThread;
 static std::mutex imguiDebugConsoleMutex;
 
-static std::vector<E5150::Debugger::GUI::ConsoleEntry> debugConsoleEntries;
+static std::vector<E5150::DEBUGGER::GUI::ConsoleEntry> debugConsoleEntries;
 
 //TODO: Adding multiple time a std::string to the data means storing
 //additional '\0' end character. With a lot of logs this could be
@@ -25,7 +25,7 @@ static std::vector<E5150::Debugger::GUI::ConsoleEntry> debugConsoleEntries;
 	return 0;
 }*/
 
-void E5150::Debugger::sendCommand()
+void E5150::DEBUGGER::sendCommand()
 {
 	static size_t lastCommandEntryIndex = 0;
 
@@ -52,8 +52,8 @@ static void pullChildStreamThreadFunction(const CONSOLE_ENTRY_TYPE type)
 	const size_t freadBytesToRead = freadNitemToRead * sizeof(c);
 	size_t freadReturnValue;
 	//TODO: intended error while developing debugger <-> communication
-	FILE* stream = E5150::Debugger::getDebuggerStdStream(type == CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ?
-			E5150::Debugger::DEBUGGER_STD_STREAM::STDOUT : E5150::Debugger::DEBUGGER_STD_STREAM::STDERR);
+	FILE* stream = E5150::DEBUGGER::getDebuggerStdStream(type == CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT ?
+	                                                     E5150::DEBUGGER::DEBUGGER_STD_STREAM::STDOUT : E5150::DEBUGGER::DEBUGGER_STD_STREAM::STDERR);
 
 	while (streamOpen)
 	{
@@ -89,21 +89,21 @@ static void pullChildStreamThreadFunction(const CONSOLE_ENTRY_TYPE type)
 	}
 }
 
-void E5150::Debugger::GUI::init()
+void E5150::DEBUGGER::GUI::init()
 {
 	pullDebuggerStdoutThread = std::thread(pullChildStreamThreadFunction,CONSOLE_ENTRY_TYPE::DEBUGGER_STDOUT);
 	pullDebuggerStderrThread = std::thread(pullChildStreamThreadFunction,CONSOLE_ENTRY_TYPE::DEBUGGER_STDERR);
 }
 
-void E5150::Debugger::GUI::clean()
+void E5150::DEBUGGER::GUI::clean()
 {
 	pullDebuggerStdoutThread.join();
 	pullDebuggerStderrThread.join();
 }
 
-/*void E5150::Debugger::GUI::draw()
+/*void E5150::DEBUGGER::GUI::draw()
 {
-	ImGui::Begin("Debugger");
+	ImGui::Begin("DEBUGGER");
 
 	imguiDebugConsoleMutex.lock();
 	size_t s = debugConsoleEntries.size();
@@ -134,7 +134,7 @@ void E5150::Debugger::GUI::clean()
 		imguiDebugConsoleMutex.unlock();
 	}
 
-	if (ImGui::InputText("Debugger command",&debuggerCommandInputBuffer[3],IM_ARRAYSIZE(debuggerCommandInputBuffer)-3,ImGuiInputTextFlags_EnterReturnsTrue))
+	if (ImGui::InputText("DEBUGGER command",&debuggerCommandInputBuffer[3],IM_ARRAYSIZE(debuggerCommandInputBuffer)-3,ImGuiInputTextFlags_EnterReturnsTrue))
 	{
 		//execCommand();
 	}
@@ -142,13 +142,13 @@ void E5150::Debugger::GUI::clean()
 	ImGui::End();
 }*/
 
-const E5150::Debugger::GUI::State E5150::Debugger::GUI::getState()
+const E5150::DEBUGGER::GUI::State E5150::DEBUGGER::GUI::getState()
 {
-	E5150::Debugger::GUI::State state;
+	E5150::DEBUGGER::GUI::State state;
 	state.debugConsoleEntries = &debugConsoleEntries;
 	state.debugConsoleMutex = &imguiDebugConsoleMutex;
 	state.i8086 = &E5150::Arch::_cpu;
-	state.debuggerIsRunning = E5150::Debugger::getDebuggerIsRunningState();
+	state.debuggerIsRunning = E5150::DEBUGGER::getDebuggerIsRunningState();
 
 	return state;
 }
