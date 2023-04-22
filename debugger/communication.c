@@ -96,14 +96,14 @@ DECOM_STATUS decom_InitCommunication(const DECOM_CONFIGURE configure)
 #define CHECK_SAFE_MACRO_FUNCTION(FAIL_CONDITIONS,DECOM_STATUS_ON_FAIL) do { if(FAIL_CONDITIONS) { return configureError(DECOM_STATUS_ON_FAIL); } } while(0)
 #define CHECK_NON_NULL_PTR(ptr, checkFailedError) CHECK_SAFE_MACRO_FUNCTION(!ptr,checkFailedError)
 #define CHECK_DECOMCONFIG_IS_CHANNEL(config) CHECK_SAFE_MACRO_FUNCTION((config != DECOM_CONFIGURE_DEBUGGER) && (config != DECOM_CONFIGURE_EMULATOR),DECOM_STATUS_CONFIGURE_UNKNOWN)
-#define CHECK_DECOMCONFIG_IS_CHANNEL_DIRECTION(config) CHECK_SAFE_MACRO_FUNCTION((config != DECOM_CONFIGURE_EMULATOR_TO_DEBUGGER) && (config != DECOM_CONFIGURE_DEBUGGER_TO_EMULATOR),DECOM_STATUS_CONFIGURE_UNKNOWN)
+#define CHECK_GOOD_CHANNEL_DIRECTION(config) CHECK_SAFE_MACRO_FUNCTION((config != DECOM_DIRECTION_EMULATOR_TO_DEBUGGER) && (config != DECOM_DIRECTION_DEBUGGER_TO_EMULATOR),DECOM_STATUS_CONFIGURE_UNKNOWN)
 
-DECOM_STATUS decom_ReadFromChannel(const DECOM_CONFIGURE channelConfigure, void* readBuffer, const size_t readBufferSizeInOctets, size_t* const ignoredIfNull_ReadCount)
+DECOM_STATUS decom_ReadFromChannel(const DECOM_DIRECTION direction, void* readBuffer, const size_t readBufferSizeInOctets, size_t* const ignoredIfNull_ReadCount)
 {
-	CHECK_DECOMCONFIG_IS_CHANNEL_DIRECTION(channelConfigure);
+	CHECK_GOOD_CHANNEL_DIRECTION(direction);
 	CHECK_NON_NULL_PTR(readBuffer, DECOM_STATUS_NULL_BUFFER);
 
-	FILE* const channel = (channelConfigure == DECOM_CONFIGURE_EMULATOR_TO_DEBUGGER) ? channelEmulatorToDebugger : channelDebuggerToEmulator;
+	FILE* const channel = (direction == DECOM_DIRECTION_EMULATOR_TO_DEBUGGER) ? channelEmulatorToDebugger : channelDebuggerToEmulator;
 	CHECK_NON_NULL_PTR(channel, DECOM_STATUS_NULL_CHANNEL);
 
 	const size_t ret = fread(readBuffer,readBufferSizeInOctets,1,channel);
@@ -117,12 +117,12 @@ DECOM_STATUS decom_ReadFromChannel(const DECOM_CONFIGURE channelConfigure, void*
 	return DECOM_STATUS_OK;
 }
 
-DECOM_STATUS decom_WriteToChannel(const DECOM_CONFIGURE channelConfigure, void* writeBuffer, const size_t writeBufferSizeInOctets, size_t* const ignoredIfNull_WriteCount)
+DECOM_STATUS decom_WriteToChannel(const DECOM_DIRECTION direction, void* writeBuffer, const size_t writeBufferSizeInOctets, size_t* const ignoredIfNull_WriteCount)
 {
-	CHECK_DECOMCONFIG_IS_CHANNEL_DIRECTION(channelConfigure);
+	CHECK_GOOD_CHANNEL_DIRECTION(direction);
 	CHECK_NON_NULL_PTR(writeBuffer, DECOM_STATUS_NULL_BUFFER);
 
-	FILE* const channel = (channelConfigure == DECOM_CONFIGURE_EMULATOR_TO_DEBUGGER) ? channelEmulatorToDebugger : channelDebuggerToEmulator;
+	FILE* const channel = (direction == DECOM_DIRECTION_EMULATOR_TO_DEBUGGER) ? channelEmulatorToDebugger : channelDebuggerToEmulator;
 	CHECK_NON_NULL_PTR(channel, DECOM_STATUS_NULL_CHANNEL);
 
 	const size_t ret = fwrite(writeBuffer,writeBufferSizeInOctets,1,channel);
