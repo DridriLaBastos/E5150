@@ -9,6 +9,7 @@
 #include "spdlog_imgui_color_sink.hpp"
 #include "gui_states.hpp"
 #include "debugger/debugger.hpp"
+#include "debugger/communication.h"
 #include "platform/platform.h"
 
 char ImGuiTextBuffer::EmptyString[1] = { 0 };
@@ -18,6 +19,13 @@ using gui_clock = std::chrono::high_resolution_clock;
 static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
+
+static void sendCommandToDebugger(const std::string& cmd)
+{
+	const size_t cmdLength = cmd.size();
+	WRITE_TO_DEBUGGER((void*)&cmdLength,sizeof(size_t));
+	WRITE_TO_DEBUGGER((void*)&cmd[0],cmdLength);
+}
 
 static void drawDebuggerLoggingConsole(E5150::DEBUGGER::GUI::State* const state)
 {
@@ -64,6 +72,8 @@ static void drawDebuggerLoggingConsole(E5150::DEBUGGER::GUI::State* const state)
 	if (ImGui::InputText("Debugger command",debuggerCommandInputBuffer,DEBUGGER_COMMAND_BUFFER_SIZE,ImGuiInputTextFlags_EnterReturnsTrue))
 	{
 		state->debugConsoleEntries->emplace_back(E5150::DEBUGGER::GUI::CONSOLE_ENTRY_TYPE::COMMAND, debuggerCommandInputBuffer, " # ");
+		sendCommandToDebugger(state->debugConsoleEntries->back().str);
+		debuggerCommandInputBuffer[0] = '\0';
 	}
 }
 

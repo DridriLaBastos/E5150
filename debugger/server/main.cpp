@@ -5,18 +5,46 @@
 
 #include "debugger/communication.h"
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[])
+{
+	const DECOM_STATUS status = decom_InitCommunication(DECOM_CONFIGURE_DEBUGGER);
 
-	decom_InitCommunication(DECOM_CONFIGURE_DEBUGGER);
+	if (status)
+	{
+		fprintf(stderr, "Unable to open communication channel : '%s'\n", decom_GetLastErrorDescription());
+		return EXIT_FAILURE;
+	}
 
 	unsigned int testValue;
 	decom_TestConnection(DECOM_CONFIGURE_DEBUGGER,&testValue);
-	printf("received 0x%X\n",testValue);
 
 	if (testValue != COMMUNICATION_TEST_VALUE)
 	{
 		fprintf(stderr, "[E5150 DEBUGGER SERVER] Expected to receive 0x%x but got 0x%x. Communication between emulator and debugger may not work properly"
 			,COMMUNICATION_TEST_VALUE,testValue);
+		//return EXIT_FAILURE;
+	}
+
+	while (true)
+	{
+		puts("[DEBUGGER] REACHED");
+		size_t cmdSize;
+		if(READ_FROM_EMULATOR(&cmdSize, sizeof(size_t)))
+		{
+			fprintf(stderr, "Unable to read command length from he emulator : '%s'\n", decom_GetLastErrorDescription());
+			goto loopback;
+		}
+
+		printf("[DEBUGGER] Command size: %zu\n", cmdSize);
+
+		{
+			char* cmd = (char*)alloca(cmdSize+1);
+			READ_FROM_EMULATOR(cmd,cmdSize);
+			printf("[DEBUGGER] Cmd received: '%s'\n", cmd);
+		}
+
+		loopback:
+		testValue += 1;
 	}
 
 #if 0

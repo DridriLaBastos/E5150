@@ -17,14 +17,12 @@ add_compile_definitions(DEBUGGER_ON)
 endif()
 
 if (NOT WIN32)
-	add_compile_options(-Wno-switch)
-endif()
-
-if (WIN32)
+	add_compile_options(-Wno-switch -Wall -Wextra)
+else ()
 add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR} third-party/spdlog/include third-party third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
+include_directories(${CMAKE_SOURCE_DIR} third-party third-party/spdlog/include third-party/argparse/include third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
 
 add_subdirectory(third-party)
 add_subdirectory(test)
@@ -55,17 +53,16 @@ target_link_libraries(epc ${XED_LIB_PATH} imgui gui)
 target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX>:core/pch.hpp>)
 
 if (ENABLE_DEBUGGER)
-	add_subdirectory(debugger/server)
+	add_subdirectory(debugger)
 
 	set(DEBUGGER_SRC_PATH ${PROJECT_SOURCE_DIR}/debugger)
 
-	target_sources(epc PRIVATE ${DEBUGGER_SRC_PATH}/debugger.cpp ${DEBUGGER_SRC_PATH}/communication.c ${DEBUGGER_SRC_PATH}/gui.cpp ${PLATFORM_SRC})
+	target_sources(epc PRIVATE ${DEBUGGER_SRC} ${PLATFORM_SRC})
 	# TODO: gives this as install path
 	target_compile_definitions(epc PRIVATE DEBUGGER_SERVER_EXE="${DEBUGGER_SERVER_EXE}")
 
-	# TODO: Library should be build when using a custom debugger
-	#add_library(decom SHARED "${DEBUGGER_SRC_PATH}/communication/command.c" "${DEBUGGER_SRC_PATH}/communication/communication.c" ${PLATFORM_SRC})
 	add_dependencies(epc debugger-server)
+	target_link_libraries(epc decom)
 endif()
 
 add_custom_target(run ${PROJECT_BINARY_DIR}/epc

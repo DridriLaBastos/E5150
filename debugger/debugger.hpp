@@ -14,7 +14,6 @@ namespace E5150::DEBUGGER
 	void init (void);
 	void clean (void);
 	void wakeUp (const uint8_t instructionExecuted, const bool instructionDecoded);
-	void sendCommand(void);
 	bool getDebuggerIsRunningState(void);
 	FILE* getDebuggerStdStream(DEBUGGER_STD_STREAM stream);
 

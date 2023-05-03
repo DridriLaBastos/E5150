@@ -5,11 +5,11 @@
 #include <errno.h>
 #include <string.h>
 
-#include "platform/platform.h"
 #include "communication.h"
+#include "platform/platform.h"
 
-static FILE* channelDebuggerToEmulator = NULL;
 static FILE* channelEmulatorToDebugger = NULL;
+static FILE* channelDebuggerToEmulator = NULL;
 
 #define STATUS_DESCRIPTION_NO_ERROR "No error"//To have compile time constant initialization
 static const char* const statusDescriptionNoError = STATUS_DESCRIPTION_NO_ERROR;
@@ -36,8 +36,9 @@ static DECOM_STATUS configureError(const DECOM_STATUS status)
 	return status;
 }
 
-const char* const decom_GetLastErrorDescription()
+const char* decom_GetLastErrorDescription()
 {
+	//10000
 	const char* const desc = lastErrorDescription;
 	lastErrorDescription = statusDescriptionNoError;
 	return desc;

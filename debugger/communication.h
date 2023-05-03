@@ -59,10 +59,10 @@ extern "C" {
 	DLL_EXPORT DECOM_STATUS decom_SafeCloseChannel(void);
 	DLL_EXPORT DECOM_STATUS decom_CleanChannelArtifacts(void);
 
-	DLL_EXPORT const char* const decom_GetLastErrorDescription(void);
+	DLL_EXPORT const char* decom_GetLastErrorDescription(void);
 
-#define READ_FROM_EMULATOR(readBufferPtr, readBufferSizeInOctets) decom_ReadFromChannel(DECOM_DIRECTION_DEBUGGER_TO_EMULATOR,readBufferPtr,readBufferSizeInOctets,NULL)
-#define WRITE_TO_EMULATOR(writeBufferPtr, writeBufferSizeInOctets) decom_WriteToChannel(DECOM_DIRECTION_EMULATOR_TO_DEBUGGER,writeBufferPtr,writeBufferSizeInOctets,NULL)
+#define READ_FROM_EMULATOR(readBufferPtr, readBufferSizeInOctets) decom_ReadFromChannel(DECOM_DIRECTION_EMULATOR_TO_DEBUGGER,readBufferPtr,readBufferSizeInOctets,NULL)
+#define WRITE_TO_EMULATOR(writeBufferPtr, writeBufferSizeInOctets) decom_WriteToChannel(DECOM_DIRECTION_DEBUGGER_TO_EMULATOR,writeBufferPtr,writeBufferSizeInOctets,NULL)
 
 #define READ_FROM_DEBUGGER(readBufferPtr, readBufferSizeInOctets) decom_ReadFromChannel(DECOM_DIRECTION_DEBUGGER_TO_EMULATOR,readBufferPtr,readBufferSizeInOctets,NULL)
 #define WRITE_TO_DEBUGGER(writeBufferPtr, writeBufferSizeInOctets) decom_WriteToChannel(DECOM_DIRECTION_EMULATOR_TO_DEBUGGER,writeBufferPtr,writeBufferSizeInOctets,NULL)

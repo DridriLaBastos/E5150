@@ -8,7 +8,7 @@ target_compile_definitions(gui PRIVATE DRAW_LIBRARY_FULL_PATH="$<TARGET_FILE:hot
 		DRAW_LIBRARY_PREFIX_BASE_NAME="$<TARGET_FILE_PREFIX:hot_reload_draw>$<TARGET_FILE_BASE_NAME:hot_reload_draw>"
 		DRAW_LIBRARY_FILE_EXTENSION="$<TARGET_FILE_SUFFIX:hot_reload_draw>")
 
-target_link_libraries(hot_reload_draw imgui)
+target_link_libraries(hot_reload_draw imgui decom)
 
 add_dependencies(gui hot_reload_draw)
 

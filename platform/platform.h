@@ -50,7 +50,7 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 enum PLATFORM_CODE platformTerminateProcess(const process_t process);
 
 const char* platformGetLastErrorDescription(void);
-const uint64_t platformGetLastErrorCode(void);
+uint64_t platformGetLastErrorCode(void);
 
 enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName);
 int platformOpenFifo(const char* fifoFileName, const int openFlags);

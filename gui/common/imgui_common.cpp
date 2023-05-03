@@ -173,14 +173,6 @@ void E5150::GUI::draw()
 #endif
 
 		hotReloadDraw(emulationGuiData, debuggerGUIStatePtr);
-
-		//TODO: This should not be done here, the debugger should automatically detect that a command is requested
-		//without having a call to be done inside the draw function. The purpose of the draw function id to diplay
-		//things, not to perform any treatments
-		//plus it adds another macro and it makes the code uglier
-#ifdef DEBUGGER_ON
-		E5150::DEBUGGER::sendCommand();
-#endif
 	}
 }
 

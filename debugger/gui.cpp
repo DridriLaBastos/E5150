@@ -25,24 +25,6 @@ static std::vector<E5150::DEBUGGER::GUI::ConsoleEntry> debugConsoleEntries;
 	return 0;
 }*/
 
-void E5150::DEBUGGER::sendCommand()
-{
-	static size_t lastCommandEntryIndex = 0;
-
-	for (size_t i = lastCommandEntryIndex+1; i < debugConsoleEntries.size(); i += 1)
-	{
-		if (debugConsoleEntries[i].type == CONSOLE_ENTRY_TYPE::COMMAND)
-		{
-			lastCommandEntryIndex = i;
-			const auto& entry = debugConsoleEntries[i];
-			const size_t commandLength = entry.str.size();
-			WRITE_TO_DEBUGGER((void*)&commandLength,sizeof(commandLength));
-			WRITE_TO_DEBUGGER((void*)entry.str.c_str(),commandLength);
-			break;
-		}
-	}
-}
-
 static void pullChildStreamThreadFunction(const CONSOLE_ENTRY_TYPE type)
 {
 	std::string line;
