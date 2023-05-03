@@ -11,3 +11,6 @@
 	path = third-party/imgui
 	url = https://github.com/ocornut/imgui
 	branch = docking
+[submodule "third-party/argparse"]
+	path = third-party/argparse
+	url = https://github.com/p-ranav/argparse.git
