@@ -2,8 +2,6 @@
 #include "core/arch.hpp"
 
 #include "debugger/debugger.hpp"
-#include "debugger/communication/command.h"
-#include "debugger/communication.h"
 
 #include "platform/platform.h"
 
@@ -14,11 +12,10 @@ static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
 static bool debuggerHasQuit = false;
 static std::atomic<bool> debuggerRunning = false;
-static FILE *debuggerStdout = nullptr, *debuggerStderr = nullptr;
 
 static struct
 {
-	COMMAND_TYPE type;
+	/*COMMAND_TYPE*/ int type;
 
 	union {
 		unsigned int passType;
@@ -33,7 +30,7 @@ static struct
 	
 	void clear(void)
 	{
-		type = COMMAND_TYPE_ERROR;
+		type = 0;//COMMAND_TYPE_ERROR;
 		passType = 0;
 		subtype = 0;
 		value = 0;
@@ -44,100 +41,12 @@ static struct
 void E5150::DEBUGGER::init()
 {
 	context.clear();
-
-	if (const PLATFORM_CODE code = platformCreateFifo(EMULATOR_TO_DEBUGGER_FIFO_FILENAME); code != PLATFORM_SUCCESS)
-	{
-		if (code == PLATFORM_ERROR)
-		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger. Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'",
-						  platformGetLastErrorCode(),
-						  platformGetLastErrorDescription());
-			return;
-		}
-
-		E5150_INFO("Write channel file exists. This usually means that the program was not properly closed previously");
-		E5150_WARNING("\tIf this behaviour persists, remove the file '" EMULATOR_TO_DEBUGGER_FIFO_FILENAME "'");
-	}
-
-	if (const PLATFORM_CODE code = platformCreateFifo(DEBUGGER_TO_EMULATOR_FIFO_FILENAME); code != PLATFORM_SUCCESS)
-	{
-		if (code == PLATFORM_ERROR)
-		{
-			E5150_WARNING("Cannot initiate send channel communication with the debugger.  Emulation will continue without the debugger. [PLATFORM ERROR {}]: '{}'",
-						  platformGetLastErrorCode(),
-						  platformGetLastErrorDescription());
-			return;
-		}
-
-		E5150_INFO("Read channel file exists. This usually means that the program was not properly closed previously");
-		E5150_WARNING("\tIf this behaviour persists, remove the file '" DEBUGGER_TO_EMULATOR_FIFO_FILENAME "'");
-	}
-
-	const char* debuggerArgs [] = {
-		PATH(DEBUGGER_SERVER_EXE),
-		"-i", EMULATOR_TO_DEBUGGER_FIFO_FILENAME,
-		"-o", DEBUGGER_TO_EMULATOR_FIFO_FILENAME,
-#ifdef WIN32
-		"\0"
-#else
-		nullptr
-#endif
-	};
-
-	debuggerProcess = platformCreateProcess(debuggerArgs, std::size(debuggerArgs),&debuggerStdout,&debuggerStderr);
-
-	if (debuggerProcess == -1)
-	{
-		E5150_WARNING("Unable to create the debugger subprocess. Emulation will continue without the debugger. [PLATFORM ERROR {}] '{}'.",
-					  platformGetLastErrorCode(),
-					  platformGetLastErrorDescription());
-		return;
-	}
-
-	if(const DECOM_STATUS status = decom_InitCommunication(DECOM_CONFIGURE_EMULATOR); status)
-	{
-		if (status == DECOM_STATUS_ED_CHANNEL_INIT_ERROR)
-		{
-			E5150_WARNING("Unable to open emulator to debugger channel. Emulation will continue without the debugger.");
-			E5150_WARNING("\t{}",decom_GetLastErrorDescription());
-			return;
-		}
-
-		if (status == DECOM_STATUS_DE_CHANNEL_INIT_ERROR)
-		{
-			E5150_WARNING("Unable to open debugger to emulator channel. Emulation will continue without the debugger.");
-			E5150_WARNING("\t{}",decom_GetLastErrorDescription());
-			return;
-		}
-	}
-
-	if(decom_TestConnection(DECOM_CONFIGURE_EMULATOR,NULL))
-	{
-		E5150_WARNING("Unable to perform connection check with the debugger");
-		E5150_WARNING("\n{}",decom_GetLastErrorDescription());
-		return;
-	}
-
-	debuggerInitialized = true;
 }
 
 void E5150::DEBUGGER::clean()
 {
     if (!debuggerInitialized)
         return;
-
-	if (debuggerProcess >= 0)
-	{
-		if (platformTerminateProcess(debuggerProcess) != PLATFORM_SUCCESS)
-		{ E5150_INFO("Cannot stop debugger process. [PLATFORM ERROR {}]: {}", platformGetLastErrorCode(),
-					 platformGetLastErrorDescription()); }
-		else { debuggerProcess = -1; }
-	}
-
-	DEBUGGER::GUI::clean();
-
-	decom_SafeCloseChannel();
-	decom_CleanChannelArtifacts();
 
     debuggerInitialized = false;
 }
@@ -260,29 +169,31 @@ static void printCpuInfos(void)
 
 static void handleContinueCommand()
 {
-	PassCommandInfo  info;
-	READ_FROM_DEBUGGER(&info,sizeof(PassCommandInfo));
-
-	context.type = COMMAND_TYPE_CONTINUE;
+#if 0
+	context.type = 0;//COMMAND_TYPE_CONTINUE;
 	context.passType = info.passType;
 	context.count = info.passCount;
 
 	savedLogLevel = E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = 0;
+#endif
 }
 
 static void handleStepCommand()
 {
+#if 0
 	PassCommandInfo info;
 	READ_FROM_DEBUGGER(&info,sizeof(PassCommandInfo));
 
 	context.type = COMMAND_TYPE_STEP;
 	context.passType = info.passType;
 	context.count = 1;
+#endif
 }
 
 static void handleDisplayCommand()
 {
+#if 0
 	DisplayCommandInfo info;
 	READ_FROM_DEBUGGER(&info, sizeof(DisplayCommandInfo));
 
@@ -301,6 +212,7 @@ static void handleDisplayCommand()
 
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = info.newLogLevel;
 	E5150_INFO("Log level set to the new level {}", E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
+#endif
 }
 
 static void handleQuitCommand(void)
@@ -372,6 +284,7 @@ static void printClockLevelEUEmulationLog(void)
  */
 static bool executePassCommand(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
+#if 0
 	switch (context.passType)
 	{
 		case PASS_TYPE_CLOCKS:
@@ -400,6 +313,8 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 			break;
 	}
 	return false;
+#endif
+	return true;
 }
 
 //TODO: IMPORTANT: DEBUGGER error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
@@ -476,14 +391,4 @@ void DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 
 	debuggerRunning = false;
 #endif
-}
-
-bool E5150::DEBUGGER::getDebuggerIsRunningState(void)
-{
-	return debuggerRunning.load();
-}
-
-FILE* E5150::DEBUGGER::getDebuggerStdStream(E5150::DEBUGGER::DEBUGGER_STD_STREAM stream)
-{
-	return (stream ==  E5150::DEBUGGER::DEBUGGER_STD_STREAM::STDOUT) ? debuggerStdout : debuggerStderr;
 }

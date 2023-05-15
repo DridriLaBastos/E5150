@@ -22,7 +22,7 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void (*hotReloadDraw)(const EmulationGUIState&, E5150::DEBUGGER::GUI::State* const) = nullptr;
+static void (*hotReloadDraw)(const EmulationGUIState&) = nullptr;
 static module_t hotReloadModuleID = -1;
 fs::file_time_type libDrawLastWriteTime;
 static std::error_code errorCode;
@@ -123,7 +123,6 @@ void E5150::GUI::init()
 
 #ifdef DEBUGGER_ON
 	E5150::DEBUGGER::init();
-	E5150::DEBUGGER::GUI::init();
 #endif
 
 	E5150::Arch arch;
@@ -164,15 +163,7 @@ void E5150::GUI::draw()
 		emulationGuiData.fdcClock = E5150::Arch::emulationStat.fdcClock;
 		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
-
-		E5150::DEBUGGER::GUI::State* debuggerGUIStatePtr = nullptr;
-
-#ifdef DEBUGGER_ON
-		E5150::DEBUGGER::GUI::State debuggerGUIState = E5150::DEBUGGER::GUI::getState();
-		debuggerGUIStatePtr = &debuggerGUIState;
-#endif
-
-		hotReloadDraw(emulationGuiData, debuggerGUIStatePtr);
+		hotReloadDraw(emulationGuiData);
 	}
 }
 
