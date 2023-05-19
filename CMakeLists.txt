@@ -67,7 +67,7 @@ target_link_libraries(epc ${XED_LIB_PATH} imgui)
 
 #TODO: Maybe I want the macro DEBUGGER_ON to be defined inside debugger.hpp ?
 if (ENABLE_DEBUGGER)
-	target_sources(epc PRIVATE debugger/debugger.cpp)
+	target_sources(epc PUBLIC debugger/debugger.cpp debugger/cli.cpp)
 	target_compile_definitions(epc PRIVATE DEBUGGER_ON)
 	target_compile_definitions(hot_reload_draw PRIVATE DEBUGGER_ON)
 endif()

@@ -8,7 +8,8 @@
 #include "third-party/imgui/imgui.h"
 #include "spdlog_imgui_color_sink.hpp"
 #include "gui_states.hpp"
-#include "debugger/debugger.hpp"
+#include "debugger/cli.hpp"
+
 #include "platform/platform.h"
 
 char ImGuiTextBuffer::EmptyString[1] = { 0 };
@@ -49,17 +50,75 @@ static void drawCpuDebugStatus(E5150::DEBUGGER::GUI::State* const state)
 	ImGui::SameLine();
 	ImGui::Text("SP 0x%4X   ", state->i8086->regs.sp);
 }
+#endif
 
-static void drawDebuggerGui(E5150::DEBUGGER::GUI::State* const state)
+enum class DEBUGGER_ENTRY_TYPE {
+	COMMAND, DEFAULT
+};
+
+struct DebuggerConsoleEntry {
+	const std::string line;
+	const DEBUGGER_ENTRY_TYPE type;
+
+	DebuggerConsoleEntry(const DEBUGGER_ENTRY_TYPE& t, const std::string& l): line(l), type(t) {}
+};
+
+static std::vector<DebuggerConsoleEntry> entries;
+
+static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
+{
+	switch(data->EventFlag)
+	{
+		default:
+			break;
+	}
+}
+
+static void DrawDebuggerCommandConsole(const DebuggerCliFunctionPtr& debuggerCliFunctions)
+{
+	if (ImGui::BeginChild("scrolling",ImVec2{150,80},false, ImGuiWindowFlags_HorizontalScrollbar))
+	{
+		std::for_each(entries.begin(), entries.end(), [](const DebuggerConsoleEntry& entry) {
+			if (entry.type == DEBUGGER_ENTRY_TYPE::COMMAND)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0,0.8,0.6,1.0});
+			}
+
+			ImGui::TextUnformatted(entry.line.c_str());
+
+			if (entry.type == DEBUGGER_ENTRY_TYPE::COMMAND)
+			{
+				ImGui::PopStyleColor();
+			}
+		});
+	}
+	ImGui::EndChild();
+
+	char cmdBuffer [256];
+	memset(cmdBuffer,0,sizeof(cmdBuffer));
+
+	ImGuiInputTextFlags inputTextFlags = 
+		ImGuiInputTextFlags_EnterReturnsTrue |
+		ImGuiInputTextFlags_EscapeClearsAll |
+		ImGuiInputTextFlags_CallbackCompletion |
+		ImGuiInputTextFlags_CallbackHistory;
+
+	if(ImGui::InputText("Enter your command", cmdBuffer,IM_ARRAYSIZE(cmdBuffer)-1,inputTextFlags, DebuggerCommandTextEditCallback))
+	{
+		debuggerCliFunctions.parseCommand(cmdBuffer);
+		entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND, std::string(" # ") + std::string(cmdBuffer));
+	}
+}
+
+static void DrawDebuggerGui(const DebuggerCliFunctionPtr& debuggerCliFunctions)
 {
 	ImGui::Begin("Debugger");
 
-	drawDebuggerLoggingConsole(state);
-	drawCpuDebugStatus(state);
+	DrawDebuggerCommandConsole(debuggerCliFunctions);
+	// drawCpuDebugStatus(state);
 
 	ImGui::End();
 }
-#endif
 
 static void drawEmulationConsole(const EmulationGUIState& state)
 { state.consoleSink->imguiDraw(); }
@@ -108,13 +167,11 @@ static void drawEmulationGui(const EmulationGUIState& state)
 	ImGui::End();
 }
 
-extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiState)
+extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiState, const DebuggerCliFunctionPtr& debuggerCliFunctions)
 {
 	drawEmulationConsole(emulationGuiState);
 	drawEmulationGui(emulationGuiState);
-#if 0
 #ifdef DEBUGGER_ON
-	drawDebuggerGui(debuggerGUIState);
-#endif
+	DrawDebuggerGui(debuggerCliFunctions);
 #endif
 }

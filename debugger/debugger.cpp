@@ -1,6 +1,7 @@
 #include "core/util.hpp"
 #include "core/arch.hpp"
 
+#include "debugger/cli.hpp"
 #include "debugger/debugger.hpp"
 
 #include "platform/platform.h"
@@ -12,6 +13,7 @@ static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
 static bool debuggerHasQuit = false;
 static std::atomic<bool> debuggerRunning = false;
+static DebuggerCliFunctionPtr functionPtr;
 
 static struct
 {
@@ -41,7 +43,11 @@ static struct
 void E5150::DEBUGGER::init()
 {
 	context.clear();
+
+	functionPtr.parseCommand = CLI::ParseCommand;
 }
+
+DebuggerCliFunctionPtr& E5150::DEBUGGER::GetCliFunctionPtr() { return functionPtr; }
 
 void E5150::DEBUGGER::clean()
 {
