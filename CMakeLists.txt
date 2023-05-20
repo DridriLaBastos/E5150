@@ -16,17 +16,19 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 option(ENABLE_DEBUGGER "Compile the integrated debugger" ON)
 
+add_compile_definitions($<$<CONFIG:Debug>:_DEBUG>)
+
 if (ENABLE_DEBUGGER)
 	add_compile_definitions(DEBUGGER_ON)
-endif()
+endif ()
 
 if (NOT WIN32)
 	add_compile_options(-Wno-switch -Wall -Wextra)
 else ()
-add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
+	add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR} third-party third-party/spdlog/include third-party/argparse/include third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
+include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/third-party ${CMAKE_SOURCE_DIR}/third-party/spdlog/include ${CMAKE_SOURCE_DIR}/third-party/argparse/include ${CMAKE_SOURCE_DIR}/third-party/imgui ${CMAKE_BINARY_DIR}/third-party/include)
 
 add_subdirectory(third-party)
 add_subdirectory(test)
@@ -67,7 +69,7 @@ target_link_libraries(epc ${XED_LIB_PATH} imgui)
 
 #TODO: Maybe I want the macro DEBUGGER_ON to be defined inside debugger.hpp ?
 if (ENABLE_DEBUGGER)
-	target_sources(epc PUBLIC debugger/debugger.cpp debugger/cli.cpp)
+	target_sources(epc PUBLIC debugger/debugger.cpp debugger/cli.cpp debugger/commands.cpp)
 	target_compile_definitions(epc PRIVATE DEBUGGER_ON)
 	target_compile_definitions(hot_reload_draw PRIVATE DEBUGGER_ON)
 endif()

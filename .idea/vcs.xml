@@ -2,7 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/debugger/server/third-party/argparse" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third-party/argparse" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third-party/imgui" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third-party/spdlog" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third-party/xed/mbuild" vcs="Git" />

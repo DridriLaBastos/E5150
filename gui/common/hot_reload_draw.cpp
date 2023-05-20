@@ -6,8 +6,6 @@
 #include "core/emulation_constants.hpp"
 #include "gui_states.hpp"
 #include "third-party/imgui/imgui.h"
-#include "spdlog_imgui_color_sink.hpp"
-#include "gui_states.hpp"
 #include "debugger/cli.hpp"
 
 #include "platform/platform.h"
@@ -74,7 +72,7 @@ static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
 	}
 }
 
-static void DrawDebuggerCommandConsole(const DebuggerCliFunctionPtr& debuggerCliFunctions)
+static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 {
 	if (ImGui::BeginChild("scrolling",ImVec2{150,80},false, ImGuiWindowFlags_HorizontalScrollbar))
 	{
@@ -105,16 +103,16 @@ static void DrawDebuggerCommandConsole(const DebuggerCliFunctionPtr& debuggerCli
 
 	if(ImGui::InputText("Enter your command", cmdBuffer,IM_ARRAYSIZE(cmdBuffer)-1,inputTextFlags, DebuggerCommandTextEditCallback))
 	{
-		debuggerCliFunctions.parseCommand(cmdBuffer);
 		entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND, std::string(" # ") + std::string(cmdBuffer));
+		debuggerGuiData.parseLine(cmdBuffer);
 	}
 }
 
-static void DrawDebuggerGui(const DebuggerCliFunctionPtr& debuggerCliFunctions)
+static void DrawDebuggerGui(const DebuggerGuiData& debuggerGuiData)
 {
 	ImGui::Begin("Debugger");
 
-	DrawDebuggerCommandConsole(debuggerCliFunctions);
+	DrawDebuggerCommandConsole(debuggerGuiData);
 	// drawCpuDebugStatus(state);
 
 	ImGui::End();
@@ -167,7 +165,7 @@ static void drawEmulationGui(const EmulationGUIState& state)
 	ImGui::End();
 }
 
-extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiState, const DebuggerCliFunctionPtr& debuggerCliFunctions)
+extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiState, const DebuggerGuiData& debuggerCliFunctions)
 {
 	drawEmulationConsole(emulationGuiState);
 	drawEmulationGui(emulationGuiState);

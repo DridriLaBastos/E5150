@@ -2,6 +2,7 @@
 #include "core/arch.hpp"
 
 #include "debugger/cli.hpp"
+#include "debugger/commands.hpp"
 #include "debugger/debugger.hpp"
 
 #include "platform/platform.h"
@@ -13,7 +14,6 @@ static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
 static bool debuggerHasQuit = false;
 static std::atomic<bool> debuggerRunning = false;
-static DebuggerCliFunctionPtr functionPtr;
 
 static struct
 {
@@ -44,10 +44,8 @@ void E5150::DEBUGGER::init()
 {
 	context.clear();
 
-	functionPtr.parseCommand = CLI::ParseCommand;
+	CLI::RegisterCommand<CommandContinue>();
 }
-
-DebuggerCliFunctionPtr& E5150::DEBUGGER::GetCliFunctionPtr() { return functionPtr; }
 
 void E5150::DEBUGGER::clean()
 {
@@ -326,6 +324,10 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 //TODO: IMPORTANT: DEBUGGER error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
 void DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
+	Command* runningCommand = CLI::GetRunningCommand();
+
+	//TODO: pause the program here
+	if (!runningCommand) { return; }
 #if 0
 	COMMAND_TYPE commandType;
 	uint8_t shouldStop;

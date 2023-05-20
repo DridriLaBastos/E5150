@@ -9,13 +9,6 @@ namespace E5150::DEBUGGER
 	void clean (void);
 	void wakeUp (const uint8_t instructionExecuted, const bool instructionDecoded);
 	bool getDebuggerIsRunningState(void);
-
-	DebuggerCliFunctionPtr& GetCliFunctionPtr(void);
-
-	struct DebuggerState {
-		std::vector<std::string> output;
-		bool commandAdded;
-	};
 }
 
 #endif
