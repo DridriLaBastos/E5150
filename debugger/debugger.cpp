@@ -1,7 +1,6 @@
 #include "core/util.hpp"
 #include "core/arch.hpp"
 
-#include "debugger/cli.hpp"
 #include "debugger/commands.hpp"
 #include "debugger/debugger.hpp"
 
@@ -13,7 +12,9 @@ static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
 static bool debuggerHasQuit = false;
-static std::atomic<bool> debuggerRunning = false;
+
+static std::vector<std::unique_ptr<E5150::DEBUGGER::Command>> registeredCommands;
+static E5150::DEBUGGER::Command* runningCommand = nullptr;
 
 static struct
 {
@@ -44,7 +45,7 @@ void E5150::DEBUGGER::init()
 {
 	context.clear();
 
-	CLI::RegisterCommand<CommandContinue>();
+	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandContinue>());
 }
 
 void E5150::DEBUGGER::clean()
@@ -322,12 +323,11 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 }
 
 //TODO: IMPORTANT: DEBUGGER error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
-void DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
+void E5150::DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
-	Command* runningCommand = CLI::GetRunningCommand();
-
-	//TODO: pause the program here
-	if (!runningCommand) { return; }
+	if (runningCommand) {
+		runningCommand = runningCommand->Step(instructionExecuted, instructionDecoded) ? runningCommand : nullptr;
+	}
 #if 0
 	COMMAND_TYPE commandType;
 	uint8_t shouldStop;
@@ -400,3 +400,43 @@ void DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionD
 	debuggerRunning = false;
 #endif
 }
+
+bool E5150::DEBUGGER::Launch(const std::string &commandName, const std::vector<std::string> argv)
+{
+	const auto found = std::find_if(registeredCommands.begin(), registeredCommands.end(),
+									[&commandName](const std::unique_ptr<Command>& cmd) {
+		return cmd->name == commandName;
+	});
+
+	if (found != registeredCommands.end())
+	{
+		(*found)->Prepare(argv);
+		runningCommand = found->get();
+	}
+
+	return found != registeredCommands.end();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+/// Abstract command
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+E5150::DEBUGGER::Command::Command(const std::string& n, const std::string& d): name(n), description(d), mParser(n)
+{ mParser.add_description(d); }
+
+E5150::DEBUGGER::Command::~Command() = default;
+
+void E5150::DEBUGGER::Command::Prepare(const std::vector<std::string>& args)
+{
+	try {
+		mParser.parse_args(args);
+		InternalPrepare();
+
+	} catch (const std::runtime_error& e) {
+		puts("REACHED");
+		//std::cerr << e.what() << "'\n";
+		//std::cerr << mParser << "\n";
+	}
+}
+
+void E5150::DEBUGGER::Command::InternalPrepare() {}

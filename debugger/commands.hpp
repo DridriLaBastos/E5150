@@ -1,16 +1,15 @@
 #ifndef __COMMANDS_HPP__
 #define __COMMANDS_HPP__
 
-#include "debugger/cli.hpp"
+#include "debugger/debugger.hpp"
 
-namespace E5150::DEBUGGER
+namespace E5150::DEBUGGER::COMMANDS
 {
 	class CommandContinue: public Command
 	{
 	public:
 		CommandContinue(void);
-		COMMAND_LAUNCH_RETURN InternalLaunch(const std::vector<std::string>& args) final;
-		bool InternalStep(const bool instructionExecuted) final;
+		bool Step(const bool instructionExecuted, const bool instructionDecoded) final;
 	};
 }
 

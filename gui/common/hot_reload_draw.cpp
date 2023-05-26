@@ -6,7 +6,6 @@
 #include "core/emulation_constants.hpp"
 #include "gui_states.hpp"
 #include "third-party/imgui/imgui.h"
-#include "debugger/cli.hpp"
 
 #include "platform/platform.h"
 

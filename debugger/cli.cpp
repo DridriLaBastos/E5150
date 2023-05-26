@@ -1,9 +1,7 @@
 #include <cassert>
 
 #include "debugger/cli.hpp"
-
-std::vector<std::unique_ptr<E5150::DEBUGGER::Command>> E5150::DEBUGGER::CLI::commands;
-E5150::DEBUGGER::Command* E5150::DEBUGGER::CLI::runningCommand = nullptr;
+#include "debugger/debugger.hpp"
 
 //TODO: Infinite loop when the entry something like '     "       ""'
 std::vector<std::string> Tokenize(const std::string& str)
@@ -11,6 +9,7 @@ std::vector<std::string> Tokenize(const std::string& str)
 	std::vector<std::string> tokens;
 	auto begin = str.begin();
 	auto end = begin;
+
 
 	do
 	{
@@ -36,64 +35,9 @@ void E5150::DEBUGGER::CLI::ParseLine(const std::string& cmdLine)
 	if (tokens.size() == 0)
 	{ return; }
 
-	const auto command = std::find_if(commands.begin(), commands.end(), [&tokens](const std::unique_ptr<Command>& commandPtr) {
-		return commandPtr->name == tokens[0];
-	});
+	const bool commandLaunched = DEBUGGER::Launch(tokens[0], tokens);
 
-	if (command == commands.end()) {
-		printf("Unknown command '%s'\n", tokens[0].c_str());
-		return;
+	if (!commandLaunched) {
+		fprintf(stderr,"ERROR: '%s' command not found\n",cmdLine.c_str());
 	}
-
-	runningCommand = command->get();
-	runningCommand->Launch(tokens);
-}
-
-E5150::DEBUGGER::Command* E5150::DEBUGGER::CLI::GetRunningCommand() { return runningCommand; }
-
-void E5150::DEBUGGER::CLI::CommandFinished(
-#ifdef _DEBUG
-											Command* cmd
-#else
-											void
-#endif
-)
-{
-	assert(cmd == runningCommand);
-	runningCommand = nullptr;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-/// Abstract command
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-E5150::DEBUGGER::Command::Command(const std::string& n, const std::string d): name(n), description(d), mParser(n)
-{ mParser.add_description(d); }
-
-E5150::DEBUGGER::Command::~Command()
-{}
-
-bool E5150::DEBUGGER::Command::GetExecutionStatus() { return mCommandIsRunning; }
-
-void E5150::DEBUGGER::Command::Launch(const std::vector<std::string>& args)
-{
-	mCommandIsRunning = false;
-	try {
-		mParser.parse_args(args);
-		mCommandIsRunning = InternalLaunch(args) == COMMAND_EXIT_SUCCESS_RUNNING;
-
-	} catch (std::runtime_error e) {
-		std::cerr << e.what() << "'\n";
-		std::cerr << mParser << "\n";
-	}
-}
-
-bool E5150::DEBUGGER::Command::Step(const bool instructionExecuted)
-{
-	mCommandIsRunning = InternalStep(instructionExecuted);
-
-	if (!mCommandIsRunning) {
-		CLI::CommandFinished(this);
-	}
-	return mCommandIsRunning;
 }

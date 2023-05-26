@@ -5,6 +5,7 @@
 #include "core/pch.hpp"
 #include "core/arch.hpp"
 #include "gui_states.hpp"
+#include "debugger/cli.hpp"
 #include "platform/platform.h"
 #include "debugger/debugger.hpp"
 #include "spdlog_imgui_color_sink.hpp"
@@ -165,7 +166,7 @@ void E5150::GUI::draw()
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
 		DebuggerGuiData debuggerGuiData;
-		debuggerGuiData.parseLine = DEBUGGER::CLI::ParseLine;
+		debuggerGuiData.parseLine = E5150::DEBUGGER::CLI::ParseLine;
 
 		hotReloadDraw(emulationGuiData, debuggerGuiData);
 	}
