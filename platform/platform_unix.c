@@ -108,7 +108,7 @@ enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, ui
 	if(stat(filename,&filestat))
 	{ return PLATFORM_ERROR; }
 
-	*datetime = filestat.st_mtimespec.tv_nsec;
+	*datetime = filestat.st_atime;
 	return PLATFORM_SUCCESS;
 }
 

@@ -9,6 +9,7 @@
 
 #include "platform/platform.h"
 
+
 char ImGuiTextBuffer::EmptyString[1] = { 0 };
 
 using gui_clock = std::chrono::high_resolution_clock;
