@@ -65,9 +65,13 @@ add_executable(epc main.cpp ${EMULATOR_SRC} ${PLATFORM_SRC}
 target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX,OBJC,OBJCXX>:core/pch.hpp>)
 target_link_libraries(epc glfw OpenGL::GL imgui ${XED_LIB_PATH})
 
-target_compile_definitions(epc PRIVATE DRAW_LIBRARY_FULL_PATH="$<TARGET_FILE:hot_reload_draw>"
-		DRAW_LIBRARY_PREFIX_BASE_NAME="$<TARGET_FILE_PREFIX:hot_reload_draw>$<TARGET_FILE_BASE_NAME:hot_reload_draw>"
-		DRAW_LIBRARY_FILE_EXTENSION="$<TARGET_FILE_SUFFIX:hot_reload_draw>")
+set(CMAKE_STYLE_HOTRELOAD_COPY_FULL_PATH "$<TARGET_FILE_DIR:hot_reload_draw>/$<TARGET_FILE_PREFIX:hot_reload_draw>$<TARGET_FILE_BASE_NAME:hot_reload_draw>_c$<TARGET_FILE_SUFFIX:hot_reload_draw>")
+
+cmake_path(NATIVE_PATH CMAKE_STYLE_HOTRELOAD_COPY_FULL_PATH NATIVE_STYLE_HOTRELOAD_COPY_FULL_PATH NORMALIZE)
+
+target_compile_definitions(epc PRIVATE
+	DRAW_LIBRARY_FULL_PATH="$<TARGET_FILE:hot_reload_draw>"
+	DRAW_LIBRARY_COPY_FULL_PATH="${NATIVE_STYLE_HOTRELOAD_COPY_FULL_PATH}")
 add_dependencies(epc asm-test)
 
 #TODO: Maybe I want the macro DEBUGGER_ON to be defined inside debugger.hpp ?

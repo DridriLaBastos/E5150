@@ -13,7 +13,6 @@
 
 //char* HOT_RELOAD_DRAW_NAME = "hotReloadDraw";
 #define HOT_RELOAD_DRAW_NAME "hotReloadDraw"
-#define DRAW_LIBRARY_COPY_FILE_NAME DRAW_LIBRARY_PREFIX_BASE_NAME "_c" DRAW_LIBRARY_FILE_EXTENSION
 
 using gui_clock = std::chrono::high_resolution_clock;
 
@@ -52,7 +51,7 @@ static void reloadDrawLibrary()
 
 	//TODO: Why this fails on Windows ?
 	#ifndef _WIN32
-	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME,fs::copy_options::overwrite_existing,errorCode);
+	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FULL_PATH,fs::copy_options::overwrite_existing,errorCode);
 	#else
 	const PLATFORM_CODE code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME);
 	errorCode.clear();
@@ -75,17 +74,17 @@ static void reloadDrawLibrary()
 		goto errorDrawFunctionUnchanged;
 	}
 
-	hotReloadModuleID = platformDylib_Load(DRAW_LIBRARY_COPY_FILE_NAME);
+	hotReloadModuleID = platformDylib_Load(DRAW_LIBRARY_COPY_FULL_PATH);
 
 	if (hotReloadModuleID < 0)
 	{
-		E5150_WARNING("Unable to reload the draw library file : {}", errorCode.message());
+		E5150_WARNING("Unable to reload the draw library file : ERROR({}) : {}", platformGetLastErrorCode(), platformGetLastErrorDescription());
 		goto errorDrawFunctionReset;
 	}
 
 	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
 	{
-		E5150_ERROR("Unable to update draw function : {}",errorCode.message());
+		E5150_ERROR("Unable to reload the draw library file : ERROR({}) : {}", platformGetLastErrorCode(), platformGetLastErrorDescription());
 		goto errorDrawFunctionReset;
 	}
 
