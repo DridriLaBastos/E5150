@@ -1,3 +1,5 @@
+#include <cstddef>//EXIT_SUCCESS
+
 #include "gui/gui.hpp"
 
 int main (const int argc, const char* argv [])

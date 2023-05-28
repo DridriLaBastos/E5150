@@ -3,9 +3,31 @@ project(thirdparty)
 set(XED_LIB_NAME "libxed.a")
 set(XED_LTO_FLAG "-flto")
 
+set(BUILD_SHARED_LIBS ON)
+set(GLFW_BUILD_EXAMPLES OFF)
+set(GLFW_BUILD_TESTS OFF)
+set(GLFW_BUILD_DOCS OFF)
+set(GLFW_INSTALL OFF)
+
+add_subdirectory(glfw)
+
+add_library(imgui SHARED
+	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_draw.cpp
+	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_tables.cpp
+	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_widgets.cpp
+	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_demo.cpp
+	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui.cpp
+	${CMAKE_SOURCE_DIR}/third-party/imgui/backends/imgui_impl_glfw.cpp
+	${CMAKE_SOURCE_DIR}/third-party/imgui/backends/imgui_impl_opengl3.cpp
+)
+target_link_libraries(imgui glfw)
+
 if (WIN32)
 	set (XED_LIB_NAME "xed.lib")
 	set(XED_LTO_FLAG "/GL")
+	target_compile_definitions(imgui PUBLIC "IMGUI_API=__declspec(dllexport)")
+else ()
+	target_compile_definitions(imgui PUBLIC "IMGUI_API=__attribute__((visibility(\"default\")))")
 endif()
 
 if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJECT_BINARY_DIR}/include/xed))
@@ -40,33 +62,4 @@ if (XED_LIB_PATH-NOT_FOUND)
 	message(ERROR "Unable to build xed")
 else()
 	message(DEBUG "xed lib built at ${XED_LIB_PATH}")
-endif()
-
-file(GLOB IMGUI_COMMON_SRC CONFIGURE_DEPENDS imgui/*.cpp)
-
-add_library(imgui SHARED ${IMGUI_COMMON_SRC})
-
-if(APPLE)
-	target_sources(imgui
-			PRIVATE imgui/backends/imgui_impl_osx.mm imgui/backends/imgui_impl_metal.mm)
-	find_library(APP_KIT NAMES AppKit REQUIRED)
-	find_library(METAL_KIT NAMES MetalKit REQUIRED)
-	find_library(METAL NAMES Metal REQUIRED)
-	find_library(QUARTZ_CORE QuartzCore REQUIRED)
-	find_library(GAME_CONTROLLER GameController REQUIRED)
-	target_link_libraries(imgui ${APP_KIT} ${METAL_KIT} ${METAL} ${QUARTZ_CORE} ${GAME_CONTROLLER})
-elseif(WIN32)
-	target_sources(imgui PRIVATE imgui/backends/imgui_impl_dx11.cpp imgui/backends/imgui_impl_win32.cpp)
-	target_link_libraries(imgui d3d11.lib d3dcompiler.lib dxgi.lib)
-	if (MSVC)
-		target_compile_definitions(imgui PRIVATE "IMGUI_API=__declspec(dllexport)")
-	endif()
-else()
-	set(BUILD_SHARED_LIBS ON)
-	set(GLFW_BUILD_EXEMPLE OFF)
-	set(GLFW_BUILD_TESTS OFF)
-	set(GLFW_BUILD_DOCS OFF)
-	set(GLFW_INSTALL OFF)
-	set(GLFW_VULKAN_STATICOFF)
-	add_subdirectory(glfw)
 endif()

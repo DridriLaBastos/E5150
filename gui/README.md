@@ -1,0 +1,1 @@
+The macos and win folder are kept to have an example on how to go back on platform specific ImGui configuration

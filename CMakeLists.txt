@@ -28,8 +28,15 @@ else ()
 	add_link_options("$<$<CONFIG:RelWithDebInfo>:/PROFILE>")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/third-party ${CMAKE_SOURCE_DIR}/third-party/spdlog/include ${CMAKE_SOURCE_DIR}/third-party/argparse/include ${CMAKE_SOURCE_DIR}/third-party/imgui ${CMAKE_SOURCE_DIR}/glfw/inlude
-${CMAKE_BINARY_DIR}/third-party/include)
+include_directories(
+		${CMAKE_SOURCE_DIR}
+		${CMAKE_SOURCE_DIR}/third-party
+		${CMAKE_SOURCE_DIR}/third-party/spdlog/include
+		${CMAKE_SOURCE_DIR}/third-party/argparse/include
+		${CMAKE_SOURCE_DIR}/third-party/imgui
+		${CMAKE_SOURCE_DIR}/third-party/glfw/include
+		${CMAKE_BINARY_DIR}/third-party/include
+)
 
 add_subdirectory(third-party)
 add_subdirectory(test)
@@ -52,24 +59,16 @@ endif()
 find_package(OpenGL REQUIRED)
 
 add_executable(epc main.cpp ${EMULATOR_SRC} ${PLATFORM_SRC}
-	${CMAKE_SOURCE_DIR}/gui/gui.cpp
-
-	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_draw.cpp
-	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_tables.cpp
-	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_widgets.cpp
-	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui.cpp
-	${CMAKE_SOURCE_DIR}/third-party/imgui/backends/imgui_impl_glfw.cpp
-	${CMAKE_SOURCE_DIR}/third-party/imgui/backends/imgui_impl_opengl3.cpp
+	${PROJECT_SOURCE_DIR}/gui/gui.cpp
+	${PROJECT_SOURCE_DIR}/gui/ui_loop.cpp
 )
 target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX,OBJC,OBJCXX>:core/pch.hpp>)
-target_link_libraries(epc glfw OpenGL::GL)
+target_link_libraries(epc glfw OpenGL::GL imgui ${XED_LIB_PATH})
 
 target_compile_definitions(epc PRIVATE DRAW_LIBRARY_FULL_PATH="$<TARGET_FILE:hot_reload_draw>"
 		DRAW_LIBRARY_PREFIX_BASE_NAME="$<TARGET_FILE_PREFIX:hot_reload_draw>$<TARGET_FILE_BASE_NAME:hot_reload_draw>"
 		DRAW_LIBRARY_FILE_EXTENSION="$<TARGET_FILE_SUFFIX:hot_reload_draw>")
 add_dependencies(epc asm-test)
-
-target_link_libraries(epc ${XED_LIB_PATH} imgui)
 
 #TODO: Maybe I want the macro DEBUGGER_ON to be defined inside debugger.hpp ?
 if (ENABLE_DEBUGGER)
