@@ -88,5 +88,8 @@
 		"random": "cpp",
 		"algorithm": "cpp",
 		"filesystem": "cpp"
-	}
+	},
+	"cmake.configureArgs": [
+		"-DUSE_MOLD=ON"
+	]
 }

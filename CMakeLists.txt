@@ -40,9 +40,28 @@ include_directories(
 		${CMAKE_BINARY_DIR}/third-party/CLI11/include
 )
 
+option(USE_MOLD "Use mold linker to increas link performances" OFF)
+
 add_subdirectory(third-party)
 add_subdirectory(test)
 add_subdirectory(gui)
+
+if (MOLD_PATH)
+	message(WARNING "Using mold is still experimental")
+	string(TOLOWER "${CMAKE_C_COMPILER_ID}" COMPILER_ID_LOWERCASE)
+
+	if("${COMPILER_ID_LOWERCASE}" STREQUAL "gnu")
+		if(${CMAKE_C_COMPILER_VERSION} VERSION_LESS "12.1.0")
+			message(WARNING "Mold required but not supported in this cmake for version of gcc lower than 12.1.0 the current version is ${CMAKE_C_COMPILER_VERSION}. Default linker used")
+		else()
+			add_link_options(-B${MOLD_PATH})
+		endif()
+	elseif("${COMPILER_ID_LOWERCASE}" STREQUAL "clang")
+		add_link_options("-fuse-ld=${MOLD_PATH}")
+	else()
+		message(WARNING "Unsupported compiler id ${COMPILER_ID_LOWERCASE}, default linker used")
+	endif()
+endif()
 
 #Maybe using a configuration file later
 #configure_file(config.hpp.in config.hpp)

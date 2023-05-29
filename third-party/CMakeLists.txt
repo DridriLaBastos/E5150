@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR) # Submodules recurse in FetchContent_Declare
+
 project(thirdparty)
 
 set(XED_LIB_NAME "libxed.a")
@@ -67,3 +69,41 @@ if (XED_LIB_PATH-NOT_FOUND)
 else()
 	message(DEBUG "xed lib built at ${XED_LIB_PATH}")
 endif()
+
+if (USE_MOLD)
+	set(MOLD_VERSION "1.11.0")
+	include(FetchContent)
+
+	# TODO: Is it possible to conveniently put this on a toolchain file ?
+	# On Linux platform there is binary version already usable for mold
+	if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+		FetchContent_Declare(mold
+			URL "https://github.com/rui314/mold/releases/download/v${MOLD_VERSION}/mold-${MOLD_VERSION}-x86_64-linux.tar.gz"
+			SOURCE_DIR ${PROJECT_BINARY_DIR}/mold
+		)
+
+		set(MOLD_PATH "${PROJECT_BINARY_DIR}/mold/bin/mold" PARENT_SCOPE)
+	else()
+		FetchContent_Declare(mold
+			SOURCE_DIR ${PROJECT_SOURCE_DIR}/mold
+			GIT_REPOSITORY https://github.com/rui314/mold
+			GIT_TAG v${MOLD_VERSION}
+
+			GIT_SUBMODULES_RECURSE TRUE
+			GIT_PROGRESS TRUE
+		)
+		set(BUILD_MOLD TRUE)
+	endif()
+	
+	set(MOLD_LTO ON)
+	FetchContent_MakeAvailable(mold)
+
+	if(BUILD_MOLD)
+		execute_process(COMMAND ${CMAKE_COMMAND} -S ${PROJECT_SOURCE_DIR}/mold -B ${PROJECT_BINARY_DIR}/mold
+			COMMAND ${CMAKE_COMMAND} --build ${PROJECT_BINARY_DIR}/mold -j ${CPU_COUNT}
+			RESULT_VARIABLE MOLD_COMPILE_SUCCESS
+		)
+		set(MOLD_PATH $<TARGET_FILE:mold> PARENT_SCOPE)
+	endif()
+endif()
+
