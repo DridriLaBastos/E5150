@@ -35,7 +35,9 @@ include_directories(
 		${CMAKE_SOURCE_DIR}/third-party/argparse/include
 		${CMAKE_SOURCE_DIR}/third-party/imgui
 		${CMAKE_SOURCE_DIR}/third-party/glfw/include
+
 		${CMAKE_BINARY_DIR}/third-party/include
+		${CMAKE_BINARY_DIR}/third-party/CLI11/include
 )
 
 add_subdirectory(third-party)

@@ -8,8 +8,12 @@ set(GLFW_BUILD_EXAMPLES OFF)
 set(GLFW_BUILD_TESTS OFF)
 set(GLFW_BUILD_DOCS OFF)
 set(GLFW_INSTALL OFF)
-
 add_subdirectory(glfw)
+
+set(CLI11_WARNINGS_AS_ERRORS OFF)
+set(CLI11_SINGLE_FILE ON)
+set(CLI11_PRECOMPILED OFF)
+add_subdirectory(CLI11)
 
 add_library(imgui SHARED
 	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_draw.cpp
