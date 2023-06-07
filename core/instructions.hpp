@@ -107,7 +107,8 @@ void CMC	(void); unsigned int getCMCCycles	(void);
 void STC	(void); unsigned int getSTCCycles	(void);
 void CLD	(void); unsigned int getCLDCycles	(void);
 void STD	(void); unsigned int getSTDCycles	(void);
-void CLI	(void); unsigned int getCLICycles	(void);
+//CLI is already used as namespace name inside CLI11
+void _CLI	(void); unsigned int getCLICycles	(void);
 void STI	(void); unsigned int getSTICycles	(void);
 void HLT	(void); unsigned int getHLTCycles	(void);
 void WAIT	(void); unsigned int getWAITCycles	(void);

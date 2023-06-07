@@ -44,3 +44,6 @@ build
 
 # Cmake build folders
 cmake-build*
+
+# Experimental multithreaded linker
+third-party/mold

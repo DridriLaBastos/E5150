@@ -8,7 +8,7 @@ void STC () { cpu.setFlags(CPU::CARRY); }
 void CLD () { cpu.clearFlags(CPU::DIR); }
 void STD () { cpu.setFlags(CPU::DIR); }
 
-void CLI () { cpu.clearFlags(CPU::INTF); }
+void _CLI () { cpu.clearFlags(CPU::INTF); }
 void STI () { cpu.setFlags(CPU::INTF); }
 
 void HLT () { cpu.hlt(); }

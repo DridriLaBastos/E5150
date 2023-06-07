@@ -13,8 +13,8 @@ static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = true;
 static bool debuggerHasQuit = false;
 
-static std::vector<std::unique_ptr<E5150::DEBUGGER::Command>> registeredCommands;
-static E5150::DEBUGGER::Command* runningCommand = nullptr;
+static std::vector<std::unique_ptr<E5150::DEBUGGER::AbstractCommand>> registeredCommands;
+static E5150::DEBUGGER::AbstractCommand* runningCommand = nullptr;
 
 static struct
 {
@@ -401,10 +401,10 @@ void E5150::DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instr
 #endif
 }
 
-bool E5150::DEBUGGER::Launch(const std::string &commandName, const std::vector<std::string> argv)
+bool E5150::DEBUGGER::Launch(const std::string &commandName, std::vector<std::string>& argv)
 {
 	const auto found = std::find_if(registeredCommands.begin(), registeredCommands.end(),
-									[&commandName](const std::unique_ptr<Command>& cmd) {
+									[&commandName](const std::unique_ptr<AbstractCommand>& cmd) {
 		return cmd->name == commandName;
 	});
 
@@ -416,27 +416,3 @@ bool E5150::DEBUGGER::Launch(const std::string &commandName, const std::vector<s
 
 	return found != registeredCommands.end();
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-/// Abstract command
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-E5150::DEBUGGER::Command::Command(const std::string& n, const std::string& d): name(n), description(d), mParser(n)
-{ mParser.add_description(d); }
-
-E5150::DEBUGGER::Command::~Command() = default;
-
-void E5150::DEBUGGER::Command::Prepare(const std::vector<std::string>& args)
-{
-	try {
-		mParser.parse_args(args);
-		InternalPrepare();
-
-	} catch (const std::runtime_error& e) {
-		puts("REACHED");
-		//std::cerr << e.what() << "'\n";
-		//std::cerr << mParser << "\n";
-	}
-}
-
-void E5150::DEBUGGER::Command::InternalPrepare() {}

@@ -510,7 +510,7 @@ static unsigned int prepareInstructionExecution(void)
 			return getSTDCycles();
 
 		case XED_ICLASS_CLI:
-			instructionFunction = CLI;
+			instructionFunction = _CLI;
 			return getCLICycles();
 
 		case XED_ICLASS_STI:

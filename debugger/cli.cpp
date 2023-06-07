@@ -10,7 +10,6 @@ std::vector<std::string> Tokenize(const std::string& str)
 	auto begin = str.begin();
 	auto end = begin;
 
-
 	do
 	{
 		begin = std::find_if_not(end, str.end(), [](const char c) {
@@ -30,9 +29,9 @@ std::vector<std::string> Tokenize(const std::string& str)
 
 void E5150::DEBUGGER::CLI::ParseLine(const std::string& cmdLine)
 {
-	const auto tokens = Tokenize(cmdLine);
+	auto tokens = Tokenize(cmdLine);
 
-	if (tokens.size() == 0)
+	if (tokens.empty())
 	{ return; }
 
 	const bool commandLaunched = DEBUGGER::Launch(tokens[0], tokens);
