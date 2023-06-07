@@ -2,8 +2,57 @@ cmake_minimum_required(VERSION 3.17 FATAL_ERROR) # Submodules recurse in FetchCo
 
 project(thirdparty)
 
+include(ProcessorCount)
+ProcessorCount(CPU_COUNT)
+message(VERBOSE "Found ${CPU_COUNT} cpus for building xed")
+
 set(XED_LIB_NAME "libxed.a")
-set(XED_LTO_FLAG "-flto")
+set(XED_EXTRA_FLAGS "-flto")
+
+if (USE_MOLD)
+	set(MOLD_VERSION "1.11.0")
+	include(FetchContent)
+
+	# TODO: Is it possible to conveniently put this on a toolchain file ?
+	# On Linux platform there is binary version already usable for mold
+	if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+		FetchContent_Declare(mold
+			URL "https://github.com/rui314/mold/releases/download/v${MOLD_VERSION}/mold-${MOLD_VERSION}-x86_64-linux.tar.gz"
+			SOURCE_DIR ${PROJECT_BINARY_DIR}/mold
+		)
+
+		set(MOLD_PATH "${PROJECT_BINARY_DIR}/mold/bin/mold" PARENT_SCOPE)
+	else()
+		set(BUILD_MOLD TRUE)
+
+		set(MOLD_GIT_REPO https://github.com/rui314/mold)
+		set(MOLD_BRANCH "v${MOLD_VERSION}")
+
+		if(APPLE)
+			set(MOLD_GIT_REPO https://github.com/bluewhalesystems/sold)
+			set(MOLD_BRANCH "main")
+			set(XED_EXTRA_FLAGS "${XED_EXTRA_FLAGS} -fuse-ld=${PROJECT_BINARY_DIR}/mold/ld64")
+		endif()
+
+		if(NOT EXISTS ${PROJECT_SOURCE_DIR}/mold)
+			execute_process(COMMAND git clone --recurse-submodules -b ${MOLD_BRANCH} ${MOLD_GIT_REPO} ${PROJECT_SOURCE_DIR}/mold)
+		endif()
+
+		if(NOT EXISTS ${PROJECT_BINARY_DIR}/mold)
+			message(STATUS "Configuring mold")
+			execute_process(COMMAND ${CMAKE_COMMAND} -S ${PROJECT_SOURCE_DIR}/mold -B ${PROJECT_BINARY_DIR}/mold -DCMAKE_BUILD_TYPE=Release -DMOLD_LTO=ON)
+		endif()
+	endif()
+
+	if(BUILD_MOLD)
+		message(STATUS "Compilation of mold")
+		execute_process(COMMAND ${CMAKE_COMMAND} --build ${PROJECT_BINARY_DIR}/mold -j ${CPU_COUNT}
+			COMMAND_ECHO STDOUT
+			RESULT_VARIABLE MOLD_COMPILE_SUCCESS
+		)
+		set(MOLD_PATH "${PROJECT_BINARY_DIR}/mold/ld64" PARENT_SCOPE)
+	endif()
+endif()
 
 set(BUILD_SHARED_LIBS ON)
 set(GLFW_BUILD_EXAMPLES OFF)
@@ -30,7 +79,7 @@ target_link_libraries(imgui glfw)
 
 if (WIN32)
 	set (XED_LIB_NAME "xed.lib")
-	set(XED_LTO_FLAG "/GL")
+	set(XED_EXTRA_FLAGS "/GL")
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__declspec(dllexport)")
 else ()
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__attribute__((visibility(\"default\")))")
@@ -38,13 +87,9 @@ endif()
 
 if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJECT_BINARY_DIR}/include/xed))
 	message(STATUS "COMPILING XED")
-	include(ProcessorCount)
-
+	
 	find_package(Python3 COMPONENTS Interpreter REQUIRED)
-
-	ProcessorCount(CPU_COUNT)
-
-	message(VERBOSE "Found ${CPU_COUNT} cpus for building xed")
+	
 
 	# xed is such a PAIN to build...
 	# This NEEDS to be extensively tested on multiple platforms
@@ -69,41 +114,3 @@ if (XED_LIB_PATH-NOT_FOUND)
 else()
 	message(DEBUG "xed lib built at ${XED_LIB_PATH}")
 endif()
-
-if (USE_MOLD)
-	set(MOLD_VERSION "1.11.0")
-	include(FetchContent)
-
-	# TODO: Is it possible to conveniently put this on a toolchain file ?
-	# On Linux platform there is binary version already usable for mold
-	if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-		FetchContent_Declare(mold
-			URL "https://github.com/rui314/mold/releases/download/v${MOLD_VERSION}/mold-${MOLD_VERSION}-x86_64-linux.tar.gz"
-			SOURCE_DIR ${PROJECT_BINARY_DIR}/mold
-		)
-
-		set(MOLD_PATH "${PROJECT_BINARY_DIR}/mold/bin/mold" PARENT_SCOPE)
-	else()
-		FetchContent_Declare(mold
-			SOURCE_DIR ${PROJECT_SOURCE_DIR}/mold
-			GIT_REPOSITORY https://github.com/rui314/mold
-			GIT_TAG v${MOLD_VERSION}
-
-			GIT_SUBMODULES_RECURSE TRUE
-			GIT_PROGRESS TRUE
-		)
-		set(BUILD_MOLD TRUE)
-	endif()
-	
-	set(MOLD_LTO ON)
-	FetchContent_MakeAvailable(mold)
-
-	if(BUILD_MOLD)
-		execute_process(COMMAND ${CMAKE_COMMAND} -S ${PROJECT_SOURCE_DIR}/mold -B ${PROJECT_BINARY_DIR}/mold
-			COMMAND ${CMAKE_COMMAND} --build ${PROJECT_BINARY_DIR}/mold -j ${CPU_COUNT}
-			RESULT_VARIABLE MOLD_COMPILE_SUCCESS
-		)
-		set(MOLD_PATH $<TARGET_FILE:mold> PARENT_SCOPE)
-	endif()
-endif()
-

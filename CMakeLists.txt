@@ -56,7 +56,7 @@ if (MOLD_PATH)
 		else()
 			add_link_options(-B${MOLD_PATH})
 		endif()
-	elseif("${COMPILER_ID_LOWERCASE}" STREQUAL "clang")
+	elseif("${COMPILER_ID_LOWERCASE}" STREQUAL "clang" OR "${COMPILER_ID_LOWERCASE}" STREQUAL "appleclang")
 		add_link_options("-fuse-ld=${MOLD_PATH}")
 	else()
 		message(WARNING "Unsupported compiler id ${COMPILER_ID_LOWERCASE}, default linker used")
@@ -83,6 +83,7 @@ add_executable(epc main.cpp ${EMULATOR_SRC} ${PLATFORM_SRC}
 	${PROJECT_SOURCE_DIR}/gui/gui.cpp
 	${PROJECT_SOURCE_DIR}/gui/ui_loop.cpp
 )
+
 target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX,OBJC,OBJCXX>:core/pch.hpp>)
 target_link_libraries(epc glfw OpenGL::GL imgui ${XED_LIB_PATH})
 
