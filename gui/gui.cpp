@@ -166,8 +166,10 @@ void E5150::GUI::draw()
 		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
+
 		DebuggerGuiData debuggerGuiData;
 		debuggerGuiData.parseLine = E5150::DEBUGGER::CLI::ParseLine;
+		debuggerGuiData.i8086 = &E5150::Arch::_cpu;
 
 		hotReloadDraw(emulationGuiData, debuggerGuiData);
 	}
