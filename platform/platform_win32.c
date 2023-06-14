@@ -171,7 +171,7 @@ enum PLATFORM_CODE platformTerminateProcess(const process_t process)
 	return GetExitCodeProcess(h, &processExitCode) ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-const char* platformGetLastErrorDescription(void)
+const char* platformError_GetDescription(void)
 {
 	static char messageDescription[ERROR_MESSAGE_MAX_SIZE];
 
@@ -194,7 +194,7 @@ const char* platformGetLastErrorDescription(void)
 	return messageDescription;
 }
 
-const uint64_t platformGetLastErrorCode() { return GetLastError(); }
+const uint64_t platformError_GetCode() { return GetLastError(); }
 
 enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName)
 {

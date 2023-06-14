@@ -10,28 +10,31 @@ namespace E5150::DEBUGGER
 		AbstractCommand(const std::string& n, const std::string& d);
 		virtual ~AbstractCommand(void);
 
-		void Prepare(const std::vector<std::string>& args);
+		bool Parse(const std::vector<std::string>& argv);
 
 		virtual bool Step(const bool instructionExecuted, const bool instructionDecoded) = 0;
 
 		const std::string  name, description;
 
 	protected:
-		virtual void MakeReady(void);
-		virtual void OnCommandParsed(void);
-
-	protected:
-		CLI::App mApp;
+		virtual void InternalParse(CLI::App& app, std::vector<std::string>& argv) = 0;
 	};
 
 	namespace COMMANDS {
 		class CommandContinue : public AbstractCommand {
 		public:
 			CommandContinue(void);
+			virtual bool Step(const bool instructionExecuted, const bool instructionDecoded) override final;
+		protected:
+			virtual void InternalParse(CLI::App& app, std::vector<std::string>& argv) override final;
+		};
 
+		class CommandStep : public AbstractCommand {
+		public:
+			CommandStep(void);
 			bool Step(const bool instructionExecuted, const bool instructionDecoded) final;
-			virtual void OnCommandParsed(void) override final;
-			virtual void MakeReady(void) override final;
+		private:
+			virtual void InternalParse(CLI::App& app, std::vector<std::string>& argv) override final;
 		};
 	}
 }

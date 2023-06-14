@@ -49,11 +49,11 @@ extern "C" {
 process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr);
 enum PLATFORM_CODE platformTerminateProcess(const process_t process);
 
-const char* platformGetLastErrorDescription(void);
-uint64_t platformGetLastErrorCode(void);
+uint64_t platformError_GetCode(void);
+const char* platformError_GetDescription(void);
 
-enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName);
-int platformOpenFifo(const char* fifoFileName, const int openFlags);
+enum PLATFORM_CODE platformFifo_Create(const char* fifoFileName);
+FILE* platformFifo_Open(const char* fifoFileName, const int libcOpenFlags);
 
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime);
 enum PLATFORM_CODE platformFile_Copy(const char* from, const char* to);

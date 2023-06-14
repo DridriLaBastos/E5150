@@ -52,6 +52,10 @@ void E5150::Arch::startSimulation()
 	unsigned int instructionExecutedBeforeThisBlock = 0;
 	auto loopBegin = std::chrono::high_resolution_clock::now();
 
+#ifdef DEBUGGER_ON
+	E5150::DEBUGGER::PrepareSimulationSide();
+#endif
+
 	try
 	{
 		while (Util::_continue)
@@ -115,5 +119,9 @@ void E5150::Arch::startSimulation()
 	}
 	catch (const std::exception& e)
 	{ E5150_ERROR(e.what()); }
+
+#ifdef DEBUGGER_ON
+	E5150::DEBUGGER::clean();
+#endif
 	E5150_INFO("Simulation quit !");
 }

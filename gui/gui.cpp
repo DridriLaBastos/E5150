@@ -40,7 +40,7 @@ static void reloadDrawLibrary()
 
 	if (errorCode)
 	{
-		E5150_WARNING("Unable to access draw library modification time : {}", platformGetLastErrorDescription());
+		E5150_WARNING("Unable to access draw library modification time : {}", platformError_GetCode());
 		goto errorDrawFunctionUnchanged;
 	}
 
@@ -70,7 +70,7 @@ static void reloadDrawLibrary()
 	//TODO: Is this an error ? Why would it possible for Windows to fail to unload a dylib only used here ?
 	if (platformDylib_Release(hotReloadModuleID))
 	{
-		E5150_WARNING("Unable to unload the draw library : {}", platformGetLastErrorDescription());
+		E5150_WARNING("Unable to unload the draw library : {}", platformError_GetDescription());
 		goto errorDrawFunctionUnchanged;
 	}
 
@@ -78,13 +78,13 @@ static void reloadDrawLibrary()
 
 	if (hotReloadModuleID < 0)
 	{
-		E5150_WARNING("Unable to reload the draw library file : ERROR({}) : {}", platformGetLastErrorCode(), platformGetLastErrorDescription());
+		E5150_WARNING("Unable to reload the draw library file : ERROR({}) : {}", platformError_GetCode(), platformError_GetDescription());
 		goto errorDrawFunctionReset;
 	}
 
 	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
 	{
-		E5150_ERROR("Unable to reload the draw library file : ERROR({}) : {}", platformGetLastErrorCode(), platformGetLastErrorDescription());
+		E5150_ERROR("Unable to reload the draw library file : ERROR({}) : {}", platformError_GetCode(), platformError_GetDescription());
 		goto errorDrawFunctionReset;
 	}
 
@@ -116,12 +116,10 @@ void E5150::GUI::init()
 	}
 
 	E5150_INFO("Welcome to E5150, the emulator of an IBM PC 5150");
+
 #ifdef DEBUGGER_ON
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
-#endif
-
-#ifdef DEBUGGER_ON
 	E5150::DEBUGGER::init();
 #endif
 
@@ -149,7 +147,11 @@ void E5150::GUI::init()
 #endif
 
 	//TODO: launching the thread arch shouldn't be done inside the gui init function
-	//t = std::thread(&E5150::Arch::startSimulation,&arch);
+	t = std::thread(&E5150::Arch::startSimulation,&arch);
+
+#ifdef DEBUGGER_ON
+	E5150::DEBUGGER::PrepareGuiSide();
+#endif
 }
 
 void E5150::GUI::draw()
@@ -177,5 +179,5 @@ void E5150::GUI::clean()
 #ifdef DEBUGGER_ON
 	E5150::DEBUGGER::clean();
 #endif
-	//t.join();
+	t.join();
 }

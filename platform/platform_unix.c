@@ -68,7 +68,7 @@ enum PLATFORM_CODE platformTerminateProcess(const process_t process)
 	return waitpid(process,NULL,WUNTRACED) == process ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-enum PLATFORM_CODE platformCreateFifo (const char* fifoFileName)
+enum PLATFORM_CODE platformFifo_Create (const char* fifoFileName)
 {
 	const int fifo = mkfifo(fifoFileName,S_IRWXG|S_IRWXO|S_IRWXU);
 
@@ -79,17 +79,20 @@ enum PLATFORM_CODE platformCreateFifo (const char* fifoFileName)
 	return fifoAlreadyExists ? PLATFORM_FIFO_ALREADY_CREATED : PLATFORM_ERROR;
 }
 
-int platformOpenFifo(const char* fifoFileName, const int openFlags)
-{ return open(fifoFileName,openFlags); }
+FILE* platformFifo_Open(const char* fifoFileName, const int libcOpenFlags)
+{
+	const int fd = open(fifoFileName, libcOpenFlags);
+}
 
-const char* platformGetLastErrorDescription(void)
+uint64_t platformError_GetCode(void)
+{ return errno; }
+
+const char* platformError_GetDescription(void)
 {
 	const char* errorstr = dynamicLinkerError ? dlerror() : strerror(errno);
 	dynamicLinkerError = false;
 	return errorstr;
 }
-uint64_t platformGetLastErrorCode(void)
-{ return errno; }
 
 static enum PLATFORM_CODE readFromChildFD(const int fd, char* const c)
 {

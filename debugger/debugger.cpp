@@ -1,3 +1,6 @@
+#include <cstdio>
+#include <cerrno>
+
 #include "core/util.hpp"
 #include "core/arch.hpp"
 
@@ -8,13 +11,14 @@
 
 using namespace E5150;
 
-static process_t debuggerProcess = -1;
 static unsigned int savedLogLevel = 0;
-static bool debuggerInitialized = true;
+static bool debuggerInitialized = false;
 static bool debuggerHasQuit = false;
 
 static std::vector<std::unique_ptr<E5150::DEBUGGER::AbstractCommand>> registeredCommands;
 static E5150::DEBUGGER::AbstractCommand* runningCommand = nullptr;
+static FILE* lockFileRead = nullptr;
+static FILE* lockFileWrite = nullptr;
 
 static struct
 {
@@ -44,15 +48,60 @@ static struct
 void E5150::DEBUGGER::init()
 {
 	context.clear();
-
 	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandContinue>());
+	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandStep>());
+
+	PLATFORM_CODE status = platformFifo_Create(FIFO_PATH(LOCK_FILE));
+
+	if (status == PLATFORM_ERROR) {
+		spdlog::warn("[DEBUGGER]: Could not create lock file to wait command. ERROR({}): '{}'",
+					 platformError_GetCode(), platformError_GetDescription());
+		return;
+	}
+}
+
+static void OpenLockFile(bool initializeReadSide)
+{
+	const char* openMode = initializeReadSide ? "r" : "w";
+	FILE** lockFile = initializeReadSide ? &lockFileRead : &lockFileWrite;
+	*lockFile = fopen(FIFO_PATH(E5150::DEBUGGER::LOCK_FILE),openMode);
+
+	if (*lockFile == nullptr) {
+		spdlog::warn("[DEBUGGER]: Enable to open lock file to wait command. ERROR({}): '{}'",errno, strerror(errno));
+		return;
+	}
+
+	const int ret = setvbuf(*lockFile, nullptr,_IONBF,0);
+
+	if (ret == EOF) {
+		spdlog::warn("[DEBUGGER]: Enable to modify buffering type");
+		fclose(lockFileRead);
+		return;
+	}
+	debuggerInitialized = true;
+}
+
+void E5150::DEBUGGER::PrepareSimulationSide()
+{
+	OpenLockFile(true);
+}
+
+void E5150::DEBUGGER::PrepareGuiSide() {
+	OpenLockFile(false);
 }
 
 void E5150::DEBUGGER::clean()
 {
-    if (!debuggerInitialized)
-        return;
+	if (lockFileWrite) {
+		fclose(lockFileWrite);
+	}
 
+    if (lockFileRead)
+    {
+	    fclose(lockFileRead);
+	}
+
+    remove(FIFO_PATH(LOCK_FILE));
     debuggerInitialized = false;
 }
 
@@ -326,8 +375,15 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 void E5150::DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
 	if (runningCommand) {
-		runningCommand = runningCommand->Step(instructionExecuted, instructionDecoded) ? runningCommand : nullptr;
+		const bool commandFinished = runningCommand->Step(instructionExecuted, instructionDecoded);
+		if (commandFinished)
+		{ runningCommand = nullptr; }
+		return;
 	}
+
+	char wait;
+	fread(&wait, sizeof(wait),1,lockFileRead);
+
 #if 0
 	COMMAND_TYPE commandType;
 	uint8_t shouldStop;
@@ -403,6 +459,12 @@ void E5150::DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instr
 
 bool E5150::DEBUGGER::Launch(const std::string &commandName, std::vector<std::string>& argv)
 {
+	if (runningCommand)
+	{
+		spdlog::warn("[DEBUGGER] Cannot launch two commands at the same time");
+		return false;
+	}
+
 	const auto found = std::find_if(registeredCommands.begin(), registeredCommands.end(),
 									[&commandName](const std::unique_ptr<AbstractCommand>& cmd) {
 		return cmd->name == commandName;
@@ -410,8 +472,30 @@ bool E5150::DEBUGGER::Launch(const std::string &commandName, std::vector<std::st
 
 	if (found != registeredCommands.end())
 	{
-		(*found)->Prepare(argv);
-		runningCommand = found->get();
+		//Prepare will return false with -h or --help option for command (or if any other error happened)
+		//We don't want to Launch the command if it didn't get proper options
+		const bool commandReady = (*found)->Parse(argv);
+
+		if (commandReady)
+		{
+			runningCommand = found->get();
+			char commandReady = 0;
+			const int status = fwrite(&commandReady,sizeof(commandReady),1,lockFileWrite);
+
+			if (status < (int)sizeof(commandReady))
+			{
+				if (feof(lockFileWrite))
+				{
+					spdlog::warn("[DEBUGGER] Got EOF when unlocking the debugger for command execution... Thats unexpected");
+				}
+
+				if (ferror(lockFileWrite))
+				{
+					spdlog::warn("[DEBUGGER] Error when unlocking the debugger for command execution. ERROR({}) :'{}'", errno,
+					             strerror(errno));
+				}
+			}
+		}
 	}
 
 	return found != registeredCommands.end();
