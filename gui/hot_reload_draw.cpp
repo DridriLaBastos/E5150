@@ -65,8 +65,35 @@ static std::vector<DebuggerConsoleEntry> entries;
 
 static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
 {
+	static size_t previousCallBufferSize = entries.size();
+	static size_t entriesHistoriqueIndex = 0;
+
+	if (entries.size() != previousCallBufferSize)
+	{
+		entriesHistoriqueIndex = 0;
+		previousCallBufferSize = entries.size();
+	}
+
 	switch(data->EventFlag)
 	{
+		case ImGuiInputTextFlags_CallbackHistory: {
+			if (entries.empty())
+				break;
+
+			const DebuggerConsoleEntry& entry = *(entries.end() - 1 - entriesHistoriqueIndex);
+
+			data->DeleteChars(0, data->BufTextLen);
+			data->InsertChars(0,entry.line.data());
+
+			int historyDirection = 0;
+
+			if (data->EventKey == ImGuiKey_UpArrow)
+				historyDirection = 1;
+
+			if (data->EventKey == ImGuiKey_DownArrow)
+				historyDirection = -1;
+			entriesHistoriqueIndex = (entriesHistoriqueIndex + historyDirection) % entries.size();
+		}
 		default:
 			break;
 	}
@@ -82,7 +109,9 @@ static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0,0.8,0.6,1.0});
 			}
 
-			ImGui::TextUnformatted(entry.line.c_str());
+			ImGui::TextUnformatted(" #");
+			ImGui::SameLine();
+			ImGui::TextUnformatted(&(entry.line[0]));
 
 			if (entry.type == DEBUGGER_ENTRY_TYPE::COMMAND)
 			{
@@ -95,7 +124,7 @@ static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 	char cmdBuffer [256];
 	memset(cmdBuffer,0,sizeof(cmdBuffer));
 
-	ImGuiInputTextFlags inputTextFlags = 
+	ImGuiInputTextFlags inputTextFlags =
 		ImGuiInputTextFlags_EnterReturnsTrue |
 		ImGuiInputTextFlags_EscapeClearsAll |
 		ImGuiInputTextFlags_CallbackCompletion |
@@ -103,7 +132,9 @@ static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 
 	if(ImGui::InputText("Enter your command", cmdBuffer,IM_ARRAYSIZE(cmdBuffer)-1,inputTextFlags, DebuggerCommandTextEditCallback))
 	{
-		entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND, std::string(" # ") + std::string(cmdBuffer));
+		const size_t len = strnlen(cmdBuffer, sizeof(cmdBuffer)) + 1;
+		//Ensure that the stored string is a valid null-terminated character without the need to call std::string::c_str
+		entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND, std::string(cmdBuffer, len));
 		debuggerGuiData.parseLine(cmdBuffer);
 	}
 }

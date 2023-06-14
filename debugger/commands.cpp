@@ -42,31 +42,16 @@ AbstractCommand("continue","Continue the execution of the emulation, if no optio
 
 void E5150::DEBUGGER::COMMANDS::CommandContinue::InternalParse(CLI::App &app, std::vector<std::string> &argv)
 {
-	unsigned int clockNumber = 0;
-	unsigned int instructionNumber = 0;
-	CLI::Option* optionClock = app.add_option("-c,--clock", clockNumber,
-												 "The number of clocks that shouls be emulated");
-	CLI::Option* optionInstructions = app.add_option("-i,--instructions", instructionNumber,
-													 "The number of instruction to emulate");
-
-	optionClock->excludes(optionInstructions);
-
 	app.parse(argv);
-
-	const bool infinite = (clockNumber == 0) && (instructionNumber == 0);
-	printf("#clock cycles: %d   #instructions: %d   infinite: %d\n", clockNumber, instructionNumber, infinite);
 }
 
 bool E5150::DEBUGGER::COMMANDS::CommandContinue::Step(const bool instructionExecuted, const bool instructionDecoded)
 {
-#if 0
-	printf("continue for #clock %d   #instruction %d\n", clockNumber, instructionNumber);
-	clockNumber -= clockNumber > 0;
-	instructionNumber -= (instructionNumber > 0) && instructionExecuted;
-
-	return !(clockNumber || instructionNumber || infiniteContinue);
-#endif
-	return true;
+	//Unused
+	(void)instructionExecuted;
+	(void)instructionDecoded;
+	//The continue command never finishes : the emulation runs forever
+	return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,37 +60,31 @@ bool E5150::DEBUGGER::COMMANDS::CommandContinue::Step(const bool instructionExec
 E5150::DEBUGGER::COMMANDS::CommandStep::CommandStep(): AbstractCommand("step",
 																	   "Continue the emulation for the specified amount of time")
 {}
-
+static unsigned int clockNumber;
+static unsigned int instructionNumber;
 
 void E5150::DEBUGGER::COMMANDS::CommandStep::InternalParse(CLI::App &app, std::vector<std::string> &argv)
 {
-	unsigned int clockNumber = 0;
-	unsigned int instructionNumber = 0;
 	bool follow = false;
 	CLI::Option* optionClock = app.add_option("-c,--clock", clockNumber,
-	                                          "The number of clock cycles to pass");
+	                                          "The number of clock cycles to pass")
+								  ->default_val(0);
 	CLI::Option* optionInstructions = app.add_option("-i,--instructions", instructionNumber,
-	                                                 "The number of instructions to pass");
+	                                                 "The number of instructions to pass")
+								 ->default_val(1);
 
-	CLI::Option* flagFollow = app.add_flag("-f,--follow", follow,
-										   "When specified the debugger follows control transfers instructions");
+	//CLI::Option* flagFollow = app.add_flag("-f,--follow", follow,
+	//									   "When specified the debugger follows control transfers instructions");
 
 	optionClock->excludes(optionInstructions);
 
-
 	app.parse(argv);
-
-	printf("#clock cycles: %d   #instructions: %d   %s\n", clockNumber, instructionNumber, follow ? "[FOLLOW]" : "");
 }
 
 bool E5150::DEBUGGER::COMMANDS::CommandStep::Step(const bool instructionExecuted, const bool instructionDecoded)
 {
-#if 0
-	printf("continue for #clock %d   #instruction %d\n", clockNumber, instructionNumber);
-	clockNumber -= clockNumber > 0;
-	instructionNumber -= (instructionNumber > 0) && instructionExecuted;
-
-	return !(clockNumber || instructionNumber || infiniteContinue);
-#endif
-	return true;
+	(void)instructionExecuted;
+	clockNumber -= clockNumber != 0;
+	instructionNumber -= instructionDecoded && (instructionNumber > 0);
+	return (clockNumber == 0) || (instructionNumber == 0);
 }
