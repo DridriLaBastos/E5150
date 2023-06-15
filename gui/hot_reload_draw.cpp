@@ -144,20 +144,20 @@ static void DrawDebuggerCPUStatus(const DebuggerGuiData& debuggerGuiData)
 	const uint16_t cs = debuggerGuiData.i8086->regs.cs;
 	const uint16_t ip = debuggerGuiData.i8086->regs.ip;
 	unsigned int ea = (cs << 4) + ip;
-	ImGui::Text("Fetching 0x%4X:0x%4X (0x%5X)",cs,ip,ea);
+	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,ip,ea);
 
 	const uint16_t ss = debuggerGuiData.i8086->regs.ss;
 	const uint16_t sp = debuggerGuiData.i8086->regs.sp;
 	ea = (ss << 4) + sp;
-	ImGui::Text("Stack    0x%4X:0x%4X (0x%5X)", ss,sp,ea);
+	ImGui::Text("Stack    (ss:sp) 0x%04X:0x%04X (0x%05X)", ss,sp,ea);
 
 	ImGui::Separator();
 
-	ImGui::Text("CS %4X   DS %4X   ES %4X   SS %4X",
+	ImGui::Text("CS 0x%4X   DS 0x%4X   ES 0x%4X   SS 0x%4X",
 				debuggerGuiData.i8086->regs.cs,debuggerGuiData.i8086->regs.ds,debuggerGuiData.i8086->regs.es,debuggerGuiData.i8086->regs.ss);
-	ImGui::Text("AX %4X   BX %4X   CX %4X   DX %4X",
+	ImGui::Text("AX 0x%4X   BX 0x%4X   CX 0x%4X   DX 0x%4X",
 	            debuggerGuiData.i8086->regs.ax,debuggerGuiData.i8086->regs.bx,debuggerGuiData.i8086->regs.cx,debuggerGuiData.i8086->regs.dx);
-	ImGui::Text("SI %4X   DI %4X   BP %4X   SP %4X",
+	ImGui::Text("SI 0x%4X   DI 0x%4X   BP 0x%4X   SP 0x%4X",
 	            debuggerGuiData.i8086->regs.si,debuggerGuiData.i8086->regs.di,debuggerGuiData.i8086->regs.bp,debuggerGuiData.i8086->regs.sp);
 
 }
@@ -166,15 +166,15 @@ static void DrawDebuggerGui(const DebuggerGuiData& debuggerGuiData)
 {
 	ImGui::Begin("Debugger");
 
-	ImGui::BeginGroup();
+	ImGui::BeginChild("Console",ImVec2(ImGui::GetContentRegionAvail().x*.5,0.0));
 	DrawDebuggerCommandConsole(debuggerGuiData);
-	ImGui::EndGroup();
-
+	ImGui::EndChild();
+	
 	ImGui::SameLine();
 
-	ImGui::BeginGroup();
+	ImGui::BeginChild("Reg View");
 	DrawDebuggerCPUStatus(debuggerGuiData);
-	ImGui::EndGroup();
+	ImGui::EndChild();
 
 	ImGui::End();
 }

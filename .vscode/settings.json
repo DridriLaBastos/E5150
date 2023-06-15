@@ -91,5 +91,6 @@
 	},
 	"cmake.configureArgs": [
 		"-DUSE_MOLD=ON"
-	]
+	],
+	"C_Cpp.codeAnalysis.clangTidy.enabled": true
 }
