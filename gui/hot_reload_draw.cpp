@@ -2,13 +2,14 @@
 // Created by Adrien COURNAND on 24/12/2022.
 //
 
+#include <inttypes.h>
+
 #include "core/pch.hpp"
 #include "core/emulation_constants.hpp"
 #include "gui_states.hpp"
 #include "third-party/imgui/imgui.h"
 
 #include "platform/platform.h"
-
 
 char ImGuiTextBuffer::EmptyString[1] = { 0 };
 
@@ -17,38 +18,6 @@ using gui_clock = std::chrono::high_resolution_clock;
 static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
-
-#if 0
-static void drawCpuDebugStatus(E5150::DEBUGGER::GUI::State* const state)
-{
-	ImGui::TextUnformatted("Instruction placeholder");
-	ImGui::Text("CS 0x%4X   ", state->i8086->regs.cs);
-	ImGui::SameLine();
-	ImGui::Text("DS 0x%4X   ", state->i8086->regs.ds);
-	ImGui::SameLine();
-	ImGui::Text("ES 0x%4X   ", state->i8086->regs.es);
-	ImGui::SameLine();
-	ImGui::Text("SS 0x%4X   ", state->i8086->regs.ss);
-	ImGui::SameLine();
-	ImGui::Text("IP 0x%4X   ", state->i8086->regs.ip);
-
-	ImGui::Text("AX 0x%4X   ", state->i8086->regs.ax);
-	ImGui::SameLine();
-	ImGui::Text("BX 0x%4X   ", state->i8086->regs.bx);
-	ImGui::SameLine();
-	ImGui::Text("CX 0x%4X   ", state->i8086->regs.cx);
-	ImGui::SameLine();
-	ImGui::Text("DX 0x%4X   ", state->i8086->regs.dx);
-
-	ImGui::Text("DI 0x%4X   ", state->i8086->regs.di);
-	ImGui::SameLine();
-	ImGui::Text("SI 0x%4X   ", state->i8086->regs.si);
-	ImGui::SameLine();
-	ImGui::Text("BP 0x%4X   ", state->i8086->regs.bp);
-	ImGui::SameLine();
-	ImGui::Text("SP 0x%4X   ", state->i8086->regs.sp);
-}
-#endif
 
 enum class DEBUGGER_ENTRY_TYPE {
 	COMMAND, DEFAULT
@@ -130,6 +99,8 @@ static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 		ImGuiInputTextFlags_CallbackCompletion |
 		ImGuiInputTextFlags_CallbackHistory;
 
+	ImGui::Text("(%" PRIu64 ")",debuggerGuiData.i8086->instructionExecutedCount);
+	ImGui::SameLine();
 	if(ImGui::InputText("Enter your command", cmdBuffer,IM_ARRAYSIZE(cmdBuffer)-1,inputTextFlags, DebuggerCommandTextEditCallback))
 	{
 		const size_t len = strnlen(cmdBuffer, sizeof(cmdBuffer)) + 1;
@@ -159,6 +130,13 @@ static void DrawDebuggerCPUStatus(const DebuggerGuiData& debuggerGuiData)
 	            debuggerGuiData.i8086->regs.ax,debuggerGuiData.i8086->regs.bx,debuggerGuiData.i8086->regs.cx,debuggerGuiData.i8086->regs.dx);
 	ImGui::Text("SI 0x%4X   DI 0x%4X   BP 0x%4X   SP 0x%4X",
 	            debuggerGuiData.i8086->regs.si,debuggerGuiData.i8086->regs.di,debuggerGuiData.i8086->regs.bp,debuggerGuiData.i8086->regs.sp);
+	ImGui::Separator();
+
+	const Regs& regs = debuggerGuiData.i8086->regs;
+	ImGui::Text("%c %c %c %c %c %c %c %c %c",(regs.flags & CPU::CARRY) ? 'C' : 'c',(regs.flags & CPU::PARRITY) ? 'P' : 'p',
+		(regs.flags & CPU::A_CARRY) ? 'A' : 'a', (regs.flags & CPU::ZERRO) ? 'Z' : 'z', (regs.flags & CPU::SIGN) ? 'S' : 's',
+		(regs.flags & CPU::TRAP) ? 'T' : 't', (regs.flags & CPU::INTF) ? 'I' : 'i', (regs.flags & CPU::DIR) ? 'D' : 'd',
+		(regs.flags & CPU::OVER) ? 'O' : 'o');
 
 }
 
@@ -166,14 +144,16 @@ static void DrawDebuggerGui(const DebuggerGuiData& debuggerGuiData)
 {
 	ImGui::Begin("Debugger");
 
-	ImGui::BeginChild("Console",ImVec2(ImGui::GetContentRegionAvail().x*.5,0.0));
+	ImGui::BeginChild("Console",ImVec2(ImGui::GetContentRegionAvail().x*.5,0.0),true);
 	DrawDebuggerCommandConsole(debuggerGuiData);
 	ImGui::EndChild();
 	
 	ImGui::SameLine();
 
-	ImGui::BeginChild("Reg View");
+	ImGui::BeginChild("Reg View", {0,0},true);
+	ImGui::PushItemWidth(-FLT_MIN);
 	DrawDebuggerCPUStatus(debuggerGuiData);
+	ImGui::PopItemWidth();
 	ImGui::EndChild();
 
 	ImGui::End();
