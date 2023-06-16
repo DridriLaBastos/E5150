@@ -85,6 +85,6 @@ bool E5150::DEBUGGER::COMMANDS::CommandStep::Step(const bool instructionExecuted
 {
 	(void)instructionExecuted;
 	clockNumber -= clockNumber != 0;
-	instructionNumber -= instructionDecoded && (instructionNumber > 0);
-	return (clockNumber == 0) || (instructionNumber == 0);
+	instructionNumber -= instructionExecuted && (instructionNumber > 0);
+	return (clockNumber == 0) && (instructionNumber == 0);
 }
