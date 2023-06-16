@@ -13,15 +13,12 @@ E5150::DEBUGGER::AbstractCommand::AbstractCommand(const std::string& n, const st
 
 E5150::DEBUGGER::AbstractCommand::~AbstractCommand() = default;
 
-bool E5150::DEBUGGER::AbstractCommand::Parse(const std::vector<std::string>& args)
+bool E5150::DEBUGGER::AbstractCommand::Parse(const std::string& line)
 {
-	//CLI11 requires the arguments to be passed in reverse orders and to drop the name
-	std::vector<std::string> argv (args.rbegin(), args.rend()-1);
-
 	CLI::App app (description, name);
 
 	try {
-		InternalParse(app,argv);
+		InternalParse(app,line);
 	}
 	catch (const CLI::ParseError& e) {
 		app.exit(e);
@@ -40,9 +37,9 @@ AbstractCommand("continue","Continue the execution of the emulation, if no optio
 						         "the emulation continues indefinitely")
 {}
 
-void E5150::DEBUGGER::COMMANDS::CommandContinue::InternalParse(CLI::App &app, std::vector<std::string> &argv)
+void E5150::DEBUGGER::COMMANDS::CommandContinue::InternalParse(CLI::App &app, std::string line)
 {
-	app.parse(argv);
+	app.parse(line);
 }
 
 bool E5150::DEBUGGER::COMMANDS::CommandContinue::Step(const bool instructionExecuted, const bool instructionDecoded)
@@ -63,13 +60,13 @@ E5150::DEBUGGER::COMMANDS::CommandStep::CommandStep(): AbstractCommand("step",
 static unsigned int clockNumber;
 static unsigned int instructionNumber;
 
-void E5150::DEBUGGER::COMMANDS::CommandStep::InternalParse(CLI::App &app, std::vector<std::string> &argv)
+void E5150::DEBUGGER::COMMANDS::CommandStep::InternalParse(CLI::App &app, std::string line)
 {
 	bool follow = false;
 	CLI::Option* optionClock = app.add_option("-c,--clock", clockNumber,
 	                                          "The number of clock cycles to pass")
 								  ->default_val(0);
-	CLI::Option* optionInstructions = app.add_option("-i,--instructions", instructionNumber,
+	CLI::Option* optionInstructions = app.add_option("-i,--instruction", instructionNumber,
 	                                                 "The number of instructions to pass")
 								 ->default_val(1);
 
@@ -78,7 +75,7 @@ void E5150::DEBUGGER::COMMANDS::CommandStep::InternalParse(CLI::App &app, std::v
 
 	optionClock->excludes(optionInstructions);
 
-	app.parse(argv);
+	app.parse(line,false);
 }
 
 bool E5150::DEBUGGER::COMMANDS::CommandStep::Step(const bool instructionExecuted, const bool instructionDecoded)

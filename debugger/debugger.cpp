@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cerrno>
+#include <cctype>
 
 #include "core/util.hpp"
 #include "core/arch.hpp"
@@ -384,7 +385,7 @@ void E5150::DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instr
 	fread(&wait, sizeof(wait),1,lockFileRead);
 }
 
-bool E5150::DEBUGGER::Launch(const std::string &commandName, std::vector<std::string>& argv)
+bool E5150::DEBUGGER::Launch(const std::string &commandName, const std::string &commandArgs)
 {
 	if (runningCommand)
 	{
@@ -401,7 +402,7 @@ bool E5150::DEBUGGER::Launch(const std::string &commandName, std::vector<std::st
 	{
 		//Prepare will return false with -h or --help option for command (or if any other error happened)
 		//We don't want to Launch the command if it didn't get proper options
-		const bool commandReady = (*found)->Parse(argv);
+		const bool commandReady = (*found)->Parse(commandArgs);
 
 		if (commandReady)
 		{

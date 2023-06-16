@@ -108,6 +108,24 @@ static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 		entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND, std::string(cmdBuffer, len));
 		debuggerGuiData.parseLine(cmdBuffer);
 	}
+
+	ImGui::Separator();
+	if (ImGui::Button("|->I"))
+	{
+		debuggerGuiData.parseLine("step --instruction 1");
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("|->C"))
+	{
+		debuggerGuiData.parseLine("step --clock 1");
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("->>"))
+	{
+		debuggerGuiData.parseLine("continue");
+	}
 }
 
 static void DrawDebuggerCPUStatus(const DebuggerGuiData& debuggerGuiData)

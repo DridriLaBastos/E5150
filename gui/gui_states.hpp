@@ -8,7 +8,7 @@
 #include <cstdint>
 
 #include "spdlog_imgui_color_sink.hpp"
-#include "debugger/cli.hpp"
+#include "debugger/debugger.hpp"
 
 #include "core/8086.hpp"
 

@@ -12,11 +12,12 @@
 #include <future>
 #include <utility>
 #include <fstream>
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 #include <algorithm>
 #include <exception>
 #include <functional>
+#include <string_view>
 
 extern "C"
 {
