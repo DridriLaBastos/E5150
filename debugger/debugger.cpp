@@ -371,7 +371,6 @@ static bool executePassCommand(const uint8_t instructionExecuted, const bool ins
 	return true;
 }
 
-//TODO: IMPORTANT: DEBUGGER error resilient : if sending a data to the debugger failed, stop using it and continue the emulation as if they were no debugger
 void E5150::DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instructionDecoded)
 {
 	if (runningCommand) {
@@ -383,78 +382,6 @@ void E5150::DEBUGGER::wakeUp(const uint8_t instructionExecuted, const bool instr
 
 	char wait;
 	fread(&wait, sizeof(wait),1,lockFileRead);
-
-#if 0
-	COMMAND_TYPE commandType;
-	uint8_t shouldStop;
-	const uint8_t commandEndSynchro = 0;//Only here to notify to the debugger that the emulator finished executing the command
-	static bool uninitializedDebuggerWarningPrinted = false;
-
-	if (debuggerHasQuit)
-	{ return; }
-
-	if (!debuggerInitialized) {
-		if (!uninitializedDebuggerWarningPrinted) {
-			E5150_WARNING("DEBUGGER was not successfully initialized. DEBUGGER features will not be available.");
-			uninitializedDebuggerWarningPrinted = true;
-		}
-		return;
-	}
-
-	if (context.type == COMMAND_TYPE_CONTINUE || context.type == COMMAND_TYPE_STEP)
-	{
-		//Is the execution of the pass command done ?
-		if (executePassCommand(instructionExecuted, instructionDecoded)) { return; }
-		if (context.type == COMMAND_TYPE_CONTINUE) { E5150::Util::CURRENT_EMULATION_LOG_LEVEL = savedLogLevel; }
-	}
-	
-	context.clear();
-	debuggerRunning = true;
-	//printCpuInfos();
-	//if(WRITE_TO_DEBUGGER(&cpu.instructionExecutedCount,8) == -1) { return; }
-
-	do
-	{
-		//1 - Reading the command to execute
-		if (READ_FROM_DEBUGGER(&commandType,sizeof(COMMAND_TYPE)) == -1) { break; }
-		const uint8_t commandReceivedStatus = commandType >= COMMAND_TYPE_ERROR ? COMMAND_RECEIVED_FAILURE : COMMAND_RECEIVED_SUCCESS;
-
-		//2 - telling the debugger the status of the command reception
-		if(WRITE_TO_DEBUGGER( &commandReceivedStatus, sizeof(commandReceivedStatus)) == -1) { break; }
-
-		switch (commandType)
-		{
-			case COMMAND_TYPE_CONTINUE:
-				handleContinueCommand();
-				break;
-			
-			case COMMAND_TYPE_STEP:
-				handleStepCommand();
-				break;
-			
-			case COMMAND_TYPE_DISPLAY:
-				handleDisplayCommand();
-				break;
-
-			case COMMAND_TYPE_QUIT:
-				handleQuitCommand();
-				break;
-
-			default:
-				E5150_WARNING("Unknown response from debugger, behaviour may be unpredictable");
-				break;
-		}
-
-		//3 - Getting from the debugger if the emulator should wait for another command
-		if (READ_FROM_DEBUGGER(&shouldStop,1) < 0) { break; }
-		shouldStop |= context.type == COMMAND_TYPE_QUIT;
-
-		//4 - Synchronization point : the debugger will wait to get a value before running another loop
-		if (WRITE_TO_DEBUGGER(&commandEndSynchro, 1) < 0) { break; }
-	} while (!shouldStop);
-
-	debuggerRunning = false;
-#endif
 }
 
 bool E5150::DEBUGGER::Launch(const std::string &commandName, std::vector<std::string>& argv)
