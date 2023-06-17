@@ -53,12 +53,12 @@ static void reloadDrawLibrary()
 	#ifndef _WIN32
 	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FULL_PATH,fs::copy_options::overwrite_existing,errorCode);
 	#else
-	const PLATFORM_CODE code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FILE_NAME);
+	const PLATFORM_CODE code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FULL_PATH);
 	errorCode.clear();
 
 	if (code)
 	{
-		errorCode.assign(platformGetLastErrorCode(), std::system_category());
+		errorCode.assign(platformError_GetCode(), std::system_category());
 	}
 	#endif
 	if (errorCode)

@@ -66,6 +66,10 @@ static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
 		default:
 			break;
 	}
+
+	//https://github.com/ocornut/imgui/blob/b9db5c566bbafa3462f1a526032ca2971742db17/imgui_widgets.cpp#L4003
+	//The value returned should be different than 0 (I guess that's what the line says ?)
+	return !0;
 }
 
 static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)

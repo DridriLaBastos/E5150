@@ -53,7 +53,6 @@ uint64_t platformError_GetCode(void);
 const char* platformError_GetDescription(void);
 
 enum PLATFORM_CODE platformFifo_Create(const char* fifoFileName);
-FILE* platformFifo_Open(const char* fifoFileName, const int libcOpenFlags);
 
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime);
 enum PLATFORM_CODE platformFile_Copy(const char* from, const char* to);

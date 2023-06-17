@@ -79,11 +79,6 @@ enum PLATFORM_CODE platformFifo_Create (const char* fifoFileName)
 	return fifoAlreadyExists ? PLATFORM_FIFO_ALREADY_CREATED : PLATFORM_ERROR;
 }
 
-FILE* platformFifo_Open(const char* fifoFileName, const int libcOpenFlags)
-{
-	const int fd = open(fifoFileName, libcOpenFlags);
-}
-
 uint64_t platformError_GetCode(void)
 { return errno; }
 

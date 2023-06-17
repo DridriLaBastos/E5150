@@ -194,9 +194,9 @@ const char* platformError_GetDescription(void)
 	return messageDescription;
 }
 
-const uint64_t platformError_GetCode() { return GetLastError(); }
+uint64_t platformError_GetCode(void) { return GetLastError(); }
 
-enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName)
+enum PLATFORM_CODE platformFifo_Create(const char* fifoFileName)
 {
 	COMPUTE_WIN32_PIPE_PATH(fifoFileName);
 	//TODO: Not sure about that, seems to work.
@@ -216,17 +216,6 @@ enum PLATFORM_CODE platformCreateFifo(const char* fifoFileName)
 
 	mapInsert(namedPipeHandle, fifoFileName);
 	return PLATFORM_SUCCESS;
-}
-
-int platformOpenFifo(const char* fifoFileName, const int openFlags)
-{
-	const int mapEntryIndex = mapFindIndex(fifoFileName);
-	if (mapEntryIndex < 0) { return -1; }
-
-	const HANDLE hFifo = map[mapEntryIndex].handle;
-	const BOOL b = ConnectNamedPipe(hFifo, NULL);
-
-	return _open_osfhandle((intptr_t) hFifo, openFlags);
 }
 
 static enum PLATFORM_CODE readFromChildHandle(char* const c, HANDLE h)

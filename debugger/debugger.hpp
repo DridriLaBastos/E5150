@@ -1,9 +1,10 @@
 #ifndef DEBUGGER_HPP
 #define DEBUGGER_HPP
 
+#define LOCK_FILE ".lock"
+
 namespace E5150::DEBUGGER
 {
-	constexpr char LOCK_FILE [] = ".lock";
 	void init (void);
 	void PrepareSimulationSide(void);
 	void PrepareGuiSide(void);

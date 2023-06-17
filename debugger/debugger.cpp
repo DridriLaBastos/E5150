@@ -65,7 +65,7 @@ static void OpenLockFile(bool initializeReadSide)
 {
 	const char* openMode = initializeReadSide ? "r" : "w";
 	FILE** lockFile = initializeReadSide ? &lockFileRead : &lockFileWrite;
-	*lockFile = fopen(FIFO_PATH(E5150::DEBUGGER::LOCK_FILE),openMode);
+	*lockFile = fopen(FIFO_PATH(LOCK_FILE),openMode);
 
 	if (*lockFile == nullptr) {
 		spdlog::warn("[DEBUGGER]: Enable to open lock file to wait command. ERROR({}): '{}'",errno, strerror(errno));
