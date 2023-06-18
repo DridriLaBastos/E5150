@@ -1,7 +1,7 @@
 //
 // Created by Adrien COURNAND on 24/12/2022.
 //
-
+//TODO: WHY DO I HAVE LINK ERROR WHEN COMPILING XED IN STATIC MODE ?
 #include <inttypes.h>
 
 #include "core/pch.hpp"
@@ -132,12 +132,118 @@ static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 	}
 }
 
+static void DrawCurrentInstruction(const DebuggerGuiData& data)
+{
+	const xed_inst_t* inst = xed_decoded_inst_inst(&data.i8086->eu.decodedInst);
+	if (!inst)
+		return;
+
+	ImGui::Text("%s : length = %d",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&data.i8086->eu.decodedInst)),xed_decoded_inst_get_length(&data.i8086->eu.decodedInst));
+	return;
+	ImGui::Text("%s",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&data.i8086->eu.decodedInst))); ImGui::SameLine();
+	unsigned int realOperandPos = 0;
+	bool foundPtr = false;
+
+	for (unsigned int i = 0; i < xed_decoded_inst_noperands(&data.i8086->eu.decodedInst); ++i)
+	{
+		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
+		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
+
+		if (op_vis == XED_OPVIS_EXPLICIT)
+		{
+			if (foundPtr)
+			{
+				ImGui::TextUnformatted(":"); ImGui::SameLine();
+				foundPtr = false;
+			}
+			else
+			{
+				if (realOperandPos > 0)
+					ImGui::TextUnformatted(", "); ImGui::SameLine();
+			}
+
+			switch (op_name)
+			{
+			case XED_OPERAND_RELBR:
+				ImGui::Text("%d",(xed_decoded_inst_get_branch_displacement(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
+				break;
+
+			case XED_OPERAND_PTR:
+				ImGui::Text("0x%X",(xed_decoded_inst_get_branch_displacement(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
+				foundPtr = true;
+				break;
+
+			case XED_OPERAND_REG0:
+			case XED_OPERAND_REG1:
+			case XED_OPERAND_REG2:
+				ImGui::Text("%s",xed_reg_enum_t2str(xed_decoded_inst_get_reg(&data.i8086->eu.decodedInst, op_name))); ImGui::SameLine();
+				break;
+
+			case XED_OPERAND_IMM0:
+			case XED_OPERAND_IMM1:
+			ImGui::Text("0x%" PRIu64 ,(xed_decoded_inst_get_unsigned_immediate(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
+				break;
+
+			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
+			case XED_OPERAND_MEM0:
+			{
+				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&data.i8086->eu.decodedInst, 0);
+				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&data.i8086->eu.decodedInst, 0);
+				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&data.i8086->eu.decodedInst,0);
+				ImGui::Text("%s %s:[",
+					((xed_decoded_inst_get_memory_operand_length(&data.i8086->eu.decodedInst, 0) == 1) ? "BYTE" : "WORD"),
+					xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&data.i8086->eu.decodedInst, 0))); ImGui::SameLine();
+
+				if (baseReg != XED_REG_INVALID)
+					ImGui::Text("%s",xed_reg_enum_t2str(baseReg)); ImGui::SameLine();
+				
+				if (indexReg != XED_REG_INVALID)
+				{
+					if (baseReg != XED_REG_INVALID)
+					{ ImGui::TextUnformatted("+"); ImGui::SameLine(); }
+
+					ImGui::Text("%s",xed_reg_enum_t2str(indexReg));
+				}
+
+				if ((indexReg != XED_REG_INVALID) || (baseReg != XED_REG_INVALID))
+				{
+					if (memDisplacement != 0)
+					{
+						if (memDisplacement > 0)
+							ImGui::Text(" + %" PRIi64 , memDisplacement);
+						else
+							ImGui::Text(" - %" PRIi64 , -memDisplacement);
+						ImGui::SameLine();
+					}
+				}
+				else
+				{ ImGui::Text("%" PRIi64 ,memDisplacement); ImGui::SameLine(); }
+
+				ImGui::TextUnformatted("]");
+				ImGui::SameLine();
+			}	break;
+
+			default:
+				break;
+			}
+
+			++realOperandPos;
+		}
+	}
+		ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&data.i8086->eu.decodedInst)));
+		ImGui::SameLine();
+		ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
+}
+
 static void DrawDebuggerCPUStatus(const DebuggerGuiData& debuggerGuiData)
 {
 	const uint16_t cs = debuggerGuiData.i8086->regs.cs;
 	const uint16_t ip = debuggerGuiData.i8086->regs.ip;
 	unsigned int ea = (cs << 4) + ip;
 	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,ip,ea);
+	DrawCurrentInstruction(debuggerGuiData);
+
+	ImGui::Separator();
 
 	const uint16_t ss = debuggerGuiData.i8086->regs.ss;
 	const uint16_t sp = debuggerGuiData.i8086->regs.sp;

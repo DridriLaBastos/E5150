@@ -169,6 +169,7 @@ void E5150::GUI::draw()
 		DebuggerGuiData debuggerGuiData;
 		debuggerGuiData.parseLine = E5150::DEBUGGER::CLI::ParseLine;
 		debuggerGuiData.i8086 = &E5150::Arch::_cpu;
+		debuggerGuiData.euWorkingState = &E5150::Arch::_cpu.eu.getDebugWorkingState();
 
 		hotReloadDraw(emulationGuiData, debuggerGuiData);
 	}

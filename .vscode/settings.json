@@ -87,7 +87,11 @@
 		"numeric": "cpp",
 		"random": "cpp",
 		"algorithm": "cpp",
-		"filesystem": "cpp"
+		"filesystem": "cpp",
+		"cinttypes": "cpp",
+		"csetjmp": "cpp",
+		"scoped_allocator": "cpp",
+		"shared_mutex": "cpp"
 	},
 	"cmake.configureArgs": [
 		"-DUSE_MOLD=ON"

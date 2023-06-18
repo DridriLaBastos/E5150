@@ -18,11 +18,13 @@ struct EmulationGUIState
 	SpdlogImGuiColorSink<std::mutex>* consoleSink;
 };
 
+//Need to use pointer because references are not assignable outside of its declaration
 struct DebuggerGuiData
 {
-	void (*parseLine)(const std::string& cmdLine);
+	void (*parseLine)(const std::string& cmdLine) = nullptr;
 
-	CPU* i8086;
+	const CPU* i8086 = nullptr;
+	const E5150::I8086::EU::InternalInfos* euWorkingState = nullptr;;
 };
 
 #endif //E5150_GUI_STATES_HPP

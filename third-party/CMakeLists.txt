@@ -6,7 +6,7 @@ include(ProcessorCount)
 ProcessorCount(CPU_COUNT)
 message(VERBOSE "Found ${CPU_COUNT} cpus for building xed")
 
-set(XED_LIB_NAME "libxed.a")
+set(XED_LIB_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}xed${CMAKE_SHARED_LIBRARY_SUFFIX}")
 set(XED_EXTRA_FLAGS "-flto")
 
 if (USE_MOLD)
@@ -100,7 +100,7 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 		set(XED_BUILD_INSTALL_FLAGS "--install-dir=${PROJECT_BINARY_DIR}")
 	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags=${XED_LTO_FLAG} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
+	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --shared --extra-flags=${XED_LTO_FLAG} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
 		COMMAND_ECHO STDOUT)
 endif()
 
