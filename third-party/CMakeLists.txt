@@ -6,9 +6,6 @@ include(ProcessorCount)
 ProcessorCount(CPU_COUNT)
 message(VERBOSE "Found ${CPU_COUNT} cpus for building xed")
 
-set(XED_LIB_NAME "${CMAKE_STATIC_LIBRARY_PREFIX}xed${CMAKE_SHARED_LIBRARY_SUFFIX}")
-set(XED_EXTRA_FLAGS "-flto")
-
 if (USE_MOLD)
 	set(MOLD_VERSION "1.11.0")
 	include(FetchContent)
@@ -66,6 +63,8 @@ set(CLI11_SINGLE_FILE ON)
 set(CLI11_PRECOMPILED OFF)
 add_subdirectory(CLI11)
 
+find_package(OpenGL REQUIRED)
+
 add_library(imgui SHARED
 	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_draw.cpp
 	${CMAKE_SOURCE_DIR}/third-party/imgui/imgui_tables.cpp
@@ -75,11 +74,13 @@ add_library(imgui SHARED
 	${CMAKE_SOURCE_DIR}/third-party/imgui/backends/imgui_impl_glfw.cpp
 	${CMAKE_SOURCE_DIR}/third-party/imgui/backends/imgui_impl_opengl3.cpp
 )
-target_link_libraries(imgui glfw)
+target_link_libraries(imgui glfw OpenGL::GL)
 
+set(XED_LIB_NAME "libxed.a")
+set(XED_EXTRA_FLAGS "")
 if (WIN32)
-	set (XED_LIB_NAME "xed.lib")
 	set(XED_EXTRA_FLAGS "/GL")
+	set(XED_LIB_NAME "xed.lib")
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__declspec(dllexport)")
 else ()
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__attribute__((visibility(\"default\")))")
@@ -89,7 +90,6 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 	message(STATUS "COMPILING XED")
 	
 	find_package(Python3 COMPONENTS Interpreter REQUIRED)
-	
 
 	# xed is such a PAIN to build...
 	# This NEEDS to be extensively tested on multiple platforms
@@ -100,17 +100,9 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 		set(XED_BUILD_INSTALL_FLAGS "--install-dir=${PROJECT_BINARY_DIR}")
 	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --shared --extra-flags=${XED_LTO_FLAG} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
+	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
 		COMMAND_ECHO STDOUT)
 endif()
 
-find_library(XED_LIB_PATH ${XED_LIB_NAME}
-		PATHS ${PROJECT_BINARY_DIR}/lib
-		DOC "path to the xed library"
-		REQUIRED)
-
-if (XED_LIB_PATH-NOT_FOUND)
-	message(ERROR "Unable to build xed")
-else()
-	message(DEBUG "xed lib built at ${XED_LIB_PATH}")
-endif()
+add_library(xed STATIC IMPORTED GLOBAL)
+set_target_properties(xed PROPERTIES IMPORTED_LOCATION ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME})

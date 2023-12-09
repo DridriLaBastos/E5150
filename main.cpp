@@ -1,8 +1,8 @@
-#include <cstddef>//EXIT_SUCCESS
+#include <cstdlib>//EXIT_SUCCESS
 
 #include "gui/gui.hpp"
 
-int main (const int argc, const char* argv [])
+int main (void)
 {
 	E5150::GUI::init();
 	E5150::GUI::UILoop();

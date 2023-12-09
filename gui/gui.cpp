@@ -167,7 +167,9 @@ void E5150::GUI::draw()
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
 		DebuggerGuiData debuggerGuiData;
+	#ifdef DEBUGGER_ON
 		debuggerGuiData.parseLine = E5150::DEBUGGER::CLI::ParseLine;
+	#endif
 		debuggerGuiData.i8086 = &E5150::Arch::_cpu;
 		debuggerGuiData.euWorkingState = &E5150::Arch::_cpu.eu.getDebugWorkingState();
 

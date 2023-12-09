@@ -14,11 +14,13 @@ set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
-option(ENABLE_DEBUGGER "Compile the integrated debugger" ON)
+set(COMMON_PRECOMPILED_HEADER ${CMAKE_SOURCE_DIR}/common_pch.hpp)
+
+option(ENABLE_DEBUGGER "Compile the integrated debugger" OFF)
 
 add_compile_definitions($<$<CONFIG:Debug>:_DEBUG>)
 
-if (ENABLE_DEBUGGER)
+if (${ENABLE_DEBUGGER})
 	add_compile_definitions(DEBUGGER_ON)
 endif ()
 
@@ -32,7 +34,6 @@ include_directories(
 		${CMAKE_SOURCE_DIR}
 		${CMAKE_SOURCE_DIR}/third-party
 		${CMAKE_SOURCE_DIR}/third-party/spdlog/include
-		${CMAKE_SOURCE_DIR}/third-party/argparse/include
 		${CMAKE_SOURCE_DIR}/third-party/imgui
 		${CMAKE_SOURCE_DIR}/third-party/glfw/include
 
@@ -45,6 +46,8 @@ option(USE_MOLD "Use mold linker to increas link performances" OFF)
 add_subdirectory(third-party)
 add_subdirectory(test)
 add_subdirectory(gui)
+add_subdirectory(platform)
+add_subdirectory(core)
 
 if (MOLD_PATH)
 	message(WARNING "Using mold is still experimental")
@@ -66,46 +69,44 @@ endif()
 #Maybe using a configuration file later
 #configure_file(config.hpp.in config.hpp)
 
-file(GLOB CORE_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/*.cpp")
-file(GLOB CPU_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/cpu/*.cpp")
-file(GLOB FLOPPY_SRC CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/core/src/floppy/*.cpp")
+# set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
+# set(PLATFORM_SRC platform/platform_unix.c)
 
-set(EMULATOR_SRC ${CORE_SRC} ${CPU_SRC} ${FLOPPY_SRC})
-set(PLATFORM_SRC platform/platform_unix.c)
+# if(WIN32)
+# 	set(PLATFORM_SRC platform/platform_win32.c)
+# endif()
 
-if(WIN32)
-	set(PLATFORM_SRC platform/platform_win32.c)
-endif()
+# find_package(OpenGL REQUIRED)
 
-find_package(OpenGL REQUIRED)
+# add_executable(epc main.cpp ${EMULATOR_SRC} ${PLATFORM_SRC}
+# 	${PROJECT_SOURCE_DIR}/gui/gui.cpp
+# 	${PROJECT_SOURCE_DIR}/gui/ui_loop.cpp
+# )
 
-add_executable(epc main.cpp ${EMULATOR_SRC} ${PLATFORM_SRC}
-	${PROJECT_SOURCE_DIR}/gui/gui.cpp
-	${PROJECT_SOURCE_DIR}/gui/ui_loop.cpp
-)
+# target_link_libraries(epc core glfw OpenGL::GL imgui)
 
-target_precompile_headers(epc PUBLIC $<$<COMPILE_LANGUAGE:CXX,OBJC,OBJCXX>:core/pch.hpp>)
-target_link_libraries(epc glfw OpenGL::GL imgui ${XED_LIB_PATH})
+# set(HOTRELOAD_COPY_FULL_PATH "$<TARGET_FILE_DIR:hot_reload_draw>/$<TARGET_FILE_PREFIX:hot_reload_draw>$<TARGET_FILE_BASE_NAME:hot_reload_draw>_c$<TARGET_FILE_SUFFIX:hot_reload_draw>")
 
-set(HOTRELOAD_COPY_FULL_PATH "$<TARGET_FILE_DIR:hot_reload_draw>/$<TARGET_FILE_PREFIX:hot_reload_draw>$<TARGET_FILE_BASE_NAME:hot_reload_draw>_c$<TARGET_FILE_SUFFIX:hot_reload_draw>")
+# target_compile_definitions(epc PRIVATE
+# 	DRAW_LIBRARY_FULL_PATH="$<TARGET_FILE:hot_reload_draw>"
+# 	DRAW_LIBRARY_COPY_FULL_PATH="${HOTRELOAD_COPY_FULL_PATH}")
+# add_dependencies(epc asm-test)
 
-target_compile_definitions(epc PRIVATE
-	DRAW_LIBRARY_FULL_PATH="$<TARGET_FILE:hot_reload_draw>"
-	DRAW_LIBRARY_COPY_FULL_PATH="${HOTRELOAD_COPY_FULL_PATH}")
-add_dependencies(epc asm-test)
+# #TODO: Maybe I want the macro DEBUGGER_ON to be defined inside debugger.hpp ?
+# if (ENABLE_DEBUGGER)
+# 	target_sources(epc PUBLIC debugger/debugger.cpp debugger/cli.cpp debugger/commands.cpp)
+# 	target_compile_definitions(epc PRIVATE DEBUGGER_ON)
+# 	target_compile_definitions(hot_reload_draw PRIVATE DEBUGGER_ON)
+# endif()
 
-#TODO: Maybe I want the macro DEBUGGER_ON to be defined inside debugger.hpp ?
-if (ENABLE_DEBUGGER)
-	target_sources(epc PUBLIC debugger/debugger.cpp debugger/cli.cpp debugger/commands.cpp)
-	target_compile_definitions(epc PRIVATE DEBUGGER_ON)
-	target_compile_definitions(hot_reload_draw PRIVATE DEBUGGER_ON)
-endif()
+# add_custom_target(run ${PROJECT_BINARY_DIR}/epc
+# 					WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+# 					DEPENDS epc)
 
-add_custom_target(run ${PROJECT_BINARY_DIR}/epc
-					WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
-					DEPENDS epc)
+# if(WIN32)
+# 	add_custom_command(TARGET epc POST_BUILD
+# 			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:imgui> $<TARGET_FILE_DIR:epc>)
+# endif()
 
-if(WIN32)
-	add_custom_command(TARGET epc POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:imgui> $<TARGET_FILE_DIR:epc>)
-endif()
+add_executable(epc main.cpp)
+target_link_libraries(epc gui core)
