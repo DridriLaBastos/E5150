@@ -133,6 +133,12 @@ enum PLATFORM_CODE platformDylib_GetSymbolAddress(const module_t module, const c
 
 	//TODO: see man page, NULL return not always means error
 	*address = handle;
+
+	if (handle == NULL)
+	{
+		dynamicLinkerError = true;
+	}
+
 	return handle ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 

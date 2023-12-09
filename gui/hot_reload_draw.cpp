@@ -334,11 +334,11 @@ static void drawEmulationGui(const EmulationGUIState& state)
 	ImGui::End();
 }
 
-extern "C" DLL_EXPORT void hotReloadDraw(const EmulationGUIState& emulationGuiState, const DebuggerGuiData& debuggerCliFunctions)
+extern "C" DLL_EXPORT HOT_RELOAD_DRAW_SIGNATURE
 {
 	drawEmulationConsole(emulationGuiState);
 	drawEmulationGui(emulationGuiState);
-#ifdef DEBUGGER_ON
+#ifdef DEBUGGER_ONs
 	DrawDebuggerGui(debuggerCliFunctions);
 #endif
 }

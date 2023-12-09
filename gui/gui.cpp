@@ -11,9 +11,6 @@
 #include "spdlog_imgui_color_sink.hpp"
 #include "core/emulation_constants.hpp"
 
-//char* HOT_RELOAD_DRAW_NAME = "hotReloadDraw";
-#define HOT_RELOAD_DRAW_NAME "hotReloadDraw"
-
 using gui_clock = std::chrono::high_resolution_clock;
 
 namespace fs = std::filesystem;
@@ -22,7 +19,7 @@ static constexpr unsigned int MS_PER_UPDATE = 1000;
 static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 
-static void (*hotReloadDraw)(const EmulationGUIState&, const DebuggerGuiData&) = nullptr;
+static HOT_RELOAD_DRAW_SIGNATURE_RETURN_TYPE (*HotReloadDrawFuncPtr)(HOT_RELOAD_DRAW_SIGNATURE_PARAMETER) = nullptr;
 static module_t hotReloadModuleID = -1;
 fs::file_time_type libDrawLastWriteTime;
 static std::error_code errorCode;
@@ -82,7 +79,7 @@ static void reloadDrawLibrary()
 		goto errorDrawFunctionReset;
 	}
 
-	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME,(void**)&hotReloadDraw))
+	if (platformDylib_GetSymbolAddress(hotReloadModuleID,HOT_RELOAD_DRAW_NAME_STR,(void**)&HotReloadDrawFuncPtr))
 	{
 		E5150_ERROR("Unable to reload the draw library file : ERROR({}) : {}", platformError_GetCode(), platformError_GetDescription());
 		goto errorDrawFunctionReset;
@@ -98,7 +95,7 @@ static void reloadDrawLibrary()
 	errorDrawFunctionReset:
 	E5150_WARNING("\tGUI not draw");
 	hotReloadModuleID = -1;
-	hotReloadDraw = nullptr;
+	HotReloadDrawFuncPtr = nullptr;
 	//TODO: remake spdlog output to the console
 	return;
 }
@@ -107,7 +104,7 @@ void E5150::GUI::init()
 {
 	reloadDrawLibrary();
 
-	if (hotReloadDraw)
+	if (HotReloadDrawFuncPtr)
 	{
 		//spdlog::default_logger()->sinks().clear();
 		spdlog::default_logger()->sinks().push_back(std::make_shared<SpdlogImGuiColorSink<std::mutex>>());
@@ -127,8 +124,8 @@ void E5150::GUI::init()
 
 #ifndef WIN32 //Those signals values aren't defined in windows
 	signal(SIGSTOP, stop);
-		signal(SIGQUIT, stop);
-		signal(SIGKILL, stop);
+	signal(SIGQUIT, stop);
+	signal(SIGKILL, stop);
 #endif
 
 	signal(SIGABRT, stop);
@@ -158,7 +155,7 @@ void E5150::GUI::draw()
 {
 	reloadDrawLibrary();
 
-	if (hotReloadDraw)
+	if (HotReloadDrawFuncPtr)
 	{
 		EmulationGUIState emulationGuiData;
 		emulationGuiData.cpuClock = E5150::Arch::emulationStat.cpuClock;
@@ -166,14 +163,14 @@ void E5150::GUI::draw()
 		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
-		DebuggerGuiData debuggerGuiData;
 	#ifdef DEBUGGER_ON
+		DebuggerGuiData debuggerGuiData;
 		debuggerGuiData.parseLine = E5150::DEBUGGER::CLI::ParseLine;
-	#endif
 		debuggerGuiData.i8086 = &E5150::Arch::_cpu;
 		debuggerGuiData.euWorkingState = &E5150::Arch::_cpu.eu.getDebugWorkingState();
+	#endif
 
-		hotReloadDraw(emulationGuiData, debuggerGuiData);
+		HotReloadDrawFuncPtr(emulationGuiData);
 	}
 }
 
