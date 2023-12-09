@@ -8,26 +8,27 @@
 #include <cstdint>
 
 #include "spdlog_imgui_color_sink.hpp"
-#include "debugger/debugger.hpp"
-
-#include "core/8086.hpp"
 
 //Need to use pointer because references are not assignable outside of its declaration
-struct DebuggerGuiData
+struct DebuggerGuiState
 {
-	void (*parseLine)(const std::string& cmdLine) = nullptr;
+	std::string outCmdLine;
 
+	uint64_t instructionExecutedCount;
+
+#if 0
 	const CPU* i8086 = nullptr;
-	const E5150::I8086::EU::InternalInfos* euWorkingState = nullptr;;
+	const E5150::I8086::EU::InternalInfos* euWorkingState = nullptr;
+#endif
 };
 
-struct EmulationGUIState
+struct EmulationGuiState
 {
 	uint64_t cpuClock, fdcClock,instructionExecutedCount;
 	SpdlogImGuiColorSink<std::mutex>* consoleSink;
 
 #ifdef DEBUGGER_ON
-	DebuggerGuiData debuggerGuiState;
+	DebuggerGuiState debuggerGuiState;
 #endif
 };
 
@@ -36,7 +37,7 @@ struct EmulationGUIState
 
 #define HOT_RELOAD_DRAW_SIGNATURE_RETURN_TYPE void
 #define HOT_RELOAD_DRAW_NAME HotReloadDraw
-#define HOT_RELOAD_DRAW_SIGNATURE_PARAMETER const EmulationGUIState& emulationGuiState
+#define HOT_RELOAD_DRAW_SIGNATURE_PARAMETER EmulationGuiState& emulationGuiState
 
 #define HOT_RELOAD_DRAW_SIGNATURE HOT_RELOAD_DRAW_SIGNATURE_RETURN_TYPE HOT_RELOAD_DRAW_NAME (HOT_RELOAD_DRAW_SIGNATURE_PARAMETER)
 

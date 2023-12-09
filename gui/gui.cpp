@@ -1,14 +1,16 @@
 #include <csignal>
 #include <filesystem>
 
+#include "platform/platform.h"
+#include "spdlog_imgui_color_sink.hpp"
+
 #include "gui/gui.hpp"
+#include "gui_states.hpp"
+
 #include "core/pch.hpp"
 #include "core/arch.hpp"
-#include "gui_states.hpp"
-#include "debugger/cli.hpp"
-#include "platform/platform.h"
-#include "debugger/debugger.hpp"
-#include "spdlog_imgui_color_sink.hpp"
+#include "core/debugger/cli.hpp"
+#include "core/debugger/debugger.hpp"
 #include "core/emulation_constants.hpp"
 
 using gui_clock = std::chrono::high_resolution_clock;
@@ -157,20 +159,29 @@ void E5150::GUI::draw()
 
 	if (HotReloadDrawFuncPtr)
 	{
-		EmulationGUIState emulationGuiData;
+		EmulationGuiState emulationGuiData;
 		emulationGuiData.cpuClock = E5150::Arch::emulationStat.cpuClock;
 		emulationGuiData.fdcClock = E5150::Arch::emulationStat.fdcClock;
 		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
 	#ifdef DEBUGGER_ON
-		DebuggerGuiData debuggerGuiData;
-		debuggerGuiData.parseLine = E5150::DEBUGGER::CLI::ParseLine;
-		debuggerGuiData.i8086 = &E5150::Arch::_cpu;
-		debuggerGuiData.euWorkingState = &E5150::Arch::_cpu.eu.getDebugWorkingState();
+		emulationGuiData.debuggerGuiState.instructionExecutedCount = E5150::Arch::_cpu.instructionExecutedCount;
+#if 0
+		emulationGuiData.debuggerGuiState.i8086 = &E5150::Arch::_cpu;
+		emulationGuiData.debuggerGuiState.euWorkingState = &E5150::Arch::_cpu.eu.getDebugWorkingState();
+#endif
 	#endif
 
 		HotReloadDrawFuncPtr(emulationGuiData);
+
+#ifdef DEBUGGER_ON
+		if (!emulationGuiData.debuggerGuiState.outCmdLine.empty())
+		{
+			DEBUGGER::CLI::ParseLine(emulationGuiData.debuggerGuiState.outCmdLine);
+			emulationGuiData.debuggerGuiState.outCmdLine.clear();
+		}
+#endif
 	}
 }
 

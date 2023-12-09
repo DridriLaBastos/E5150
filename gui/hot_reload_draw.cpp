@@ -72,7 +72,7 @@ static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
 	return !0;
 }
 
-static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
+static void DrawDebuggerCommandConsole(DebuggerGuiState& debuggerGuiState)
 {
 	if (ImGui::BeginChild("scrolling",ImVec2{150,80},false, ImGuiWindowFlags_HorizontalScrollbar))
 	{
@@ -103,37 +103,38 @@ static void DrawDebuggerCommandConsole(const DebuggerGuiData& debuggerGuiData)
 		ImGuiInputTextFlags_CallbackCompletion |
 		ImGuiInputTextFlags_CallbackHistory;
 
-	ImGui::Text("(%" PRIu64 ")",debuggerGuiData.i8086->instructionExecutedCount);
+	ImGui::Text("(%" PRIu64 ")",debuggerGuiState.instructionExecutedCount);
 	ImGui::SameLine();
 	if(ImGui::InputText("Enter your command", cmdBuffer,IM_ARRAYSIZE(cmdBuffer)-1,inputTextFlags, DebuggerCommandTextEditCallback))
 	{
 		const size_t len = strnlen(cmdBuffer, sizeof(cmdBuffer)) + 1;
 		//Ensure that the stored string is a valid null-terminated character without the need to call std::string::c_str
 		entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND, std::string(cmdBuffer, len));
-		debuggerGuiData.parseLine(cmdBuffer);
+		debuggerGuiState.outCmdLine = cmdBuffer;
 	}
 
 	ImGui::Separator();
 	if (ImGui::Button("|->I"))
 	{
-		debuggerGuiData.parseLine("step --instruction 1");
+		debuggerGuiState.outCmdLine = "step --instruction 1";
 	}
 
 	ImGui::SameLine();
 	if (ImGui::Button("|->C"))
 	{
-		debuggerGuiData.parseLine("step --clock 1");
+		debuggerGuiState.outCmdLine = "step --clock 1";
 	}
 
 	ImGui::SameLine();
 	if (ImGui::Button("->>"))
 	{
-		debuggerGuiData.parseLine("continue");
+		debuggerGuiState.outCmdLine = "continue";
 	}
 }
 
-static void DrawCurrentInstruction(const DebuggerGuiData& data)
+static void DrawCurrentInstruction(const DebuggerGuiState& data)
 {
+#if 0
 	const xed_inst_t* inst = xed_decoded_inst_inst(&data.i8086->eu.decodedInst);
 	if (!inst)
 		return;
@@ -233,64 +234,66 @@ static void DrawCurrentInstruction(const DebuggerGuiData& data)
 		ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&data.i8086->eu.decodedInst)));
 		ImGui::SameLine();
 		ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
+#endif
 }
 
-static void DrawDebuggerCPUStatus(const DebuggerGuiData& debuggerGuiData)
+static void DrawDebuggerCPUStatus(const DebuggerGuiState& debuggerGuiState)
 {
-	const uint16_t cs = debuggerGuiData.i8086->regs.cs;
-	const uint16_t ip = debuggerGuiData.i8086->regs.ip;
+#if 0
+	const uint16_t cs = debuggerGuiState.i8086->regs.cs;
+	const uint16_t ip = debuggerGuiState.i8086->regs.ip;
 	unsigned int ea = (cs << 4) + ip;
 	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,ip,ea);
-	DrawCurrentInstruction(debuggerGuiData);
+	DrawCurrentInstruction(debuggerGuiState);
 
 	ImGui::Separator();
 
-	const uint16_t ss = debuggerGuiData.i8086->regs.ss;
-	const uint16_t sp = debuggerGuiData.i8086->regs.sp;
+	const uint16_t ss = debuggerGuiState.i8086->regs.ss;
+	const uint16_t sp = debuggerGuiState.i8086->regs.sp;
 	ea = (ss << 4) + sp;
 	ImGui::Text("Stack    (ss:sp) 0x%04X:0x%04X (0x%05X)", ss,sp,ea);
 
 	ImGui::Separator();
 
 	ImGui::Text("CS 0x%4X   DS 0x%4X   ES 0x%4X   SS 0x%4X",
-				debuggerGuiData.i8086->regs.cs,debuggerGuiData.i8086->regs.ds,debuggerGuiData.i8086->regs.es,debuggerGuiData.i8086->regs.ss);
+				debuggerGuiState.i8086->regs.cs,debuggerGuiState.i8086->regs.ds,debuggerGuiState.i8086->regs.es,debuggerGuiState.i8086->regs.ss);
 	ImGui::Text("AX 0x%4X   BX 0x%4X   CX 0x%4X   DX 0x%4X",
-	            debuggerGuiData.i8086->regs.ax,debuggerGuiData.i8086->regs.bx,debuggerGuiData.i8086->regs.cx,debuggerGuiData.i8086->regs.dx);
+	            debuggerGuiState.i8086->regs.ax,debuggerGuiState.i8086->regs.bx,debuggerGuiState.i8086->regs.cx,debuggerGuiState.i8086->regs.dx);
 	ImGui::Text("SI 0x%4X   DI 0x%4X   BP 0x%4X   SP 0x%4X",
-	            debuggerGuiData.i8086->regs.si,debuggerGuiData.i8086->regs.di,debuggerGuiData.i8086->regs.bp,debuggerGuiData.i8086->regs.sp);
+	            debuggerGuiState.i8086->regs.si,debuggerGuiState.i8086->regs.di,debuggerGuiState.i8086->regs.bp,debuggerGuiState.i8086->regs.sp);
 	ImGui::Separator();
 
-	const Regs& regs = debuggerGuiData.i8086->regs;
+	const Regs& regs = debuggerGuiState.i8086->regs;
 	ImGui::Text("%c %c %c %c %c %c %c %c %c",(regs.flags & CPU::CARRY) ? 'C' : 'c',(regs.flags & CPU::PARRITY) ? 'P' : 'p',
 		(regs.flags & CPU::A_CARRY) ? 'A' : 'a', (regs.flags & CPU::ZERRO) ? 'Z' : 'z', (regs.flags & CPU::SIGN) ? 'S' : 's',
 		(regs.flags & CPU::TRAP) ? 'T' : 't', (regs.flags & CPU::INTF) ? 'I' : 'i', (regs.flags & CPU::DIR) ? 'D' : 'd',
 		(regs.flags & CPU::OVER) ? 'O' : 'o');
-
+#endif
 }
 
-static void DrawDebuggerGui(const DebuggerGuiData& debuggerGuiData)
+static void DrawDebuggerGui(DebuggerGuiState& debuggerGuiState)
 {
 	ImGui::Begin("Debugger");
 
 	ImGui::BeginChild("Console",ImVec2(ImGui::GetContentRegionAvail().x*.5,0.0),true);
-	DrawDebuggerCommandConsole(debuggerGuiData);
+	DrawDebuggerCommandConsole(debuggerGuiState);
 	ImGui::EndChild();
 	
 	ImGui::SameLine();
 
 	ImGui::BeginChild("Reg View", {0,0},true);
 	ImGui::PushItemWidth(-FLT_MIN);
-	DrawDebuggerCPUStatus(debuggerGuiData);
+	DrawDebuggerCPUStatus(debuggerGuiState);
 	ImGui::PopItemWidth();
 	ImGui::EndChild();
 
 	ImGui::End();
 }
 
-static void drawEmulationConsole(const EmulationGUIState& state)
+static void DrawEmulationConsole(const EmulationGuiState& state)
 { state.consoleSink->imguiDraw(); }
 
-static void drawEmulationGui(const EmulationGUIState& state)
+static void DrawEmulationGui(const EmulationGuiState& state)
 {
 	static unsigned int instructionExecuted = 0;
 	static uint64_t lastFrameCPUClockCount = 0;
@@ -329,16 +332,15 @@ static void drawEmulationGui(const EmulationGUIState& state)
 	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
 	ImGui::Text("Clock accuracy cpu : %d%%  fdc %d%%", CPUClockAccuracy, FDCClockAccuracy);
 	ImGui::Text("Instruction executed : %.3fM/s ( %4.3fM)",instructionExecuted / 1e6, state.instructionExecutedCount / 1e6);
-	// ImGui::TextUnformatted("Bonjour");
 
 	ImGui::End();
 }
 
 extern "C" DLL_EXPORT HOT_RELOAD_DRAW_SIGNATURE
 {
-	drawEmulationConsole(emulationGuiState);
-	drawEmulationGui(emulationGuiState);
-#ifdef DEBUGGER_ONs
-	DrawDebuggerGui(debuggerCliFunctions);
+	DrawEmulationConsole(emulationGuiState);
+	DrawEmulationGui(emulationGuiState);
+#ifdef DEBUGGER_ON
+	DrawDebuggerGui(emulationGuiState.debuggerGuiState);
 #endif
 }

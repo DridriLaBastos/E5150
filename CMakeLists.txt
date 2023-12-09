@@ -17,6 +17,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 set(COMMON_PRECOMPILED_HEADER ${CMAKE_SOURCE_DIR}/common_pch.hpp)
 
 option(ENABLE_DEBUGGER "Compile the integrated debugger" OFF)
+option(USE_MOLD "Use mold linker to increase link performances" ON)
 
 add_compile_definitions($<$<CONFIG:Debug>:_DEBUG>)
 
@@ -40,8 +41,6 @@ include_directories(
 		${CMAKE_BINARY_DIR}/third-party/include
 		${CMAKE_BINARY_DIR}/third-party/CLI11/include
 )
-
-option(USE_MOLD "Use mold linker to increas link performances" OFF)
 
 add_subdirectory(third-party)
 add_subdirectory(test)
