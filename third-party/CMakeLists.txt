@@ -76,11 +76,10 @@ add_library(imgui SHARED
 )
 target_link_libraries(imgui glfw OpenGL::GL)
 
-set(XED_LIB_NAME "libxed.a")
-set(XED_EXTRA_FLAGS "")
+set(XED_LIB_NAME ${CMAKE_SHARED_LIBRARY_PREFIX}xed${CMAKE_SHARED_LIBRARY_SUFFIX})
+set(XED_EXTRA_FLAGS "-flto")
 if (WIN32)
 	set(XED_EXTRA_FLAGS "/GL")
-	set(XED_LIB_NAME "xed.lib")
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__declspec(dllexport)")
 else ()
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__attribute__((visibility(\"default\")))")
@@ -100,9 +99,18 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 		set(XED_BUILD_INSTALL_FLAGS "--install-dir=${PROJECT_BINARY_DIR}")
 	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} --static --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
+	# There must be some static variable in libxed or something because when compiled as a static library, when
+	# linked with the shared library hot_reload_draw I have undefined symbols inside xed
+	if(${ENABLE_DEBUGGER})
+		set(XED_LIB_TYPE_FLAG --shared)
+	else()
+		set(XED_LIB_TYPE_FLAG --static)
+	endif()
+
+	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} ${XED_LIB_TYPE_FLAG} --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
 		COMMAND_ECHO STDOUT)
 endif()
 
-add_library(xed STATIC IMPORTED GLOBAL)
+add_library(xed SHARED IMPORTED GLOBAL)
+
 set_target_properties(xed PROPERTIES IMPORTED_LOCATION ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME})

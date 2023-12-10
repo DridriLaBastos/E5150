@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "xed/xed-interface.h"
 #include "spdlog_imgui_color_sink.hpp"
 
 //Need to use pointer because references are not assignable outside of its declaration
@@ -15,6 +16,7 @@ struct DebuggerGuiState
 	std::string outCmdLine;
 
 	uint64_t instructionExecutedCount;
+	xed_decoded_inst_t* currenltyDecodedInstruction;
 
 #if 0
 	const CPU* i8086 = nullptr;
@@ -24,8 +26,8 @@ struct DebuggerGuiState
 
 struct EmulationGuiState
 {
-	uint64_t cpuClock, fdcClock,instructionExecutedCount;
-	SpdlogImGuiColorSink<std::mutex>* consoleSink;
+	uint64_t cpuClock{}, fdcClock{},instructionExecutedCount{};
+	SpdlogImGuiColorSink<std::mutex>* consoleSink{};
 
 #ifdef DEBUGGER_ON
 	DebuggerGuiState debuggerGuiState;

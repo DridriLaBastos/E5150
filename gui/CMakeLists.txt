@@ -7,7 +7,7 @@ target_precompile_headers(gui PRIVATE ${COMMON_PRECOMPILED_HEADER})
 target_precompile_headers(hot_reload_draw PRIVATE ${COMMON_PRECOMPILED_HEADER})
 
 target_link_libraries(gui PRIVATE imgui glfw platform)
-target_link_libraries(hot_reload_draw PRIVATE imgui)
+target_link_libraries(hot_reload_draw PRIVATE imgui $<$<BOOL:${USE_DEBUGGER}>:xed>)
 
 set(HOTRELOAD_COPY_FULL_PATH "$<TARGET_FILE_DIR:hot_reload_draw>/$<TARGET_FILE_PREFIX:hot_reload_draw>$<TARGET_FILE_BASE_NAME:hot_reload_draw>_c$<TARGET_FILE_SUFFIX:hot_reload_draw>")
 target_compile_definitions(gui PRIVATE

@@ -16,12 +16,12 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 set(COMMON_PRECOMPILED_HEADER ${CMAKE_SOURCE_DIR}/common_pch.hpp)
 
-option(ENABLE_DEBUGGER "Compile the integrated debugger" OFF)
-option(USE_MOLD "Use mold linker to increase link performances" ON)
+option(USE_DEBUGGER "Compile the integrated debugger" OFF)
+option(USE_MOLD "Use mold linker to increase link performances" OFF)
 
 add_compile_definitions($<$<CONFIG:Debug>:_DEBUG>)
 
-if (${ENABLE_DEBUGGER})
+if (${USE_DEBUGGER})
 	add_compile_definitions(DEBUGGER_ON)
 endif ()
 
