@@ -94,7 +94,7 @@
 		"shared_mutex": "cpp"
 	},
 	"cmake.configureArgs": [
-		"-DUSE_MOLD=ON",
+		"-DUSE_MOLD=OFF",
 		"-DUSE_DEBUGGER=ON"
 	],
 	"C_Cpp.codeAnalysis.clangTidy.enabled": true

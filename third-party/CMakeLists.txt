@@ -76,7 +76,12 @@ add_library(imgui SHARED
 )
 target_link_libraries(imgui glfw OpenGL::GL)
 
-set(XED_LIB_NAME ${CMAKE_SHARED_LIBRARY_PREFIX}xed${CMAKE_SHARED_LIBRARY_SUFFIX})
+set(XED_LIB_NAME ${CMAKE_STTATIC_LIBRARY_PREFIX}xed${CMAKE_STATIC_LIBRARY_SUFFIX})
+
+if (${USE_DEBUGGER})
+	set(XED_LIB_NAME ${CMAKE_SHARED_LIBRARY_PREFIX}xed${CMAKE_SHARED_LIBRARY_SUFFIX})	
+endif()
+
 set(XED_EXTRA_FLAGS "-flto")
 if (WIN32)
 	set(XED_EXTRA_FLAGS "/GL")
@@ -101,7 +106,7 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 
 	# There must be some static variable in libxed or something because when compiled as a static library, when
 	# linked with the shared library hot_reload_draw I have undefined symbols inside xed
-	if(${ENABLE_DEBUGGER})
+	if(${USE_DEBUGGER})
 		set(XED_LIB_TYPE_FLAG --shared)
 	else()
 		set(XED_LIB_TYPE_FLAG --static)
