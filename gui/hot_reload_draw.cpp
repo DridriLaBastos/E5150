@@ -136,7 +136,6 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 	if (!inst)
 		return;
 
-	ImGui::Text("%s : length = %d",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&data.i8086->eu.decodedInst)),xed_decoded_inst_get_length(&data.i8086->eu.decodedInst));
 	ImGui::Text("%s",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&data.i8086->eu.decodedInst))); ImGui::SameLine();
 	unsigned int realOperandPos = 0;
 	bool foundPtr = false;
@@ -156,7 +155,10 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 			else
 			{
 				if (realOperandPos > 0)
-					ImGui::TextUnformatted(", "); ImGui::SameLine();
+				{
+					ImGui::TextUnformatted(", ");
+					ImGui::SameLine();
+				}
 			}
 
 			switch (op_name)
@@ -192,7 +194,10 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 					xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&data.i8086->eu.decodedInst, 0))); ImGui::SameLine();
 
 				if (baseReg != XED_REG_INVALID)
-					ImGui::Text("%s",xed_reg_enum_t2str(baseReg)); ImGui::SameLine();
+				{
+					ImGui::Text("%s",xed_reg_enum_t2str(baseReg));
+					ImGui::SameLine();
+				}
 				
 				if (indexReg != XED_REG_INVALID)
 				{
@@ -227,9 +232,12 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 			++realOperandPos;
 		}
 	}
-		ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&data.i8086->eu.decodedInst)));
-		ImGui::SameLine();
-		ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
+
+	ImGui::Text("[%d]",xed_decoded_inst_get_length(&data.i8086->eu.decodedInst));
+	ImGui::SameLine();
+	ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&data.i8086->eu.decodedInst)));
+	ImGui::SameLine();
+	ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
 }
 
 static void DrawDebuggerCPUStatus(const DebuggerGuiState& debuggerGuiState)
