@@ -533,7 +533,7 @@ static unsigned int prepareInstructionExecution(void)
 static unsigned int EUDecodeClock(void)
 {
 	xed_decoded_inst_zero_keep_mode(&cpu.eu.decodedInst);
-	const xed_error_enum_t DECODE_STATUS = xed_decode(&cpu.eu.decodedInst,cpu.biu.instructionBufferQueue.data(), cpu.biu.instructionBufferQueue.size());
+	const xed_error_enum_t DECODE_STATUS = xed_decode(&cpu.eu.decodedInst,cpu.biu.instructionBufferQueue.data(), cpu.biu.instructionBufferQueuePos);
 
 	if (DECODE_STATUS == XED_ERROR_NONE)
 	{
