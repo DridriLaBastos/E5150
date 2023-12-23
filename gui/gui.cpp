@@ -7,7 +7,6 @@
 #include "gui/gui.hpp"
 #include "gui_states.hpp"
 
-#include "core/pch.hpp"
 #include "core/arch.hpp"
 #include "core/debugger/cli.hpp"
 #include "core/debugger/debugger.hpp"
@@ -167,8 +166,9 @@ void E5150::GUI::draw()
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
 	#ifdef DEBUGGER_ON
-		emulationGuiData.debuggerGuiState.instructionExecutedCount = E5150::Arch::_cpu.instructionExecutedCount;
-		emulationGuiData.debuggerGuiState.currenltyDecodedInstruction = &Arch::_cpu.eu.decodedInst;
+		emulationGuiData.debuggerGuiState.i8086 = &E5150::Arch::_cpu;
+		// emulationGuiData.debuggerGuiState.instructionExecutedCount = E5150::Arch::_cpu.instructionExecutedCount;
+		// emulationGuiData.debuggerGuiState.currenltyDecodedInstruction = &Arch::_cpu.eu.decodedInst;
 #if 0
 		emulationGuiData.debuggerGuiState.i8086 = &E5150::Arch::_cpu;
 		emulationGuiData.debuggerGuiState.euWorkingState = &E5150::Arch::_cpu.eu.getDebugWorkingState();

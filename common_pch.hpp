@@ -15,8 +15,17 @@
 #include <cstdint>
 #include <iostream>
 #include <algorithm>
+#include <cinttypes>
 #include <exception>
 #include <functional>
 #include <string_view>
+
+extern "C"
+{
+	#include "xed/xed-interface.h"
+	#include "xed/xed-operand-visibility-enum.h"
+}
+
+#include "spdlog/spdlog.h"
 
 #endif

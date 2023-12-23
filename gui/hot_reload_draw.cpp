@@ -2,9 +2,6 @@
 // Created by Adrien COURNAND on 24/12/2022.
 //
 //TODO: WHY DO I HAVE LINK ERROR WHEN COMPILING XED IN STATIC MODE ?
-#include <cinttypes>
-
-#include "core/pch.hpp"
 #include "core/emulation_constants.hpp"
 #include "gui_states.hpp"
 #include "third-party/imgui/imgui.h"
@@ -103,7 +100,7 @@ static void DrawDebuggerCommandConsole(DebuggerGuiState& debuggerGuiState)
 		ImGuiInputTextFlags_CallbackCompletion |
 		ImGuiInputTextFlags_CallbackHistory;
 
-	ImGui::Text("(%" PRIu64 ")",debuggerGuiState.instructionExecutedCount);
+	ImGui::Text("(%" PRIu64 ")",debuggerGuiState.i8086->instructionExecutedCount);
 	ImGui::SameLine();
 	if(ImGui::InputText("Enter your command", cmdBuffer,IM_ARRAYSIZE(cmdBuffer)-1,inputTextFlags, DebuggerCommandTextEditCallback))
 	{
@@ -134,17 +131,17 @@ static void DrawDebuggerCommandConsole(DebuggerGuiState& debuggerGuiState)
 
 static void DrawCurrentInstruction(const DebuggerGuiState& data)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(data.currenltyDecodedInstruction);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&data.i8086->eu.decodedInst);
 
 	if (!inst)
 		return;
 
-	ImGui::Text("%s : length = %d",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(data.currenltyDecodedInstruction)),xed_decoded_inst_get_length(data.currenltyDecodedInstruction));
-	ImGui::Text("%s",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(data.currenltyDecodedInstruction))); ImGui::SameLine();
+	ImGui::Text("%s : length = %d",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&data.i8086->eu.decodedInst)),xed_decoded_inst_get_length(&data.i8086->eu.decodedInst));
+	ImGui::Text("%s",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&data.i8086->eu.decodedInst))); ImGui::SameLine();
 	unsigned int realOperandPos = 0;
 	bool foundPtr = false;
 
-	for (unsigned int i = 0; i < xed_decoded_inst_noperands(data.currenltyDecodedInstruction); ++i)
+	for (unsigned int i = 0; i < xed_decoded_inst_noperands(&data.i8086->eu.decodedInst); ++i)
 	{
 		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
 		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
@@ -165,34 +162,34 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 			switch (op_name)
 			{
 			case XED_OPERAND_RELBR:
-				ImGui::Text("%d",(xed_decoded_inst_get_branch_displacement(data.currenltyDecodedInstruction) & 0xFFFF)); ImGui::SameLine();
+				ImGui::Text("%d",(xed_decoded_inst_get_branch_displacement(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
 				break;
 
 			case XED_OPERAND_PTR:
-				ImGui::Text("0x%X",(xed_decoded_inst_get_branch_displacement(data.currenltyDecodedInstruction) & 0xFFFF)); ImGui::SameLine();
+				ImGui::Text("0x%X",(xed_decoded_inst_get_branch_displacement(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
 				foundPtr = true;
 				break;
 
 			case XED_OPERAND_REG0:
 			case XED_OPERAND_REG1:
 			case XED_OPERAND_REG2:
-				ImGui::Text("%s",xed_reg_enum_t2str(xed_decoded_inst_get_reg(data.currenltyDecodedInstruction, op_name))); ImGui::SameLine();
+				ImGui::Text("%s",xed_reg_enum_t2str(xed_decoded_inst_get_reg(&data.i8086->eu.decodedInst, op_name))); ImGui::SameLine();
 				break;
 
 			case XED_OPERAND_IMM0:
 			case XED_OPERAND_IMM1:
-			ImGui::Text("0x%" PRIu64 ,(xed_decoded_inst_get_unsigned_immediate(data.currenltyDecodedInstruction) & 0xFFFF)); ImGui::SameLine();
+			ImGui::Text("0x%" PRIu64 ,(xed_decoded_inst_get_unsigned_immediate(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
 				break;
 
 			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
 			case XED_OPERAND_MEM0:
 			{
-				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(data.currenltyDecodedInstruction, 0);
-				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(data.currenltyDecodedInstruction, 0);
-				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(data.currenltyDecodedInstruction,0);
+				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&data.i8086->eu.decodedInst, 0);
+				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&data.i8086->eu.decodedInst, 0);
+				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&data.i8086->eu.decodedInst,0);
 				ImGui::Text("%s %s:[",
-					((xed_decoded_inst_get_memory_operand_length(data.currenltyDecodedInstruction, 0) == 1) ? "BYTE" : "WORD"),
-					xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(data.currenltyDecodedInstruction, 0))); ImGui::SameLine();
+					((xed_decoded_inst_get_memory_operand_length(&data.i8086->eu.decodedInst, 0) == 1) ? "BYTE" : "WORD"),
+					xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&data.i8086->eu.decodedInst, 0))); ImGui::SameLine();
 
 				if (baseReg != XED_REG_INVALID)
 					ImGui::Text("%s",xed_reg_enum_t2str(baseReg)); ImGui::SameLine();
@@ -230,15 +227,15 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 			++realOperandPos;
 		}
 	}
-		ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(data.currenltyDecodedInstruction)));
+		ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&data.i8086->eu.decodedInst)));
 		ImGui::SameLine();
-		ImGui::Text(" (%" PRIu64 ")",data.instructionExecutedCount);
+		ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
 }
 
 static void DrawDebuggerCPUStatus(const DebuggerGuiState& debuggerGuiState)
 {
-	DrawCurrentInstruction(debuggerGuiState);
-#if 0
+	// DrawCurrentInstruction(debuggerGuiState);
+
 	const uint16_t cs = debuggerGuiState.i8086->regs.cs;
 	const uint16_t ip = debuggerGuiState.i8086->regs.ip;
 	unsigned int ea = (cs << 4) + ip;
@@ -267,7 +264,7 @@ static void DrawDebuggerCPUStatus(const DebuggerGuiState& debuggerGuiState)
 		(regs.flags & CPU::A_CARRY) ? 'A' : 'a', (regs.flags & CPU::ZERRO) ? 'Z' : 'z', (regs.flags & CPU::SIGN) ? 'S' : 's',
 		(regs.flags & CPU::TRAP) ? 'T' : 't', (regs.flags & CPU::INTF) ? 'I' : 'i', (regs.flags & CPU::DIR) ? 'D' : 'd',
 		(regs.flags & CPU::OVER) ? 'O' : 'o');
-#endif
+
 }
 
 static void DrawDebuggerGui(DebuggerGuiState& debuggerGuiState)

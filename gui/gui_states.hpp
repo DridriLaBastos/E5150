@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "core/8086.hpp"
 #include "xed/xed-interface.h"
 #include "spdlog_imgui_color_sink.hpp"
 
@@ -14,12 +15,9 @@
 struct DebuggerGuiState
 {
 	std::string outCmdLine;
-
-	uint64_t instructionExecutedCount;
-	xed_decoded_inst_t* currenltyDecodedInstruction;
+	CPU* i8086 = nullptr;
 
 #if 0
-	const CPU* i8086 = nullptr;
 	const E5150::I8086::EU::InternalInfos* euWorkingState = nullptr;
 #endif
 };

@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD 17)
 # set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
-set(COMMON_PRECOMPILED_HEADER ${CMAKE_SOURCE_DIR}/common_pch.hpp)
+set(E5150_PRECOMPILED_HEADER_FILE ${CMAKE_SOURCE_DIR}/common_pch.hpp)
 
 option(USE_DEBUGGER "Compile the integrated debugger" OFF)
 option(USE_MOLD "Use mold linker to increase link performances" OFF)

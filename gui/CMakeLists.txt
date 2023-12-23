@@ -3,8 +3,8 @@ project("E5150 gui" DESCRIPTION "Gui code of the E5150 emulator")
 add_library(hot_reload_draw MODULE hot_reload_draw.cpp)
 add_library(gui gui.cpp ui_loop.cpp)
 
-target_precompile_headers(gui PRIVATE ${COMMON_PRECOMPILED_HEADER})
-target_precompile_headers(hot_reload_draw PRIVATE ${COMMON_PRECOMPILED_HEADER})
+target_precompile_headers(gui PRIVATE ${E5150_PRECOMPILED_HEADER_FILE})
+target_precompile_headers(hot_reload_draw PRIVATE ${E5150_PRECOMPILED_HEADER_FILE})
 
 target_link_libraries(gui PRIVATE imgui glfw platform)
 target_link_libraries(hot_reload_draw PRIVATE imgui $<$<BOOL:${USE_DEBUGGER}>:xed>)
