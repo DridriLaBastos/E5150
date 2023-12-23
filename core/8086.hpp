@@ -107,7 +107,6 @@ class CPU
 		void hlt(void);
 
 	public:
-		xed_decoded_inst_t decodedInst;
 		Regs regs;
 
 		E5150::I8086::BIU biu;

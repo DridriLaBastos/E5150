@@ -102,6 +102,8 @@ static void reloadDrawLibrary()
 	return;
 }
 
+static E5150::Arch arch;
+
 void E5150::GUI::init()
 {
 	reloadDrawLibrary();
@@ -122,7 +124,6 @@ void E5150::GUI::init()
 	E5150::DEBUGGER::init();
 #endif
 
-	E5150::Arch arch;
 
 #ifndef WIN32 //Those signals values aren't defined in windows
 	signal(SIGSTOP, stop);
@@ -167,7 +168,7 @@ void E5150::GUI::draw()
 
 	#ifdef DEBUGGER_ON
 		emulationGuiData.debuggerGuiState.instructionExecutedCount = E5150::Arch::_cpu.instructionExecutedCount;
-		emulationGuiData.debuggerGuiState.currenltyDecodedInstruction = &Arch::_cpu.decodedInst;
+		emulationGuiData.debuggerGuiState.currenltyDecodedInstruction = &Arch::_cpu.eu.decodedInst;
 #if 0
 		emulationGuiData.debuggerGuiState.i8086 = &E5150::Arch::_cpu;
 		emulationGuiData.debuggerGuiState.euWorkingState = &E5150::Arch::_cpu.eu.getDebugWorkingState();
