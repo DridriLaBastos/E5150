@@ -26,6 +26,7 @@ fs::file_time_type libDrawLastWriteTime;
 static std::error_code errorCode;
 
 static std::thread t;
+static xed_decoded_inst_t currentlyDecodedInstruction;
 
 static void stop(const int signum)
 {
@@ -106,6 +107,7 @@ static E5150::Arch arch;
 void E5150::GUI::init()
 {
 	reloadDrawLibrary();
+	CPU::ConfigureXed(&currentlyDecodedInstruction);
 
 	if (HotReloadDrawFuncPtr)
 	{
@@ -166,7 +168,13 @@ void E5150::GUI::draw()
 		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
 	#ifdef DEBUGGER_ON
+		const unsigned int decodeAddress = CPU::genAddress(cpu.regs.cs,cpu.regs.ip);
+		xed_decoded_inst_zero_keep_mode(&currentlyDecodedInstruction);
+		xed_decode(&currentlyDecodedInstruction,ram.GetRamData(decodeAddress),6);
+
 		emulationGuiData.debuggerGuiState.i8086 = &E5150::Arch::_cpu;
+		emulationGuiData.debuggerGuiState.ramData = E5150::Arch::_ram.GetRamData();
+		emulationGuiData.debuggerGuiState.currentlyDecodedInstruction = &currentlyDecodedInstruction;
 	#endif
 
 		HotReloadDrawFuncPtr(emulationGuiData);

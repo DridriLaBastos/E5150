@@ -23,6 +23,7 @@ class RAM
 	
 		void load(const std::string path, size_t pos);
 		void map(const MapInfo info);
+		uint8_t* GetRamData(const unsigned int offset = 0) const noexcept;
 		friend class CPU;
 
 	private:

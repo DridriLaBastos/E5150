@@ -78,7 +78,6 @@ class CPU
 		void handleInterrupts (void);
 		void iretDelay(void);
 
-		unsigned int genAddress (const uint16_t base, const uint16_t offset) const;
 		unsigned int genAddress (const uint16_t base, const xed_reg_enum_t offset) const;
 		unsigned int genAddress (const xed_reg_enum_t segment, const uint16_t offset) const;
 		unsigned int genAddress (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const;
@@ -105,6 +104,19 @@ class CPU
 		uint16_t readReg  (const xed_reg_enum_t reg) const;
 		void write_reg  (const xed_reg_enum_t reg, const unsigned int data);
 		void hlt(void);
+
+	public:
+		//static functions defined in the header files so they can be inlined by the compiler
+		static void ConfigureXed(xed_decoded_inst_t* decodedInst)
+		{
+			xed_decoded_inst_zero(decodedInst);
+			xed_decoded_inst_set_mode(decodedInst, XED_MACHINE_MODE_REAL_16, XED_ADDRESS_WIDTH_16b);
+		}
+
+		static unsigned int genAddress (const uint16_t base, const uint16_t offset)
+		{
+			return (base << 4) + offset;
+		}
 
 	public:
 		Regs regs;

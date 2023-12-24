@@ -14,7 +14,7 @@ static uint8_t INTERRUPT_VECTOR	= 0;
 
 //TODO: 23/12/2023: Still not sure about the architecture. If I really want to separate the different components of the CPU in different class, then the EU should
 // also do the initialization of the registers
-CPU::CPU() : instructionExecutedCount(0)
+CPU::CPU() : regs(), biu(), eu(), instructionExecutedCount(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -29,8 +29,6 @@ CPU::CPU() : instructionExecutedCount(0)
 
 	/* initializing xed */
 	xed_tables_init();
-	xed_decoded_inst_zero(&eu.decodedInst);
-	xed_decoded_inst_set_mode(&eu.decodedInst, XED_MACHINE_MODE_REAL_16, XED_ADDRESS_WIDTH_16b);
 }
 
 //Clear the values of the flag, then update the values accorregs.ding to the bool status (false = 0, true = 1) using only bitwise operators to regs.speedup the operation
@@ -95,9 +93,6 @@ void CPU::updateStatusFlags (const unsigned int values, const bool wordSize)
 	testSF(values);
 	testOF(values, wordSize);
 }
-
-unsigned int CPU::genAddress (const uint16_t base, const uint16_t offset) const
-{ return ((base << 4) + offset) & 0xFFFFF; }//Why do I have an error on release mode on windows ?
 
 unsigned int CPU::genAddress (const uint16_t base, const xed_reg_enum_t offset) const
 { return genAddress(base, readReg(offset)); }

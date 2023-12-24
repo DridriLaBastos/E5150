@@ -16,10 +16,8 @@ struct DebuggerGuiState
 {
 	std::string outCmdLine;
 	CPU* i8086 = nullptr;
-
-#if 0
-	const E5150::I8086::EU::InternalInfos* euWorkingState = nullptr;
-#endif
+	uint8_t* ramData = nullptr;
+	xed_decoded_inst_t* currentlyDecodedInstruction;
 };
 
 struct EmulationGuiState

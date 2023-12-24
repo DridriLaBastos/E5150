@@ -131,16 +131,16 @@ static void DrawDebuggerCommandConsole(DebuggerGuiState& debuggerGuiState)
 
 static void DrawCurrentInstruction(const DebuggerGuiState& data)
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&data.i8086->eu.decodedInst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(data.currentlyDecodedInstruction);
 
 	if (!inst)
 		return;
 
-	ImGui::Text("%s",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(&data.i8086->eu.decodedInst))); ImGui::SameLine();
+	ImGui::Text("%s",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(data.currentlyDecodedInstruction))); ImGui::SameLine();
 	unsigned int realOperandPos = 0;
 	bool foundPtr = false;
 
-	for (unsigned int i = 0; i < xed_decoded_inst_noperands(&data.i8086->eu.decodedInst); ++i)
+	for (unsigned int i = 0; i < xed_decoded_inst_noperands(data.currentlyDecodedInstruction); ++i)
 	{
 		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
 		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
@@ -164,34 +164,34 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 			switch (op_name)
 			{
 			case XED_OPERAND_RELBR:
-				ImGui::Text("%d",(xed_decoded_inst_get_branch_displacement(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
+				ImGui::Text("%d",(xed_decoded_inst_get_branch_displacement(data.currentlyDecodedInstruction) & 0xFFFF)); ImGui::SameLine();
 				break;
 
 			case XED_OPERAND_PTR:
-				ImGui::Text("0x%X",(xed_decoded_inst_get_branch_displacement(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
+				ImGui::Text("0x%X",(xed_decoded_inst_get_branch_displacement(data.currentlyDecodedInstruction) & 0xFFFF)); ImGui::SameLine();
 				foundPtr = true;
 				break;
 
 			case XED_OPERAND_REG0:
 			case XED_OPERAND_REG1:
 			case XED_OPERAND_REG2:
-				ImGui::Text("%s",xed_reg_enum_t2str(xed_decoded_inst_get_reg(&data.i8086->eu.decodedInst, op_name))); ImGui::SameLine();
+				ImGui::Text("%s",xed_reg_enum_t2str(xed_decoded_inst_get_reg(data.currentlyDecodedInstruction, op_name))); ImGui::SameLine();
 				break;
 
 			case XED_OPERAND_IMM0:
 			case XED_OPERAND_IMM1:
-			ImGui::Text("0x%" PRIu64 ,(xed_decoded_inst_get_unsigned_immediate(&data.i8086->eu.decodedInst) & 0xFFFF)); ImGui::SameLine();
+			ImGui::Text("0x%" PRIu64 ,(xed_decoded_inst_get_unsigned_immediate(data.currentlyDecodedInstruction) & 0xFFFF)); ImGui::SameLine();
 				break;
 
 			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
 			case XED_OPERAND_MEM0:
 			{
-				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(&data.i8086->eu.decodedInst, 0);
-				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(&data.i8086->eu.decodedInst, 0);
-				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(&data.i8086->eu.decodedInst,0);
+				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(data.currentlyDecodedInstruction, 0);
+				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(data.currentlyDecodedInstruction, 0);
+				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(data.currentlyDecodedInstruction,0);
 				ImGui::Text("%s %s:[",
-					((xed_decoded_inst_get_memory_operand_length(&data.i8086->eu.decodedInst, 0) == 1) ? "BYTE" : "WORD"),
-					xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(&data.i8086->eu.decodedInst, 0))); ImGui::SameLine();
+					((xed_decoded_inst_get_memory_operand_length(data.currentlyDecodedInstruction, 0) == 1) ? "BYTE" : "WORD"),
+					xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(data.currentlyDecodedInstruction, 0))); ImGui::SameLine();
 
 				if (baseReg != XED_REG_INVALID)
 				{
@@ -233,9 +233,9 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 		}
 	}
 
-	ImGui::Text("[%d]",xed_decoded_inst_get_length(&data.i8086->eu.decodedInst));
+	ImGui::Text("[%d]",xed_decoded_inst_get_length(data.currentlyDecodedInstruction));
 	ImGui::SameLine();
-	ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(&data.i8086->eu.decodedInst)));
+	ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(data.currentlyDecodedInstruction)));
 	ImGui::SameLine();
 	ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
 }
@@ -267,12 +267,26 @@ static void DrawDebuggerCPUStatus(const DebuggerGuiState& debuggerGuiState)
 	            debuggerGuiState.i8086->regs.si,debuggerGuiState.i8086->regs.di,debuggerGuiState.i8086->regs.bp,debuggerGuiState.i8086->regs.sp);
 	ImGui::Separator();
 
-	const Regs& regs = debuggerGuiState.i8086->regs;
-	ImGui::Text("%c %c %c %c %c %c %c %c %c",(regs.flags & CPU::CARRY) ? 'C' : 'c',(regs.flags & CPU::PARRITY) ? 'P' : 'p',
-		(regs.flags & CPU::A_CARRY) ? 'A' : 'a', (regs.flags & CPU::ZERRO) ? 'Z' : 'z', (regs.flags & CPU::SIGN) ? 'S' : 's',
-		(regs.flags & CPU::TRAP) ? 'T' : 't', (regs.flags & CPU::INTF) ? 'I' : 'i', (regs.flags & CPU::DIR) ? 'D' : 'd',
-		(regs.flags & CPU::OVER) ? 'O' : 'o');
+	const char flagChars[] = { 'C', 'P', 'A', 'Z', 'S', 'T', 'I', 'D', 'O' };
 
+	const Regs& regs = debuggerGuiState.i8086->regs;
+	for (int i = 0; i < 9; i += 1)
+	{
+		const bool flagSet = regs.flags & (1 << i);
+		char flagChar = flagChars[i];
+
+		const ImColor textColor = flagSet ? ImColor{.1f,.9f,.2f} : ImColor{.9f,.1f,.3f};
+
+		if (!flagSet)
+		{
+			flagChar = flagChar - 'A' + 'a';
+		}
+
+		ImGui::TextColored(textColor,"%c",flagChar);
+		ImGui::SameLine();
+	}
+
+	ImGui::NewLine();
 }
 
 static void DrawDebuggerGui(DebuggerGuiState& debuggerGuiState)

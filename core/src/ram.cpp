@@ -51,3 +51,7 @@ void RAM::map  (const MapInfo info)
 	m_mappedDevices.emplace(std::find_if(
 		m_mappedDevices.begin(), m_mappedDevices.end(), [&info](MapInfo i){return i.begin > info.begin;}), info);
 }
+
+uint8_t *RAM::GetRamData(const unsigned int offset) const noexcept {
+	return &m_ram[offset];
+}
