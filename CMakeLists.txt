@@ -109,3 +109,5 @@ endif()
 
 add_executable(epc main.cpp)
 target_link_libraries(epc gui core)
+
+add_custom_target(run $<TARGET_FILE:epc> WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
