@@ -76,7 +76,7 @@ add_library(imgui SHARED
 )
 target_link_libraries(imgui glfw OpenGL::GL)
 
-set(XED_LIB_NAME ${CMAKE_STTATIC_LIBRARY_PREFIX}xed${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(XED_LIB_NAME ${CMAKE_STATIC_LIBRARY_PREFIX}xed${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 if (${USE_DEBUGGER})
 	set(XED_LIB_NAME ${CMAKE_SHARED_LIBRARY_PREFIX}xed${CMAKE_SHARED_LIBRARY_SUFFIX})	
@@ -112,10 +112,12 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 		set(XED_LIB_TYPE_FLAG --static)
 	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/xed/xed/mfile.py --jobs=${CPU_COUNT} ${XED_LIB_TYPE_FLAG} --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
-		COMMAND_ECHO STDOUT)
+	execute_process(COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/xed/xed/mfile.py" --jobs=${CPU_COUNT} ${XED_LIB_TYPE_FLAG} --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install
+		COMMAND_ECHO STDOUT
+		ERROR_FILE "xed.stderr"
+		COMMAND_ERROR_IS_FATAL ANY)
 endif()
 
 add_library(xed SHARED IMPORTED GLOBAL)
 
-set_target_properties(xed PROPERTIES IMPORTED_LOCATION ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME})
+set_target_properties(xed PROPERTIES IMPORTED_IMPLIB ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME})

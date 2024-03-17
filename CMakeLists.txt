@@ -107,7 +107,12 @@ endif()
 # 			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:imgui> $<TARGET_FILE_DIR:epc>)
 # endif()
 
+
 add_executable(epc main.cpp)
 target_link_libraries(epc gui core)
 
+if (${WIN32})
+	string(TIMESTAMP CURRENT_TIMESTAMP "%H_%m_%s")
+	set_target_properties(epc PROPERTIES PDB_NAME "epc_${CURRENT_TIMESTAMP}.pdb")
+endif()
 add_custom_target(run $<TARGET_FILE:epc> WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
