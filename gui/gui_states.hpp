@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-#include "core/8086.hpp"
+#include "core/arch.hpp"
 #include "xed/xed-interface.h"
 #include "spdlog_imgui_color_sink.hpp"
 
@@ -22,7 +22,7 @@ struct DebuggerGuiState
 
 struct EmulationGuiState
 {
-	uint64_t cpuClock{}, fdcClock{},instructionExecutedCount{};
+	E5150::Arch::EmulationStat emulationStat;
 	SpdlogImGuiColorSink<std::mutex>* consoleSink{};
 
 #ifdef DEBUGGER_ON

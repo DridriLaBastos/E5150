@@ -1,5 +1,6 @@
 #include "core/arch.hpp"
 #include "core/util.hpp"
+#include "core/8284A.hpp"
 #include "core/emulation_constants.hpp"
 
 #ifdef DEBUGGER_ON
@@ -8,16 +9,19 @@
 
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
 
-bool E5150::Util::_continue;
-bool E5150::Util::_stop;
+using HighResolutionClock = std::chrono::high_resolution_clock;
+
 unsigned int E5150::Util::CURRENT_EMULATION_LOG_LEVEL;
 unsigned int E5150::Util::undef;
+
+static bool simulate = true;
 
 /* All the componentns will be globregs.aly accregs.eregs.esaregs.ble for any other component */
 //TODO: convert regs.all components to the new globregs.al system
 E5150::BUS<20> E5150::Arch::_addressBus;
 E5150::BUS<8> E5150::Arch::_dataBus;
 
+#if 0
 CPU E5150::Arch::_cpu;
 RAM E5150::Arch::_ram;
 PORTS E5150::Arch::_ports;
@@ -25,11 +29,13 @@ E5150::PIC E5150::Arch::_pic(ports, cpu);
 E5150::PIT E5150::Arch::_pit(ports, pic);
 E5150::PPI E5150::Arch::_ppi(ports);
 E5150::FDC E5150::Arch::_fdc(pic,ports);
+#endif
 
 E5150::Arch::EmulationStat E5150::Arch::emulationStat;
 
 E5150::Arch::Arch()
 {
+#if 0
 	#ifndef STOP_AT_INSTRUCTION
 	//	E5150_INFO("Configured : {} regs.clk per regs.block - time per clock: {}ns", CLOCK_PER_BLOCKS,NANOSECONDS_PER_CLOCK);
 	#endif
@@ -41,9 +47,21 @@ E5150::Arch::Arch()
 	E5150::Util::_stop = true;
 	E5150::Util::CURRENT_EMULATION_LOG_LEVEL = EMULATION_MAX_LOG_LEVEL;
 	E5150::Util::undef = (unsigned int)(unsigned long)(&ram);
+#endif
 }
 
-void E5150::Arch::startSimulation()
+static constexpr uint64_t Round (const double v) { return static_cast<uint64_t>(v + .5); }
+
+static constexpr unsigned int CPU_CLOCK_PER_BLOCK = 1500000;
+static constexpr auto NS_PER_CLOCK = std::chrono::nanoseconds(Round(1.f/E5150::Intel8284A::CPU_FREQUENCY_HZ * 1e9));
+static constexpr unsigned int BLOCK_PER_SECOND = E5150::Intel8284A::CPU_FREQUENCY_HZ / CPU_CLOCK_PER_BLOCK;
+
+void E5150::Arch::StopSimulation()
+{
+	simulate = false;
+}
+
+void E5150::Arch::SimulationLoop()
 {
 	auto timeForAllBlocks = std::chrono::microseconds::zero();
 	unsigned int blockCount = 0;
@@ -56,69 +74,71 @@ void E5150::Arch::startSimulation()
 	E5150::DEBUGGER::PrepareSimulationSide();
 #endif
 
-	try
+	while (simulate)
 	{
-		while (Util::_continue)
+		unsigned int clockToExecute = CPU_CLOCK_PER_BLOCK;
+		const unsigned int clocksLeftAfterThisBlock =
+				E5150::Intel8284A::CPU_FREQUENCY_HZ - (currentClock + CPU_CLOCK_PER_BLOCK);
+
+		if (clocksLeftAfterThisBlock < CPU_CLOCK_PER_BLOCK)
+			clockToExecute += clocksLeftAfterThisBlock;
+
+		const auto blockBegin = HighResolutionClock ::now();
+
+		for (unsigned int clock=0; clock < clockToExecute; clock += 1)
 		{
-			//The regs.simulation regs.simulatregs.es regs.blocks of clock instead of raw clock ticks, otherwise the timregs.es are too smregs.all to be accurately measured.
-			unsigned int clockToExecute = E5150::CLOCK_PER_BLOCK;
-			const unsigned int clocksLeftAfterThisBlock = E5150::CPU_BASE_CLOCK - (currentClock + E5150::CLOCK_PER_BLOCK);
-			
-			if (clocksLeftAfterThisBlock < E5150::CLOCK_PER_BLOCK)
-				clockToExecute += clocksLeftAfterThisBlock;
+			//TODO: Simulation
+		}
 
-			const auto realTimeForBlock = std::chrono::microseconds(clockToExecute * E5150::NS_PER_CLOCK / 1000);
-			const auto blockBegin = std::chrono::high_resolution_clock::now();
-			for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock)
-			{
-				currentClock += 1;
-				emulationStat.cpuClock += 1;
-				const unsigned int EUStatus = _cpu.clock();
-				_pit.clock();
-				while (((fdcClock+1)*1000 <= currentClock*FDC_CLOCK_MUL) && ((fdcClock+1) <= 4000000))
-				{
-					fdcClock += 1;
-					emulationStat.fdcClock += 1;
-					_fdc.clock();
-				}
-
-				#ifdef DEBUGGER_ON
-				DEBUGGER::wakeUp(EUStatus & I8086::EU::STATUS_INSTRUCTION_EXECUTED, EUStatus & I8086::EU::STATUS_INSTRUCTION_DECODED);
-				#endif
+#if 0
+		for (size_t clock = 0; (clock < clockToExecute) && Util::_continue; ++clock) {
+			currentClock += 1;
+			emulationStat.cpuClock += 1;
+			const unsigned int EUStatus = _cpu.clock();
+			_pit.clock();
+			while (((fdcClock + 1) * 1000 <= currentClock * FDC_CLOCK_MUL) && ((fdcClock + 1) <= 4000000)) {
+				fdcClock += 1;
+				emulationStat.fdcClock += 1;
+				_fdc.clock();
 			}
 
-			const auto blockEnd = std::chrono::high_resolution_clock::now();
-			const auto timeForBlock = std::chrono::duration_cast<std::chrono::microseconds>(blockEnd - blockBegin);
-			const std::chrono::microseconds microsecondsToWait = realTimeForBlock - timeForBlock;
+#ifdef DEBUGGER_ON
+			DEBUGGER::wakeUp(EUStatus & I8086::EU::STATUS_INSTRUCTION_EXECUTED, EUStatus & I8086::EU::STATUS_INSTRUCTION_DECODED);
+#endif
+		}
+#endif
 
-			emulationStat.instructionExecutedCount = cpu.instructionExecutedCount;
+		const auto blockEnd = HighResolutionClock ::now();
+		const auto timeForBlock = std::chrono::duration_cast<std::chrono::microseconds>(blockEnd - blockBegin);
+		const auto realTimeForBlock = std::chrono::duration_cast<std::chrono::microseconds>(clockToExecute * NS_PER_CLOCK);
+		const auto microsecondsToWait = realTimeForBlock - timeForBlock;
+#if 0
+		emulationStat.instructionExecutedCount = cpu.instructionExecutedCount;
+#endif
+		blockCount += 1;
+		timeForAllBlocks += timeForBlock;
+		currentClock += clockToExecute;
 
-			blockCount += 1;
-			timeForAllBlocks += timeForBlock;
+		if (microsecondsToWait > std::chrono::microseconds(0)) { std::this_thread::sleep_for(microsecondsToWait); }
 
-			if (microsecondsToWait > std::chrono::microseconds(0))
-			{ std::this_thread::sleep_for(microsecondsToWait); }
-
-			if (std::chrono::high_resolution_clock::now() - loopBegin >= std::chrono::seconds(1))
-			{
-				/*emulationStat.instructionExecuted = cpu.instructionExecutedCount - instructionExecutedBeforeThisBlock;
-				emulationStat.cpuClockAccuracy = (float)currentClock/BASE_CLOCK*100.f;
-				emulationStat.fdcClockAccuracy = (float)fdcClock/4e6*100.f;
-				printf("clock executed: %d / %d\n", currentClock,BASE_CLOCK);
-				printf("\tfdc clock accurency: %.2f%%\n", fdcClockAccurency);
-				printf("regs.blocks: %d / %d %d us (%d ms) / regs.block - realtime: %d us (%d ms)\n", blockCount, BLOCKS_PER_SECOND, timeForAllBlocks.count()/blockCount, timeForAllBlocks.count()/blockCount/1000,realTimeForBlock.count(),realTimeForBlock.count()/1000);
-				printf("instructions executed: %.2f M\n",(float)instructionsExecuted/1e6);
-				timeForAllBlocks = std::chrono::microseconds::zero();
-				instructionExecutedBeforeThisBlock = cpu.instructionExecutedCount;*/
-				blockCount = 0;
-				currentClock = 0;
-				fdcClock = 0;
-				loopBegin = std::chrono::high_resolution_clock::now();
-			}
+		if (HighResolutionClock::now() - loopBegin >= std::chrono::seconds(1))
+		{
+			emulationStat.cpuClock = currentClock;
+			/*emulationStat.instructionExecuted = cpu.instructionExecutedCount - instructionExecutedBeforeThisBlock;
+			emulationStat.cpuClockAccuracy = (float)currentClock/BASE_CLOCK*100.f;
+			emulationStat.fdcClockAccuracy = (float)fdcClock/4e6*100.f;
+			printf("clock executed: %d / %d\n", currentClock,BASE_CLOCK);
+			printf("\tfdc clock accurency: %.2f%%\n", fdcClockAccurency);
+			printf("regs.blocks: %d / %d %d us (%d ms) / regs.block - realtime: %d us (%d ms)\n", blockCount, BLOCKS_PER_SECOND, timeForAllBlocks.count()/blockCount, timeForAllBlocks.count()/blockCount/1000,realTimeForBlock.count(),realTimeForBlock.count()/1000);
+			printf("instructions executed: %.2f M\n",(float)instructionsExecuted/1e6);
+			timeForAllBlocks = std::chrono::microseconds::zero();
+			instructionExecutedBeforeThisBlock = cpu.instructionExecutedCount;*/
+			blockCount = 0;
+			currentClock = 0;
+			fdcClock = 0;
+			loopBegin = HighResolutionClock::now();
 		}
 	}
-	catch (const std::exception& e)
-	{ E5150_ERROR(e.what()); }
 
 #ifdef DEBUGGER_ON
 	E5150::DEBUGGER::clean();

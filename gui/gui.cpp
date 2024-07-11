@@ -8,6 +8,7 @@
 #include "gui_states.hpp"
 
 #include "core/arch.hpp"
+#include "core/8284A.hpp"
 #include "core/debugger/cli.hpp"
 #include "core/debugger/debugger.hpp"
 #include "core/emulation_constants.hpp"
@@ -17,8 +18,10 @@ using gui_clock = std::chrono::high_resolution_clock;
 namespace fs = std::filesystem;
 
 static constexpr unsigned int MS_PER_UPDATE = 1000;
-static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
+static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::Intel8284A::CPU_FREQUENCY_HZ * (MS_PER_UPDATE / 1000.f);
+#if 0
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
+#endif
 
 static HOT_RELOAD_DRAW_SIGNATURE_RETURN_TYPE (*HotReloadDrawFuncPtr)(HOT_RELOAD_DRAW_SIGNATURE_PARAMETER) = nullptr;
 static module_t hotReloadModuleID = -1;
@@ -98,8 +101,6 @@ static void reloadDrawLibrary()
 	E5150_WARNING("\tGUI not draw");
 	hotReloadModuleID = -1;
 	HotReloadDrawFuncPtr = nullptr;
-	//TODO: remake spdlog output to the console
-	return;
 }
 
 static E5150::Arch arch;
@@ -136,6 +137,7 @@ void E5150::GUI::init()
 	signal(SIGINT, stop);
 	signal(SIGTERM, stop);
 
+#if 0
 #if 1
 	//Loading IBM BIOS
 	ram.load("test/ibm_bios.bin", 0xFE000);
@@ -146,9 +148,9 @@ void E5150::GUI::init()
 		//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
 		ram.load("test/bios.bin",0x500);
 #endif
-
+#endif
 	//TODO: launching the thread arch shouldn't be done inside the gui init function
-	t = std::thread(&E5150::Arch::startSimulation,&arch);
+	t = std::thread(&E5150::Arch::SimulationLoop, &arch);
 
 #ifdef DEBUGGER_ON
 	E5150::DEBUGGER::PrepareGuiSide();
@@ -161,11 +163,9 @@ void E5150::GUI::draw()
 
 	if (HotReloadDrawFuncPtr)
 	{
-		EmulationGuiState emulationGuiData;
-		emulationGuiData.cpuClock = E5150::Arch::emulationStat.cpuClock;
-		emulationGuiData.fdcClock = E5150::Arch::emulationStat.fdcClock;
-		emulationGuiData.instructionExecutedCount = E5150::Arch::emulationStat.instructionExecutedCount;
-		emulationGuiData.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
+		EmulationGuiState emulationGuiState;
+		emulationGuiState.emulationStat = E5150::Arch::emulationStat;
+		emulationGuiState.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
 
 	#ifdef DEBUGGER_ON
 		const unsigned int decodeAddress = CPU::genAddress(cpu.regs.cs,cpu.regs.ip);
@@ -177,7 +177,7 @@ void E5150::GUI::draw()
 		emulationGuiData.debuggerGuiState.currentlyDecodedInstruction = &currentlyDecodedInstruction;
 	#endif
 
-		HotReloadDrawFuncPtr(emulationGuiData);
+		HotReloadDrawFuncPtr(emulationGuiState);
 
 #ifdef DEBUGGER_ON
 		if (!emulationGuiData.debuggerGuiState.outCmdLine.empty())
@@ -191,7 +191,7 @@ void E5150::GUI::draw()
 
 void E5150::GUI::clean()
 {
-	E5150::Util::_continue = false;
+	arch.StopSimulation();
 #ifdef DEBUGGER_ON
 	E5150::DEBUGGER::clean();
 #endif

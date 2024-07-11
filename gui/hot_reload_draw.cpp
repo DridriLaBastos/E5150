@@ -2,7 +2,7 @@
 // Created by Adrien COURNAND on 24/12/2022.
 //
 //TODO: WHY DO I HAVE LINK ERROR WHEN COMPILING XED IN STATIC MODE ?
-#include "core/emulation_constants.hpp"
+#include "core/8284A.hpp"
 #include "gui_states.hpp"
 #include "third-party/imgui/imgui.h"
 
@@ -13,8 +13,11 @@ char ImGuiTextBuffer::EmptyString[1] = { 0 };
 using gui_clock = std::chrono::high_resolution_clock;
 
 static constexpr unsigned int MS_PER_UPDATE = 1000;
-static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::CPU_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
+static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::Intel8284A::CPU_FREQUENCY_HZ * (MS_PER_UPDATE / 1000.f);
+
+#if 0
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
+#endif
 
 enum class DEBUGGER_ENTRY_TYPE {
 	COMMAND, DEFAULT
@@ -313,43 +316,15 @@ static void DrawEmulationConsole(const EmulationGuiState& state)
 
 static void DrawEmulationGui(const EmulationGuiState& state)
 {
-	static unsigned int instructionExecuted = 0;
-	static uint64_t lastFrameCPUClockCount = 0;
-	static unsigned int lastFrameCPUInstructionCount = 0;
-	static uint64_t lastFrameFDCClockCount = 0;
-	static unsigned int CPUClockDelta = 0;
-	static unsigned int FDCClockDelta = 0;
-	static unsigned int CPUClockAccuracy = 0;
-	static unsigned int FDCClockAccuracy = 0;
-	static auto lastUpdateTime = gui_clock::now();
-
-	const auto now = gui_clock::now();
-	const auto timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdateTime);
-	if (timeSinceLastUpdate >= std::chrono::milliseconds(MS_PER_UPDATE))
-	{
-		instructionExecuted = state.instructionExecutedCount - lastFrameCPUInstructionCount;
-
-		const uint64_t currentCPUClockCount = state.cpuClock;
-		const uint64_t currentFDCClockCount = state.fdcClock;
-
-		CPUClockDelta = currentCPUClockCount - lastFrameCPUClockCount;
-		FDCClockDelta = currentFDCClockCount - lastFrameFDCClockCount;
-
-		CPUClockAccuracy = CPUClockDelta * 100 / EXPECTED_CPU_CLOCK_COUNT;
-		FDCClockAccuracy = FDCClockDelta * 100 / EXPECTED_FDC_CLOCK_COUNT;
-
-		lastFrameCPUInstructionCount = state.instructionExecutedCount;
-		lastFrameCPUClockCount = currentCPUClockCount;
-		lastFrameFDCClockCount = currentFDCClockCount;
-
-		lastUpdateTime = now;
-	}
 	ImGui::Begin("Emulation Statistics");
 
-	ImGui::Text("CPU clock executed : %6d / %6d", CPUClockDelta, EXPECTED_CPU_CLOCK_COUNT);
+	ImGui::Text("CPU clock executed : %6lld / %6u", state.emulationStat.cpuClock, EXPECTED_CPU_CLOCK_COUNT);
+#if 0
 	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
-	ImGui::Text("Clock accuracy cpu : %d%%  fdc %d%%", CPUClockAccuracy, FDCClockAccuracy);
-	ImGui::Text("Instruction executed : %.3fM/s ( %4.3fM)",instructionExecuted / 1e6, state.instructionExecutedCount / 1e6);
+#endif
+
+	const float cpuClockAccuracy = (float)state.emulationStat.cpuClock / EXPECTED_CPU_CLOCK_COUNT*100.f;
+	ImGui::Text("Clock accuracy:\n\t- cpu : %.2f%%",cpuClockAccuracy);
 
 	ImGui::End();
 }
@@ -358,6 +333,7 @@ extern "C" DLL_EXPORT HOT_RELOAD_DRAW_SIGNATURE
 {
 	DrawEmulationConsole(emulationGuiState);
 	DrawEmulationGui(emulationGuiState);
+
 #ifdef DEBUGGER_ON
 	DrawDebuggerGui(emulationGuiState.debuggerGuiState);
 #endif

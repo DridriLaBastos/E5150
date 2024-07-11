@@ -9,14 +9,6 @@
 #include "ports.hpp"
 #include "fdc.hpp"
 
-#define cpu E5150::Arch::_cpu
-#define ram E5150::Arch::_ram
-#define pic E5150::Arch::_pic
-#define fdc E5150::Arch::_fdc
-#define ppi E5150::Arch::_ppi
-#define pit E5150::Arch::_pit
-#define pit E5150::Arch::_pit
-#define ports E5150::Arch::_ports
 #define addressBus E5150::Arch::_addressBus
 #define dataBus E5150::Arch::_dataBus
 
@@ -25,23 +17,27 @@ namespace E5150
 	class Arch
 	{
 	public:
+		//TODO: Need thread safety ?
 		struct EmulationStat {
-			std::atomic<uint64_t> cpuClock, fdcClock, instructionExecutedCount;
+			uint64_t cpuClock, fdcClock, instructionExecutedCount;
 		};
 
 		public:
 			Arch(void);
 
-			void startSimulation(void);
+			void SimulationLoop(void);
+			void StopSimulation(void);
 
 		public:
-			static RAM _ram;
-			static PORTS _ports;
-			static CPU _cpu;
-			static PIC _pic;
-			static PIT _pit;
-			static PPI _ppi;
-			static FDC _fdc;
+		#if 0
+			static RAM ram;
+			static PORTS ports;
+			static CPU cpu;
+			static PIC pic;
+			static PIT pit;
+			static PPI ppi;
+			static FDC fdc;
+		#endif
 			static BUS<20> _addressBus;
 			static BUS<8> _dataBus;
 

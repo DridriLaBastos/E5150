@@ -8,8 +8,6 @@ namespace E5150
 	namespace Util
 	{
 		extern unsigned int CURRENT_EMULATION_LOG_LEVEL;
-		extern bool _continue;
-		extern bool _stop;
 		extern unsigned int undef;//For all undefined value, it is set to a random value at runtime
 	};
 }
