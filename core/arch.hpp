@@ -1,6 +1,7 @@
 #ifndef ARCH_HPP
 #define ARCH_HPP
 
+#if 0
 #include "pic.hpp"
 #include "pit.hpp"
 #include "ram.hpp"
@@ -11,6 +12,9 @@
 
 #define addressBus E5150::Arch::_addressBus
 #define dataBus E5150::Arch::_dataBus
+#endif
+
+#include "8086.hpp"
 
 namespace E5150
 {
@@ -38,8 +42,11 @@ namespace E5150
 			static PPI ppi;
 			static FDC fdc;
 		#endif
+#if 0
 			static BUS<20> _addressBus;
 			static BUS<8> _dataBus;
+#endif
+			Intel8088 m_cpu;
 
 			static EmulationStat emulationStat;
 	};

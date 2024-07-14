@@ -3,7 +3,9 @@ project(E5150_CORE_LIB)
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS src/*.cpp *.hpp)
 file(GLOB_RECURSE CORE_HDR *.hpp)
 
-add_library(core STATIC src/arch.cpp ${CORE_HDR})
+add_library(core STATIC ${CORE_HDR}
+				src/arch.cpp
+				src/cpu/8086.cpp)
 
 if (${USE_DEBUGGER})
 	file(GLOB DEBUGGER_SRC CONFIGURE_DEPENDS debugger/src/*.cpp debugger/*.hpp)

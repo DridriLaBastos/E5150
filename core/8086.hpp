@@ -127,4 +127,62 @@ class CPU
 		uint64_t instructionExecutedCount;
 };
 
+namespace E5150
+{
+	class Intel8088
+	{
+	public:
+#if 0
+		struct Regs {
+			union {
+				uint16_t ax;
+				struct {
+					uint16_t al : 8, ah : 8;
+				};
+			};
+
+			union {
+				uint16_t bx;
+				struct {
+					uint16_t bl : 8, bh : 8;
+				};
+			};
+
+			union {
+				uint16_t cx;
+				struct {
+					uint16_t cl : 8, ch : 8;
+				};
+			};
+
+			union {
+				uint16_t dx;
+				struct {
+					uint16_t dl : 8, dh : 8;
+				};
+			};
+
+			uint16_t cs, ds, es, ss, si, di, bp, sp, ip, flags;
+		};
+#endif
+
+		enum class ERunningMode
+		{
+			INIT_SEQUENCE, OPERATIONAL
+		};
+
+	public:
+		Intel8088(void);
+
+		void Clock(void);
+
+	public:
+		Regs regs;
+		ERunningMode mode;
+		xed_decoded_inst_t decodedInst;
+
+		unsigned int clock;
+	};
+}
+
 #endif

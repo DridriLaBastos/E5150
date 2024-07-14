@@ -11,7 +11,6 @@
 #include "core/8284A.hpp"
 #include "core/debugger/cli.hpp"
 #include "core/debugger/debugger.hpp"
-#include "core/emulation_constants.hpp"
 
 using gui_clock = std::chrono::high_resolution_clock;
 
@@ -93,11 +92,11 @@ static void reloadDrawLibrary()
 	E5150_INFO("Draw function successfully reloaded");
 	return;
 
-	errorDrawFunctionUnchanged:
+errorDrawFunctionUnchanged:
 	E5150_WARNING("\tDraw function not updated, previous version used");
 	return;
 
-	errorDrawFunctionReset:
+errorDrawFunctionReset:
 	E5150_WARNING("\tGUI not draw");
 	hotReloadModuleID = -1;
 	HotReloadDrawFuncPtr = nullptr;
@@ -108,7 +107,6 @@ static E5150::Arch arch;
 void E5150::GUI::init()
 {
 	reloadDrawLibrary();
-	CPU::ConfigureXed(&currentlyDecodedInstruction);
 
 	if (HotReloadDrawFuncPtr)
 	{

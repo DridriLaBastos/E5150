@@ -1,3 +1,4 @@
+#if 0
 #include "core/arch.hpp"
 #include "core/8086.hpp"
 
@@ -394,5 +395,57 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 	case XED_REG_SS:
 		regs.es = data;
 		break;
+	}
+}
+#endif
+#include "core/8086.hpp"
+
+E5150::Intel8088::Intel8088(): mode(Intel8088::ERunningMode::INIT_SEQUENCE)
+{
+	xed_tables_init();
+}
+
+static constexpr unsigned int INIT_SEQUENCE_CLOCK_COUNT = 11;
+static void CpuClockInitSequence(E5150::Intel8088* cpu)
+{
+	cpu->clock += 1;
+
+	if (cpu->clock == INIT_SEQUENCE_CLOCK_COUNT)
+	{
+		cpu->regs.cs = 0xFFFF;
+		cpu->regs.es = 0;
+		cpu->regs.ds = 0;
+		cpu->regs.es = 0;
+		cpu->regs.sp = 0xFF;
+		cpu->regs.ip = 0;
+		cpu->mode = E5150::Intel8088::ERunningMode::OPERATIONAL;
+	}
+}
+
+static void CpuClockBIU(E5150::Intel8088* cpu)
+{
+}
+
+static void CpuClockEU(E5150::Intel8088* cpu)
+{
+
+}
+
+static void CpuClockOperational(E5150::Intel8088* cpu)
+{
+	CpuClockBIU(cpu);
+	CpuClockEU(cpu);
+}
+
+void E5150::Intel8088::Clock()
+{
+	switch (mode) {
+		case ERunningMode::INIT_SEQUENCE:
+			CpuClockInitSequence(this);
+			break;
+
+		case ERunningMode::OPERATIONAL:
+			CpuClockOperational(this);
+			break;
 	}
 }

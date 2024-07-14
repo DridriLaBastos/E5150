@@ -1,7 +1,6 @@
 #include "core/arch.hpp"
 #include "core/util.hpp"
 #include "core/8284A.hpp"
-#include "core/emulation_constants.hpp"
 
 #ifdef DEBUGGER_ON
 #include "debugger/debugger.hpp"
@@ -16,12 +15,12 @@ unsigned int E5150::Util::undef;
 
 static bool simulate = true;
 
+#if 0
 /* All the componentns will be globregs.aly accregs.eregs.esaregs.ble for any other component */
 //TODO: convert regs.all components to the new globregs.al system
 E5150::BUS<20> E5150::Arch::_addressBus;
 E5150::BUS<8> E5150::Arch::_dataBus;
 
-#if 0
 CPU E5150::Arch::_cpu;
 RAM E5150::Arch::_ram;
 PORTS E5150::Arch::_ports;
@@ -33,7 +32,7 @@ E5150::FDC E5150::Arch::_fdc(pic,ports);
 
 E5150::Arch::EmulationStat E5150::Arch::emulationStat;
 
-E5150::Arch::Arch()
+E5150::Arch::Arch(): m_cpu()
 {
 #if 0
 	#ifndef STOP_AT_INSTRUCTION
@@ -88,6 +87,7 @@ void E5150::Arch::SimulationLoop()
 		for (unsigned int clock=0; clock < clockToExecute; clock += 1)
 		{
 			//TODO: Simulation
+			m_cpu.Clock();
 		}
 
 #if 0

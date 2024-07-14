@@ -11,7 +11,6 @@
 #include "xed/xed-interface.h"
 #include "spdlog_imgui_color_sink.hpp"
 
-//Need to use pointer because references are not assignable outside of its declaration
 struct DebuggerGuiState
 {
 	std::string outCmdLine;
