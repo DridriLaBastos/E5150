@@ -132,6 +132,10 @@ namespace E5150
 	class Intel8088
 	{
 	public:
+		static constexpr unsigned int MEMORY_FETCH_CLOCK_COUNT = 5;
+		static constexpr unsigned int INSTRUCTION_STREAM_QUEUE_LENGTH = 5;
+		static constexpr unsigned int INSTRUCTION_STREAM_QUEUE_INDEX_MAX = INSTRUCTION_STREAM_QUEUE_LENGTH - 1;
+	public:
 #if 0
 		struct Regs {
 			union {
@@ -171,6 +175,16 @@ namespace E5150
 			INIT_SEQUENCE, OPERATIONAL
 		};
 
+		enum class EBIURunningMode
+		{
+			FETCH_MEMORY,WAIT_ROOM_IN_QUEUE
+		};
+
+		enum class EEURunningMode
+		{
+			WAIT_INSTRUCTION, EXECUTE_INSTRUCTION
+		};
+
 	public:
 		Intel8088(void);
 
@@ -179,7 +193,14 @@ namespace E5150
 	public:
 		Regs regs;
 		ERunningMode mode;
+		EEURunningMode euMode;
+		EBIURunningMode biuMode;
 		xed_decoded_inst_t decodedInst;
+
+		uint8_t instructionStreamQueue [INSTRUCTION_STREAM_QUEUE_LENGTH];
+		size_t instructionStreamQueueIndex;
+
+		unsigned int biuClockCountDown;
 
 		unsigned int clock;
 	};

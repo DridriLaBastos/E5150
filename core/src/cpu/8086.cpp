@@ -400,13 +400,15 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 #endif
 #include "core/8086.hpp"
 
-E5150::Intel8088::Intel8088(): mode(Intel8088::ERunningMode::INIT_SEQUENCE)
+E5150::Intel8088::Intel8088():
+		mode(Intel8088::ERunningMode::INIT_SEQUENCE), instructionStreamQueueIndex(0),
+		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT)
 {
 	xed_tables_init();
 }
 
 static constexpr unsigned int INIT_SEQUENCE_CLOCK_COUNT = 11;
-static void CpuClockInitSequence(E5150::Intel8088* cpu)
+static void CPUClock_Init(E5150::Intel8088* cpu)
 {
 	cpu->clock += 1;
 
@@ -422,30 +424,107 @@ static void CpuClockInitSequence(E5150::Intel8088* cpu)
 	}
 }
 
-static void CpuClockBIU(E5150::Intel8088* cpu)
+static void BIUMode_Switch(E5150::Intel8088* cpu, const E5150::Intel8088::EBIURunningMode newMode)
 {
+	switch (newMode)
+	{
+		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
+			cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
+			break;
+		default:
+			break;
+	}
+
+	cpu->biuMode = newMode;
 }
 
-static void CpuClockEU(E5150::Intel8088* cpu)
+static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 {
+	cpu->biuClockCountDown -= 1;
 
+	if (cpu->biuClockCountDown == 0)
+	{
+		//TODO: Read data from RAM
+		cpu->regs.ip += 1;
+		cpu->instructionStreamQueueIndex += 1;
+
+		if (cpu->instructionStreamQueueIndex == E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH)
+		{
+			BIUMode_Switch(cpu,E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE);
+		}
+		else
+		{
+			cpu->instructionStreamQueueIndex = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
+		}
+	}
 }
 
-static void CpuClockOperational(E5150::Intel8088* cpu)
+static void BIUClock_WaitRoomInQueue(E5150::Intel8088* cpu)
 {
-	CpuClockBIU(cpu);
-	CpuClockEU(cpu);
+	if (cpu->instructionStreamQueueIndex < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_INDEX_MAX)
+	{
+		BIUMode_Switch(cpu,E5150::Intel8088::EBIURunningMode::FETCH_MEMORY);
+
+		// Since the BIU clock simulation function is called before the EU clock simulation function and since the EU
+		// clock simulation function will be the one responsible for decreasing the instruction stream index
+		// the detection of new room available is done in the next clock simulation step, so we need to simulate a fetch
+		// cycle for this simulation step
+		BIUClock_FetchMemory(cpu);
+	}
+}
+
+static void BIUClock_Simulate(E5150::Intel8088* cpu)
+{
+	switch (cpu->biuMode)
+	{
+		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
+			BIUClock_FetchMemory(cpu);
+			break;
+		case E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE:
+			BIUClock_WaitRoomInQueue(cpu);
+			break;
+		default:
+			assert(true);//All running mode must be simulated
+	}
+}
+
+static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
+{
+	xed_error_enum_t status = xed_decode(&cpu->decodedInst,
+										 cpu->instructionStreamQueue,
+										 E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH);
+	if (status == XED_ERROR_NONE)
+	{
+		//TODO: Prepare the instruction
+		cpu->instructionStreamQueueIndex -= xed_decoded_inst_get_length(&cpu->decodedInst);
+	}
+}
+
+static void EUClock_Simulate(E5150::Intel8088* cpu)
+{
+	switch (cpu->euMode)
+	{
+		case E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION:
+			EUClock_WaitInstruction(cpu);
+			break;
+	}
+}
+
+static void CPUClock_Operational(E5150::Intel8088* cpu)
+{
+	BIUClock_Simulate(cpu);
+	EUClock_Simulate(cpu);
 }
 
 void E5150::Intel8088::Clock()
 {
 	switch (mode) {
 		case ERunningMode::INIT_SEQUENCE:
-			CpuClockInitSequence(this);
+			CPUClock_Init(this);
 			break;
 
 		case ERunningMode::OPERATIONAL:
-			CpuClockOperational(this);
+			CPUClock_Operational(this);
 			break;
 	}
 }
