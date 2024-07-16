@@ -46,8 +46,8 @@ typedef int module_t;
 extern "C" {
 #endif
 
-process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr);
-enum PLATFORM_CODE platformTerminateProcess(const process_t process);
+process_t platformProcess_Create(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr);
+enum PLATFORM_CODE platformProcess_Terminate(const process_t process);
 
 uint64_t platformError_GetCode(void);
 const char* platformError_GetDescription(void);

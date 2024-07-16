@@ -17,7 +17,7 @@ static int stdoutfd[2];
 static int stderrfd[2];
 static bool dynamicLinkerError = false;
 
-process_t platformCreateProcess(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr)
+process_t platformProcess_Create(const char* processArgs[], const size_t processCommandLineArgsCount, FILE** childStdout, FILE** childStderr)
 {
 	pipe(stdoutfd);
 	pipe(stderrfd);
@@ -58,7 +58,7 @@ process_t platformCreateProcess(const char* processArgs[], const size_t processC
 	return createdPID;
 }
 
-enum PLATFORM_CODE platformTerminateProcess(const process_t process)
+enum PLATFORM_CODE platformProcess_Terminate(const process_t process)
 {
 	if (kill(process,SIGTERM) < 0)
 	{
