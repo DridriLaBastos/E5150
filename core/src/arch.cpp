@@ -69,10 +69,6 @@ void E5150::Arch::SimulationLoop()
 	unsigned int instructionExecutedBeforeThisBlock = 0;
 	auto loopBegin = std::chrono::high_resolution_clock::now();
 
-#ifdef DEBUGGER_ON
-	E5150::DEBUGGER::PrepareSimulationSide();
-#endif
-
 	while (simulate)
 	{
 		unsigned int clockToExecute = CPU_CLOCK_PER_BLOCK;
@@ -82,12 +78,13 @@ void E5150::Arch::SimulationLoop()
 		if (clocksLeftAfterThisBlock < CPU_CLOCK_PER_BLOCK)
 			clockToExecute += clocksLeftAfterThisBlock;
 
-		const auto blockBegin = HighResolutionClock ::now();
+		const auto blockBegin = HighResolutionClock::now();
 
 		for (unsigned int clock=0; clock < clockToExecute; clock += 1)
 		{
 			//TODO: Simulation
 			m_cpu.Clock();
+			E5150::DEBUGGER::WakeUp();
 		}
 
 #if 0

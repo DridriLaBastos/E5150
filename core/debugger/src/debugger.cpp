@@ -1,3 +1,4 @@
+#if 0
 #include <cstdio>
 #include <cerrno>
 #include <cctype>
@@ -20,6 +21,11 @@ static std::vector<std::unique_ptr<E5150::DEBUGGER::AbstractCommand>> registered
 static E5150::DEBUGGER::AbstractCommand* runningCommand = nullptr;
 static FILE* lockFileRead = nullptr;
 static FILE* lockFileWrite = nullptr;
+#endif
+
+#include "debugger/debugger.hpp"
+
+#include "platform/platform.h"
 
 static struct
 {
@@ -46,8 +52,9 @@ static struct
 
 } context;
 
-void E5150::DEBUGGER::init()
+void E5150::DEBUGGER::Init()
 {
+#if 0
 	context.clear();
 	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandContinue>());
 	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandStep>());
@@ -59,8 +66,22 @@ void E5150::DEBUGGER::init()
 					 platformError_GetCode(), platformError_GetDescription());
 		return;
 	}
+#endif
+
+	PLATFORM_CODE status = platformFifo_Create(FIFO_PATH(LOCK_FILE));
+
+	if (status != PLATFORM_SUCCESS)
+	{
+		spdlog::warn("[DEBUGGER]: Could not create lock file to wait command. ERROR({}): '{}'",
+					    platformError_GetCode(), platformError_GetDescription());
+	}
 }
 
+void E5150::DEBUGGER::WakeUp()
+{
+}
+
+#if 0
 static void OpenLockFile(bool initializeReadSide)
 {
 	const char* openMode = initializeReadSide ? "r" : "w";
@@ -428,3 +449,4 @@ bool E5150::DEBUGGER::Launch(const std::string &commandName, const std::string &
 
 	return found != registeredCommands.end();
 }
+#endif

@@ -121,7 +121,7 @@ void E5150::GUI::init()
 #ifdef DEBUGGER_ON
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
-	E5150::DEBUGGER::init();
+	E5150::DEBUGGER::Init();
 #endif
 
 
