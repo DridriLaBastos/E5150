@@ -1,8 +1,8 @@
-#if 0
 #include <cstdio>
 #include <cerrno>
 #include <cctype>
 
+#if 0
 #include "core/util.hpp"
 #include "core/arch.hpp"
 
@@ -17,15 +17,18 @@ static unsigned int savedLogLevel = 0;
 static bool debuggerInitialized = false;
 static bool debuggerHasQuit = false;
 
-static std::vector<std::unique_ptr<E5150::DEBUGGER::AbstractCommand>> registeredCommands;
 static E5150::DEBUGGER::AbstractCommand* runningCommand = nullptr;
-static FILE* lockFileRead = nullptr;
-static FILE* lockFileWrite = nullptr;
 #endif
 
-#include "debugger/debugger.hpp"
+#include "core/debugger/debugger.hpp"
+#include "core/debugger/commands.hpp"
 
 #include "platform/platform.h"
+
+static FILE* lockFileRead = nullptr;
+static FILE* lockFileWrite = nullptr;
+static E5150::DEBUGGER::AbstractCommand* currentCommand = nullptr;
+static std::vector<std::unique_ptr<E5150::DEBUGGER::AbstractCommand>> registeredCommands;
 
 static struct
 {
@@ -52,8 +55,15 @@ static struct
 
 } context;
 
-void E5150::DEBUGGER::Init()
+void E5150::Debugger::Init()
 {
+	PLATFORM_CODE status = platformFifo_Create(FIFO_PATH(LOCK_FILE));
+
+	if (status != PLATFORM_SUCCESS)
+	{
+		spdlog::warn("[DEBUGGER]: Could not create lock file to wait command. ERROR({}): '{}'",
+					 platformError_GetCode(), platformError_GetDescription());
+	}
 #if 0
 	context.clear();
 	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandContinue>());
@@ -67,18 +77,132 @@ void E5150::DEBUGGER::Init()
 		return;
 	}
 #endif
-
-	PLATFORM_CODE status = platformFifo_Create(FIFO_PATH(LOCK_FILE));
-
-	if (status != PLATFORM_SUCCESS)
-	{
-		spdlog::warn("[DEBUGGER]: Could not create lock file to wait command. ERROR({}): '{}'",
-					    platformError_GetCode(), platformError_GetDescription());
-	}
 }
 
-void E5150::DEBUGGER::WakeUp()
+void E5150::Debugger::WakeUp()
 {
+	if(lockFileRead == nullptr)
+	{
+		lockFileRead = fopen(FIFO_PATH(LOCK_FILE), "r");
+
+		if (lockFileRead == nullptr)
+		{
+			spdlog::warn("[DEBUGGER]: Unable to open lock file to get command. ERROR({}): '{}'",
+						    errno, strerror(errno));
+			return;
+		}
+
+		const int ret = setvbuf(lockFileRead, nullptr,_IONBF,0);
+
+		if (ret == EOF)
+		{
+			spdlog::warn("[DEBUGGER]: Unable to set buffering mode to Non-Buffered");
+		}
+	}
+
+	char buf;
+	fread(&buf,sizeof(buf),1,lockFileRead);
+}
+
+enum class E_DEBUGGER_UNLOCK_ERROR
+{
+	SUCCESS, PLATFORM_ERROR, PLATFORM_EOF
+};
+
+static E_DEBUGGER_UNLOCK_ERROR UnlockDebuggerForWriting(void)
+{
+	if (lockFileWrite == nullptr)
+	{
+		lockFileWrite = fopen(FIFO_PATH(LOCK_FILE),"w");
+
+		if (lockFileWrite == nullptr)
+		{
+			return E_DEBUGGER_UNLOCK_ERROR::PLATFORM_ERROR;
+		}
+	}
+
+	char buf = 0;
+	const int status = fwrite(&buf,sizeof(buf),1,lockFileWrite);
+
+	if (status == sizeof(buf))
+	{
+		return E_DEBUGGER_UNLOCK_ERROR::SUCCESS;
+	}
+
+	return feof(lockFileWrite) ? E_DEBUGGER_UNLOCK_ERROR::PLATFORM_EOF : E_DEBUGGER_UNLOCK_ERROR::PLATFORM_ERROR;
+}
+
+static bool Launch(E5150::DEBUGGER::AbstractCommand* requestedCommand, const std::string& commandArgs)
+{
+	if (currentCommand) {
+		spdlog::warn("Unable to launch the command '{}' because the command '{}' is already running",
+		             requestedCommand->name.c_str(), currentCommand->name.c_str());
+		return false;
+	}
+
+	//Prepare will return false with -h or --help option for command (or if any other error happened)
+	//We don't want to Launch the command if it didn't get proper options
+	const bool commandReady = requestedCommand->Parse(commandArgs);
+
+	if (!commandReady)
+	{
+		return false;
+	}
+
+	const E_DEBUGGER_UNLOCK_ERROR status = UnlockDebuggerForWriting();
+
+	switch (status) {
+		case E_DEBUGGER_UNLOCK_ERROR::SUCCESS:
+			currentCommand = requestedCommand;
+			break;
+
+		case E_DEBUGGER_UNLOCK_ERROR::PLATFORM_EOF:
+			spdlog::warn(
+					"[DEBUGGER] Got EOF when unlocking the debugger for command execution... Thats unexpected");
+			break;
+
+		case E_DEBUGGER_UNLOCK_ERROR::PLATFORM_ERROR:
+			spdlog::warn("[DEBUGGER] Error when unlocking the debugger for command execution. ERROR({}) :'{}'",
+			             errno,
+			             strerror(errno));
+			break;
+		default:
+			assert(false);
+	}
+
+	return currentCommand != nullptr;
+}
+
+void E5150::Debugger::ParseCmdLine(std::string line)
+{
+	const auto cmdNameBegin = std::find_if_not(line.begin(), line.end(),[](const char c) {
+		return isspace(c);
+	});
+
+	const auto cmdNameEnd = std::find_if(cmdNameBegin, line.end(),[](const char c) {
+		return isspace(c);
+	});
+
+	const std::string commandName (cmdNameBegin, cmdNameEnd);
+	const std::string commandArgs (cmdNameEnd, line.end());
+
+	const auto found = std::find_if(registeredCommands.begin(), registeredCommands.end(),
+	                                [&commandName](const std::unique_ptr<E5150::DEBUGGER::AbstractCommand>& cmd) {
+		                                return cmd->name == commandName;
+	                                });
+
+	if (found == registeredCommands.end())
+	{
+		spdlog::warn("[DEBUGGER] Command '{}' not found", commandName.c_str());
+		return;
+	}
+
+	const bool cmdLaunchedSuccess = Launch(found->get(), commandArgs);
+
+	if (!cmdLaunchedSuccess)
+	{
+		spdlog::warn("Cannot execute command '{}'",commandName);
+	}
 }
 
 #if 0

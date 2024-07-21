@@ -3,7 +3,7 @@
 #include "core/8284A.hpp"
 
 #ifdef DEBUGGER_ON
-#include "debugger/debugger.hpp"
+#include "core/debugger/debugger.hpp"
 #endif
 
 static constexpr unsigned int FDC_CLOCK_MUL = 839;
@@ -32,7 +32,7 @@ E5150::FDC E5150::Arch::_fdc(pic,ports);
 
 E5150::Arch::EmulationStat E5150::Arch::emulationStat;
 
-E5150::Arch::Arch(): m_cpu()
+E5150::Arch::Arch(): cpu()
 {
 #if 0
 	#ifndef STOP_AT_INSTRUCTION
@@ -83,8 +83,8 @@ void E5150::Arch::SimulationLoop()
 		for (unsigned int clock=0; clock < clockToExecute; clock += 1)
 		{
 			//TODO: Simulation
-			m_cpu.Clock();
-			E5150::DEBUGGER::WakeUp();
+			cpu.Clock();
+			E5150::Debugger::WakeUp();
 		}
 
 #if 0
@@ -138,7 +138,9 @@ void E5150::Arch::SimulationLoop()
 	}
 
 #ifdef DEBUGGER_ON
+#if 0
 	E5150::DEBUGGER::clean();
+#endif
 #endif
 	E5150_INFO("Simulation quit !");
 }

@@ -2,11 +2,29 @@
 // Created by Adrien COURNAND on 24/12/2022.
 //
 //TODO: WHY DO I HAVE LINK ERROR WHEN COMPILING XED IN STATIC MODE ?
+#include <utility>
+
 #include "core/8284A.hpp"
 #include "gui_states.hpp"
 #include "third-party/imgui/imgui.h"
 
 #include "platform/platform.h"
+
+enum class DEBUGGER_ENTRY_TYPE {
+	COMMAND, DEFAULT
+};
+
+struct DebuggerConsoleEntry {
+	const std::string line;
+	const DEBUGGER_ENTRY_TYPE type;
+
+	DebuggerConsoleEntry(const DEBUGGER_ENTRY_TYPE& t, std::string l): line(std::move(l)), type(t) {}
+};
+
+struct InternalState
+{
+	std::vector<DebuggerConsoleEntry> entries;
+};
 
 char ImGuiTextBuffer::EmptyString[1] = { 0 };
 
@@ -19,23 +37,11 @@ static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::Intel8284A::CPU_
 static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
 #endif
 
-enum class DEBUGGER_ENTRY_TYPE {
-	COMMAND, DEFAULT
-};
-
-struct DebuggerConsoleEntry {
-	const std::string line;
-	const DEBUGGER_ENTRY_TYPE type;
-
-	DebuggerConsoleEntry(const DEBUGGER_ENTRY_TYPE& t, const std::string& l): line(l), type(t) {}
-};
-
-static std::vector<DebuggerConsoleEntry> entries;
-
 static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
 {
-	static size_t previousCallBufferSize = entries.size();
+	static size_t previousCallBufferSize = 0;
 	static size_t entriesHistoriqueIndex = 0;
+	std::vector<DebuggerConsoleEntry>& entries = ((InternalState*)data->UserData)->entries;
 
 	if (entries.size() != previousCallBufferSize)
 	{
@@ -68,10 +74,11 @@ static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
 	}
 
 	//https://github.com/ocornut/imgui/blob/b9db5c566bbafa3462f1a526032ca2971742db17/imgui_widgets.cpp#L4003
-	//The value returned should be different than 0 (I guess that's what the line says ?)
-	return !0;
+	//The value returned should be different from 0 (I guess that's what the line says ?)
+	return 1;
 }
 
+#if 0
 static void DrawDebuggerCommandConsole(DebuggerGuiState& debuggerGuiState)
 {
 	if (ImGui::BeginChild("scrolling",ImVec2{150,80},false, ImGuiWindowFlags_HorizontalScrollbar))
@@ -242,37 +249,37 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 	ImGui::SameLine();
 	ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
 }
+#endif
 
-static void DrawDebuggerCPUStatus(const DebuggerGuiState& debuggerGuiState)
+static void DrawRegisterView(const E5150::Intel8088::Regs& regs)
 {
-	// DrawCurrentInstruction(debuggerGuiState);
-
-	const uint16_t cs = debuggerGuiState.i8086->regs.cs;
-	const uint16_t ip = debuggerGuiState.i8086->regs.ip;
+	const uint16_t cs = regs.cs;
+	const uint16_t ip = regs.ip;
 	unsigned int ea = (cs << 4) + ip;
 	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,ip,ea);
+#if 0
 	DrawCurrentInstruction(debuggerGuiState);
+#endif
 
 	ImGui::Separator();
 
-	const uint16_t ss = debuggerGuiState.i8086->regs.ss;
-	const uint16_t sp = debuggerGuiState.i8086->regs.sp;
+	const uint16_t ss = regs.ss;
+	const uint16_t sp = regs.sp;
 	ea = (ss << 4) + sp;
 	ImGui::Text("Stack    (ss:sp) 0x%04X:0x%04X (0x%05X)", ss,sp,ea);
 
 	ImGui::Separator();
 
 	ImGui::Text("CS 0x%4X   DS 0x%4X   ES 0x%4X   SS 0x%4X",
-				debuggerGuiState.i8086->regs.cs,debuggerGuiState.i8086->regs.ds,debuggerGuiState.i8086->regs.es,debuggerGuiState.i8086->regs.ss);
+	            regs.cs,regs.ds,regs.es,regs.ss);
 	ImGui::Text("AX 0x%4X   BX 0x%4X   CX 0x%4X   DX 0x%4X",
-	            debuggerGuiState.i8086->regs.ax,debuggerGuiState.i8086->regs.bx,debuggerGuiState.i8086->regs.cx,debuggerGuiState.i8086->regs.dx);
+	            regs.ax,regs.bx,regs.cx,regs.dx);
 	ImGui::Text("SI 0x%4X   DI 0x%4X   BP 0x%4X   SP 0x%4X",
-	            debuggerGuiState.i8086->regs.si,debuggerGuiState.i8086->regs.di,debuggerGuiState.i8086->regs.bp,debuggerGuiState.i8086->regs.sp);
+	            regs.si,regs.di,regs.bp,regs.sp);
 	ImGui::Separator();
 
 	const char flagChars[] = { 'C', 'P', 'A', 'Z', 'S', 'T', 'I', 'D', 'O' };
 
-	const Regs& regs = debuggerGuiState.i8086->regs;
 	for (int i = 0; i < 9; i += 1)
 	{
 		const bool flagSet = regs.flags & (1 << i);
@@ -288,27 +295,85 @@ static void DrawDebuggerCPUStatus(const DebuggerGuiState& debuggerGuiState)
 		ImGui::TextColored(textColor,"%c",flagChar);
 		ImGui::SameLine();
 	}
-
-	ImGui::NewLine();
 }
 
-static void DrawDebuggerGui(DebuggerGuiState& debuggerGuiState)
+static void DrawDebuggerCPUStatus(const EmulationGuiState& emulationGuiState)
 {
-	ImGui::Begin("Debugger");
+	// DrawCurrentInstruction(debuggerGuiState);
+	DrawRegisterView(emulationGuiState.debuggerGuiState.cpu->regs);
+}
 
+static void DrawDebuggerConsole(EmulationGuiState& emulationGuiState)
+{
+	//In case I forgot to remove it : this is just an anchor for ctrl F
+	//DrawDebuggerCommandConsole
+
+	if (ImGui::BeginChild("scrolling",ImVec2(0,0),false, ImGuiWindowFlags_HorizontalScrollbar))
+	{
+		for (DebuggerConsoleEntry& entry : emulationGuiState.internalState->entries)
+		{
+			if (entry.type == DEBUGGER_ENTRY_TYPE::COMMAND)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{1.0,0.8,0.6,1.0});
+			}
+
+			ImGui::TextUnformatted(" #");
+			ImGui::SameLine();
+			ImGui::TextUnformatted(&(entry.line[0]));
+
+			if (entry.type == DEBUGGER_ENTRY_TYPE::COMMAND)
+			{
+				ImGui::PopStyleColor();
+			}
+		}
+		ImGui::EndChild();
+
+		char cmdBuffer[256];
+		memset(cmdBuffer,0,sizeof(cmdBuffer));
+
+		ImGuiInputTextFlags inputTextFlags =
+				ImGuiInputTextFlags_EnterReturnsTrue |
+				ImGuiInputTextFlags_EscapeClearsAll |
+				ImGuiInputTextFlags_CallbackCompletion |
+				ImGuiInputTextFlags_CallbackHistory;
+
+		ImGui::Text("(%" PRIu64 ")",emulationGuiState.emulationStat.instructionExecutedCount);
+		ImGui::SameLine();
+		if(ImGui::InputText("Enter your command", cmdBuffer,IM_ARRAYSIZE(cmdBuffer)-1,
+							inputTextFlags,
+							DebuggerCommandTextEditCallback,
+							(void*)emulationGuiState.internalState))
+		{
+			emulationGuiState.debuggerGuiState.outCommandLine = cmdBuffer;
+			emulationGuiState.internalState->entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND,
+																  emulationGuiState.debuggerGuiState.outCommandLine);
+		}
+	}
+}
+
+static void DrawDebuggerGui(EmulationGuiState& emulationGuiState)
+{
+	ImGui::Begin("Register view");
+		DrawDebuggerCPUStatus(emulationGuiState);
+	ImGui::End();
+
+	ImGui::Begin("Console");
+		DrawDebuggerConsole(emulationGuiState);
+	ImGui::End();
+
+
+#if 0
 	ImGui::BeginChild("Console",ImVec2(ImGui::GetContentRegionAvail().x*.5,0.0),true);
-	DrawDebuggerCommandConsole(debuggerGuiState);
+	DrawDebuggerCommandConsole(emulationGuiState.debuggerGuiState);
 	ImGui::EndChild();
-	
+
 	ImGui::SameLine();
 
 	ImGui::BeginChild("Reg View", {0,0},true);
 	ImGui::PushItemWidth(-FLT_MIN);
-	DrawDebuggerCPUStatus(debuggerGuiState);
 	ImGui::PopItemWidth();
 	ImGui::EndChild();
-
-	ImGui::End();
+#endif
 }
 
 static void DrawEmulationConsole(const EmulationGuiState& state)
@@ -331,10 +396,15 @@ static void DrawEmulationGui(const EmulationGuiState& state)
 
 extern "C" DLL_EXPORT HOT_RELOAD_DRAW_SIGNATURE
 {
+	if (emulationGuiState.internalState == nullptr)
+	{
+		emulationGuiState.internalState = new InternalState();
+	}
+
 	DrawEmulationConsole(emulationGuiState);
 	DrawEmulationGui(emulationGuiState);
 
 #ifdef DEBUGGER_ON
-	DrawDebuggerGui(emulationGuiState.debuggerGuiState);
+	DrawDebuggerGui(emulationGuiState);
 #endif
 }

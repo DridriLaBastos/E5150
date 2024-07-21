@@ -46,7 +46,7 @@ namespace E5150
 			static BUS<20> _addressBus;
 			static BUS<8> _dataBus;
 #endif
-			Intel8088 m_cpu;
+			Intel8088 cpu;
 
 			static EmulationStat emulationStat;
 	};

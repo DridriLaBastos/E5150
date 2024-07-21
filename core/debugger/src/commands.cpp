@@ -2,7 +2,7 @@
 // Created by Adrien COURNAND on 19/05/2023.
 //
 
-#include "debugger/commands.hpp"
+#include "core/debugger/commands.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 /// Abstract command

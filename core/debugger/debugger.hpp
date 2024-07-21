@@ -3,8 +3,9 @@
 
 #define LOCK_FILE ".lock"
 
-namespace E5150::DEBUGGER
-{
+#include "platform/platform.h"
+
+namespace E5150::Debugger {
 #if 0
 	void init (void);
 	void PrepareSimulationSide(void);
@@ -15,6 +16,7 @@ namespace E5150::DEBUGGER
 #endif
 	void Init(void);
 	void WakeUp(void);
+	void ParseCmdLine(std::string line);
 }
 
 #endif

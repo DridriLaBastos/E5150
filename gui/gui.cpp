@@ -9,10 +9,10 @@
 
 #include "core/arch.hpp"
 #include "core/8284A.hpp"
-#include "core/debugger/cli.hpp"
-#include "core/debugger/debugger.hpp"
 
-using gui_clock = std::chrono::high_resolution_clock;
+#ifdef DEBUGGER_ON
+#include "core/debugger/debugger.hpp"
+#endif
 
 namespace fs = std::filesystem;
 
@@ -103,6 +103,7 @@ errorDrawFunctionReset:
 }
 
 static E5150::Arch arch;
+static EmulationGuiState emulationGuiState;
 
 void E5150::GUI::init()
 {
@@ -121,7 +122,7 @@ void E5150::GUI::init()
 #ifdef DEBUGGER_ON
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
-	E5150::DEBUGGER::Init();
+	//E5150::DEBUGGER::Init();
 #endif
 
 
@@ -151,7 +152,9 @@ void E5150::GUI::init()
 	t = std::thread(&E5150::Arch::SimulationLoop, &arch);
 
 #ifdef DEBUGGER_ON
+#if 0
 	E5150::DEBUGGER::PrepareGuiSide();
+#endif
 #endif
 }
 
@@ -161,11 +164,11 @@ void E5150::GUI::draw()
 
 	if (HotReloadDrawFuncPtr)
 	{
-		EmulationGuiState emulationGuiState;
 		emulationGuiState.emulationStat = E5150::Arch::emulationStat;
 		emulationGuiState.consoleSink = (SpdlogImGuiColorSink<std::mutex>*)spdlog::default_logger()->sinks().back().get();
-
 	#ifdef DEBUGGER_ON
+		emulationGuiState.debuggerGuiState.cpu = &arch.cpu;
+	#if 0
 		const unsigned int decodeAddress = CPU::genAddress(cpu.regs.cs,cpu.regs.ip);
 		xed_decoded_inst_zero_keep_mode(&currentlyDecodedInstruction);
 		xed_decode(&currentlyDecodedInstruction,ram.GetRamData(decodeAddress),6);
@@ -174,14 +177,14 @@ void E5150::GUI::draw()
 		emulationGuiData.debuggerGuiState.ramData = E5150::Arch::_ram.GetRamData();
 		emulationGuiData.debuggerGuiState.currentlyDecodedInstruction = &currentlyDecodedInstruction;
 	#endif
+	#endif
 
 		HotReloadDrawFuncPtr(emulationGuiState);
 
 #ifdef DEBUGGER_ON
-		if (!emulationGuiData.debuggerGuiState.outCmdLine.empty())
+		if (!emulationGuiState.debuggerGuiState.outCommandLine.empty())
 		{
-			DEBUGGER::CLI::ParseLine(emulationGuiData.debuggerGuiState.outCmdLine);
-			emulationGuiData.debuggerGuiState.outCmdLine.clear();
+			E5150::Debugger::ParseCmdLine(std::move(emulationGuiState.debuggerGuiState.outCommandLine));
 		}
 #endif
 	}
@@ -191,7 +194,9 @@ void E5150::GUI::clean()
 {
 	arch.StopSimulation();
 #ifdef DEBUGGER_ON
+#if 0
 	E5150::DEBUGGER::clean();
+#endif
 #endif
 	t.join();
 }

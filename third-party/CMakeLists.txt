@@ -59,8 +59,8 @@ set(GLFW_INSTALL OFF)
 add_subdirectory(glfw)
 
 set(CLI11_WARNINGS_AS_ERRORS OFF)
-set(CLI11_SINGLE_FILE ON)
-set(CLI11_PRECOMPILED OFF)
+set(CLI11_SINGLE_FILE OFF)
+set(CLI11_PRECOMPILED ON)
 add_subdirectory(CLI11)
 
 find_package(OpenGL REQUIRED)

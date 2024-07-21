@@ -1,7 +1,7 @@
 #ifndef __COMMANDS_HPP__
 #define __COMMANDS_HPP__
 
-#include "CLI11.hpp"
+#include "CLI/CLI.hpp"
 
 namespace E5150::DEBUGGER
 {

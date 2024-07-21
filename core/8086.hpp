@@ -5,6 +5,7 @@
 #include "biu.hpp"
 #include "util.hpp"
 
+#if 0
 struct Regs {
 	union {
 		uint16_t ax;
@@ -126,6 +127,7 @@ class CPU
 
 		uint64_t instructionExecutedCount;
 };
+#endif
 
 namespace E5150
 {
@@ -136,7 +138,6 @@ namespace E5150
 		static constexpr unsigned int INSTRUCTION_STREAM_QUEUE_LENGTH = 5;
 		static constexpr unsigned int INSTRUCTION_STREAM_QUEUE_INDEX_MAX = INSTRUCTION_STREAM_QUEUE_LENGTH - 1;
 	public:
-#if 0
 		struct Regs {
 			union {
 				uint16_t ax;
@@ -168,7 +169,6 @@ namespace E5150
 
 			uint16_t cs, ds, es, ss, si, di, bp, sp, ip, flags;
 		};
-#endif
 
 		enum class ERunningMode
 		{

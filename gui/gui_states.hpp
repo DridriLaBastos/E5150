@@ -5,24 +5,31 @@
 #ifndef E5150_GUI_STATES_HPP
 #define E5150_GUI_STATES_HPP
 
+#include <memory>
 #include <cstdint>
 
 #include "core/arch.hpp"
-#include "xed/xed-interface.h"
 #include "spdlog_imgui_color_sink.hpp"
 
 struct DebuggerGuiState
 {
+#if 0
 	std::string outCmdLine;
 	CPU* i8086 = nullptr;
 	uint8_t* ramData = nullptr;
 	xed_decoded_inst_t* currentlyDecodedInstruction;
+#endif
+	E5150::Intel8088* cpu;
+	std::string outCommandLine;
 };
+
+struct InternalState;
 
 struct EmulationGuiState
 {
 	E5150::Arch::EmulationStat emulationStat;
 	SpdlogImGuiColorSink<std::mutex>* consoleSink{};
+	InternalState* internalState;
 
 #ifdef DEBUGGER_ON
 	DebuggerGuiState debuggerGuiState;
