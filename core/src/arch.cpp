@@ -80,11 +80,12 @@ void E5150::Arch::SimulationLoop()
 
 		const auto blockBegin = HighResolutionClock::now();
 
-		for (unsigned int clock=0; clock < clockToExecute; clock += 1)
+		//TODO: Profile this : this this loop is executed millions of time per seconds, we might loose some perf by
+		//  doing the extra comparison each time
+		for (unsigned int clock=0; clock < clockToExecute && simulate; clock += 1)
 		{
-			//TODO: Simulation
 			cpu.Clock();
-			E5150::Debugger::WakeUp();
+			E5150::DEBUGGER::WakeUp(cpu.events);
 		}
 
 #if 0
@@ -137,10 +138,5 @@ void E5150::Arch::SimulationLoop()
 		}
 	}
 
-#ifdef DEBUGGER_ON
-#if 0
-	E5150::DEBUGGER::clean();
-#endif
-#endif
 	E5150_INFO("Simulation quit !");
 }

@@ -122,9 +122,8 @@ void E5150::GUI::init()
 #ifdef DEBUGGER_ON
 	E5150_INFO("Emulation with debugger (loglevel: {})",E5150::Util::CURRENT_EMULATION_LOG_LEVEL);
 	spdlog::set_level(spdlog::level::debug);
-	//E5150::DEBUGGER::Init();
+	E5150::DEBUGGER::Init();
 #endif
-
 
 #ifndef WIN32 //Those signals values aren't defined in windows
 	signal(SIGSTOP, stop);
@@ -184,7 +183,7 @@ void E5150::GUI::draw()
 #ifdef DEBUGGER_ON
 		if (!emulationGuiState.debuggerGuiState.outCommandLine.empty())
 		{
-			E5150::Debugger::ParseCmdLine(std::move(emulationGuiState.debuggerGuiState.outCommandLine));
+			E5150::DEBUGGER::ParseCmdLine(std::move(emulationGuiState.debuggerGuiState.outCommandLine));
 		}
 #endif
 	}
@@ -194,9 +193,7 @@ void E5150::GUI::clean()
 {
 	arch.StopSimulation();
 #ifdef DEBUGGER_ON
-#if 0
-	E5150::DEBUGGER::clean();
-#endif
+	E5150::DEBUGGER::Clean();
 #endif
 	t.join();
 }

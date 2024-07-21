@@ -68,17 +68,6 @@ enum PLATFORM_CODE platformProcess_Terminate(const process_t process)
 	return waitpid(process,NULL,WUNTRACED) == process ? PLATFORM_SUCCESS : PLATFORM_ERROR;
 }
 
-enum PLATFORM_CODE platformFifo_Create (const char* fifoFileName)
-{
-	const int fifo = mkfifo(fifoFileName,S_IRWXG|S_IRWXO|S_IRWXU);
-
-	if (fifo >= 0) { return PLATFORM_SUCCESS; }
-
-	const int fifoAlreadyExists = errno == EEXIST;
-
-	return fifoAlreadyExists ? PLATFORM_FIFO_ALREADY_CREATED : PLATFORM_ERROR;
-}
-
 uint64_t platformError_GetCode(void)
 { return errno; }
 

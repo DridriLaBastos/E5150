@@ -14,7 +14,7 @@
 #define dataBus E5150::Arch::_dataBus
 #endif
 
-#include "8086.hpp"
+#include "core/8086.hpp"
 
 namespace E5150
 {

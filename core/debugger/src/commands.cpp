@@ -2,6 +2,7 @@
 // Created by Adrien COURNAND on 19/05/2023.
 //
 
+#include "core/8086.hpp"
 #include "core/debugger/commands.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -42,11 +43,10 @@ void E5150::DEBUGGER::COMMANDS::CommandContinue::InternalParse(CLI::App &app, st
 	app.parse(line);
 }
 
-bool E5150::DEBUGGER::COMMANDS::CommandContinue::Step(const bool instructionExecuted, const bool instructionDecoded)
+bool E5150::DEBUGGER::COMMANDS::CommandContinue::Step(const unsigned int cpuEvents)
 {
 	//Unused
-	(void)instructionExecuted;
-	(void)instructionDecoded;
+	(void)cpuEvents;
 	//The continue command never finishes : the emulation runs forever
 	return false;
 }
@@ -68,7 +68,7 @@ void E5150::DEBUGGER::COMMANDS::CommandStep::InternalParse(CLI::App &app, std::s
 								  ->default_val(0);
 	CLI::Option* optionInstructions = app.add_option("-i,--instruction", instructionNumber,
 	                                                 "The number of instructions to pass")
-								 ->default_val(1);
+								 ->default_val(0);
 
 	//CLI::Option* flagFollow = app.add_flag("-f,--follow", follow,
 	//									   "When specified the debugger follows control transfers instructions");
@@ -78,9 +78,9 @@ void E5150::DEBUGGER::COMMANDS::CommandStep::InternalParse(CLI::App &app, std::s
 	app.parse(line,false);
 }
 
-bool E5150::DEBUGGER::COMMANDS::CommandStep::Step(const bool instructionExecuted, const bool instructionDecoded)
+bool E5150::DEBUGGER::COMMANDS::CommandStep::Step(const unsigned int cpuEvents)
 {
-	(void)instructionExecuted;
+	const bool instructionExecuted = cpuEvents & (int)E5150::Intel8088::EEventFlags::INSTRUCTION_EXECUTED;
 	clockNumber -= clockNumber != 0;
 	instructionNumber -= instructionExecuted && (instructionNumber > 0);
 	return (clockNumber == 0) && (instructionNumber == 0);

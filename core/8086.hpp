@@ -185,6 +185,12 @@ namespace E5150
 			WAIT_INSTRUCTION, EXECUTE_INSTRUCTION
 		};
 
+		enum class EEventFlags
+		{
+			INSTRUCTION_EXECUTED = 1 << 0,
+			INSTRUCTION_DECODED  = 1 << 1,
+		};
+
 	public:
 		Intel8088(void);
 
@@ -199,6 +205,8 @@ namespace E5150
 
 		uint8_t instructionStreamQueue [INSTRUCTION_STREAM_QUEUE_LENGTH];
 		size_t instructionStreamQueueIndex;
+
+		unsigned int events;
 
 		unsigned int biuClockCountDown;
 

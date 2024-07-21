@@ -12,7 +12,7 @@ namespace E5150::DEBUGGER
 
 		bool Parse(const std::string& line);
 
-		virtual bool Step(const bool instructionExecuted, const bool instructionDecoded) = 0;
+		virtual bool Step(const unsigned int cpuEvents) = 0;
 
 		const std::string  name, description;
 
@@ -24,7 +24,7 @@ namespace E5150::DEBUGGER
 		class CommandContinue : public AbstractCommand {
 		public:
 			CommandContinue(void);
-			virtual bool Step(const bool instructionExecuted, const bool instructionDecoded) override final;
+			virtual bool Step(const unsigned int cpuEvents) override final;
 		protected:
 			virtual void InternalParse(CLI::App& app, std::string line) override final;
 		};
@@ -32,7 +32,7 @@ namespace E5150::DEBUGGER
 		class CommandStep : public AbstractCommand {
 		public:
 			CommandStep(void);
-			bool Step(const bool instructionExecuted, const bool instructionDecoded) final;
+			bool Step(const unsigned int cpuEvents) final;
 		private:
 			virtual void InternalParse(CLI::App& app, std::string line) override final;
 		};

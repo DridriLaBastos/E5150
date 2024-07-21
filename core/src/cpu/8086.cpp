@@ -497,6 +497,7 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 	{
 		//TODO: Prepare the instruction
 		cpu->instructionStreamQueueIndex -= xed_decoded_inst_get_length(&cpu->decodedInst);
+		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
 	}
 }
 
@@ -510,7 +511,7 @@ static void EUClock_Simulate(E5150::Intel8088* cpu)
 	}
 }
 
-static void CPUClock_Operational(E5150::Intel8088* cpu)
+static unsigned int CPUClock_Operational(E5150::Intel8088* cpu)
 {
 	BIUClock_Simulate(cpu);
 	EUClock_Simulate(cpu);
@@ -518,6 +519,7 @@ static void CPUClock_Operational(E5150::Intel8088* cpu)
 
 void E5150::Intel8088::Clock()
 {
+	this->events = 0;
 	switch (mode) {
 		case ERunningMode::INIT_SEQUENCE:
 			CPUClock_Init(this);

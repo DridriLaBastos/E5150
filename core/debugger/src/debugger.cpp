@@ -2,6 +2,10 @@
 #include <cerrno>
 #include <cctype>
 
+#include <semaphore>
+
+#include "core/arch.hpp"
+
 #if 0
 #include "core/util.hpp"
 #include "core/arch.hpp"
@@ -25,8 +29,6 @@ static E5150::DEBUGGER::AbstractCommand* runningCommand = nullptr;
 
 #include "platform/platform.h"
 
-static FILE* lockFileRead = nullptr;
-static FILE* lockFileWrite = nullptr;
 static E5150::DEBUGGER::AbstractCommand* currentCommand = nullptr;
 static std::vector<std::unique_ptr<E5150::DEBUGGER::AbstractCommand>> registeredCommands;
 
@@ -55,81 +57,38 @@ static struct
 
 } context;
 
-void E5150::Debugger::Init()
+void E5150::DEBUGGER::Init()
 {
-	PLATFORM_CODE status = platformFifo_Create(FIFO_PATH(LOCK_FILE));
-
-	if (status != PLATFORM_SUCCESS)
-	{
-		spdlog::warn("[DEBUGGER]: Could not create lock file to wait command. ERROR({}): '{}'",
-					 platformError_GetCode(), platformError_GetDescription());
-	}
-#if 0
-	context.clear();
 	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandContinue>());
 	registeredCommands.emplace_back(std::make_unique<COMMANDS::CommandStep>());
+#if 0
+	context.clear();
 
-	PLATFORM_CODE status = platformFifo_Create(FIFO_PATH(LOCK_FILE));
-
-	if (status == PLATFORM_ERROR) {
-		spdlog::warn("[DEBUGGER]: Could not create lock file to wait command. ERROR({}): '{}'",
-					 platformError_GetCode(), platformError_GetDescription());
-		return;
-	}
 #endif
 }
 
-void E5150::Debugger::WakeUp()
+std::binary_semaphore ready(0);
+void E5150::DEBUGGER::Clean()
 {
-	if(lockFileRead == nullptr)
-	{
-		lockFileRead = fopen(FIFO_PATH(LOCK_FILE), "r");
-
-		if (lockFileRead == nullptr)
-		{
-			spdlog::warn("[DEBUGGER]: Unable to open lock file to get command. ERROR({}): '{}'",
-						    errno, strerror(errno));
-			return;
-		}
-
-		const int ret = setvbuf(lockFileRead, nullptr,_IONBF,0);
-
-		if (ret == EOF)
-		{
-			spdlog::warn("[DEBUGGER]: Unable to set buffering mode to Non-Buffered");
-		}
-	}
-
-	char buf;
-	fread(&buf,sizeof(buf),1,lockFileRead);
+	//Release potentially waiting thread
+	ready.release();
 }
 
-enum class E_DEBUGGER_UNLOCK_ERROR
-{
-	SUCCESS, PLATFORM_ERROR, PLATFORM_EOF
-};
 
-static E_DEBUGGER_UNLOCK_ERROR UnlockDebuggerForWriting(void)
+void E5150::DEBUGGER::WakeUp(const unsigned int cpuEvents)
 {
-	if (lockFileWrite == nullptr)
+	bool commandExecutionFinished = true;
+
+	if (currentCommand)
 	{
-		lockFileWrite = fopen(FIFO_PATH(LOCK_FILE),"w");
-
-		if (lockFileWrite == nullptr)
-		{
-			return E_DEBUGGER_UNLOCK_ERROR::PLATFORM_ERROR;
-		}
+		commandExecutionFinished = currentCommand->Step(cpuEvents);
 	}
 
-	char buf = 0;
-	const int status = fwrite(&buf,sizeof(buf),1,lockFileWrite);
-
-	if (status == sizeof(buf))
+	if(commandExecutionFinished)
 	{
-		return E_DEBUGGER_UNLOCK_ERROR::SUCCESS;
+		currentCommand = nullptr;
+		ready.acquire();
 	}
-
-	return feof(lockFileWrite) ? E_DEBUGGER_UNLOCK_ERROR::PLATFORM_EOF : E_DEBUGGER_UNLOCK_ERROR::PLATFORM_ERROR;
 }
 
 static bool Launch(E5150::DEBUGGER::AbstractCommand* requestedCommand, const std::string& commandArgs)
@@ -144,36 +103,16 @@ static bool Launch(E5150::DEBUGGER::AbstractCommand* requestedCommand, const std
 	//We don't want to Launch the command if it didn't get proper options
 	const bool commandReady = requestedCommand->Parse(commandArgs);
 
-	if (!commandReady)
+	if (commandReady)
 	{
-		return false;
+		currentCommand = requestedCommand;
+		ready.release();
 	}
 
-	const E_DEBUGGER_UNLOCK_ERROR status = UnlockDebuggerForWriting();
-
-	switch (status) {
-		case E_DEBUGGER_UNLOCK_ERROR::SUCCESS:
-			currentCommand = requestedCommand;
-			break;
-
-		case E_DEBUGGER_UNLOCK_ERROR::PLATFORM_EOF:
-			spdlog::warn(
-					"[DEBUGGER] Got EOF when unlocking the debugger for command execution... Thats unexpected");
-			break;
-
-		case E_DEBUGGER_UNLOCK_ERROR::PLATFORM_ERROR:
-			spdlog::warn("[DEBUGGER] Error when unlocking the debugger for command execution. ERROR({}) :'{}'",
-			             errno,
-			             strerror(errno));
-			break;
-		default:
-			assert(false);
-	}
-
-	return currentCommand != nullptr;
+	return commandReady;
 }
 
-void E5150::Debugger::ParseCmdLine(std::string line)
+void E5150::DEBUGGER::ParseCmdLine(std::string line)
 {
 	const auto cmdNameBegin = std::find_if_not(line.begin(), line.end(),[](const char c) {
 		return isspace(c);
@@ -234,21 +173,6 @@ void E5150::DEBUGGER::PrepareSimulationSide()
 
 void E5150::DEBUGGER::PrepareGuiSide() {
 	OpenLockFile(false);
-}
-
-void E5150::DEBUGGER::clean()
-{
-	if (lockFileWrite) {
-		fclose(lockFileWrite);
-	}
-
-    if (lockFileRead)
-    {
-	    fclose(lockFileRead);
-	}
-
-    remove(FIFO_PATH(LOCK_FILE));
-    debuggerInitialized = false;
 }
 
 static void printRegisters(void)
@@ -476,7 +400,7 @@ static void printClockLevelEUEmulationLog(void)
 
 /**
  * @brief Executes the continue and step commands
- * 
+ *
  * @param instructionExecuted the CPU finishes to execute an instruction
  * @param instructionDecoded the CPU has decoded an instruction
  * @retval true the command is still being executed

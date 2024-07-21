@@ -196,28 +196,6 @@ const char* platformError_GetDescription(void)
 
 uint64_t platformError_GetCode(void) { return GetLastError(); }
 
-enum PLATFORM_CODE platformFifo_Create(const char* fifoFileName)
-{
-	COMPUTE_WIN32_PIPE_PATH(fifoFileName);
-	//TODO: Not sure about that, seems to work.
-	//What is the difference between MESSAGE_MODE and BYTE_MODE ? My (little) understanding is that with MESSAGE_MODE
-    // the pipe tries to read/write the n number bytes we give. With BYTE_MODE it's up to me to verify that I get the
-    // number of bytes I asked to send or receive.
-    //
-	//What is the difference between PIPE_TYPE_MESSAGE with PIPE_READMODE_MESSAGE and PIPE_TYPE_BYTE with PIPE_READ_MODE message ?
-	//
-	//What I did for now is a byte pipe with READMODE_MESSAGE : it's still byte but we want to read/write the whole
-    // number of bytes we asked... ? Is it good ? Bad ? Okay but stupid ?
-	//I have no idea...
-    //Update some weeks later : it seems to work fine with only integers to read/write
-	const HANDLE namedPipeHandle = CreateNamedPipe(pipeSystemPath, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 256, 256, 0, NULL);
-
-	if (namedPipeHandle == INVALID_HANDLE_VALUE) { return PLATFORM_ERROR; }
-
-	mapInsert(namedPipeHandle, fifoFileName);
-	return PLATFORM_SUCCESS;
-}
-
 static enum PLATFORM_CODE readFromChildHandle(char* const c, HANDLE h)
 {
 	DWORD numberOfBytesRead;

@@ -251,15 +251,50 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 }
 #endif
 
+static void DrawCpuState(const E5150::Intel8088& cpu)
+{
+	switch (cpu.mode)
+	{
+		case E5150::Intel8088::ERunningMode::INIT_SEQUENCE:
+			ImGui::Text("Init sequence %d", cpu.clock);
+			break;
+
+		default:
+			break;
+	}
+}
+
+static void DrawCpuBIUState(const E5150::Intel8088& cpu)
+{
+
+}
+
+static void DrawCpuEUState(const E5150::Intel8088& cpu)
+{
+
+}
+
+static void DrawCpuWorkingState(const E5150::Intel8088& cpu)
+{
+	DrawCpuState(cpu);
+
+	ImGui::BeginGroup();
+	DrawCpuBIUState(cpu);
+	ImGui::EndGroup();
+
+	ImGui::SameLine();
+
+	ImGui::BeginGroup();
+	DrawCpuEUState(cpu);
+	ImGui::EndGroup();
+}
+
 static void DrawRegisterView(const E5150::Intel8088::Regs& regs)
 {
 	const uint16_t cs = regs.cs;
 	const uint16_t ip = regs.ip;
 	unsigned int ea = (cs << 4) + ip;
 	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,ip,ea);
-#if 0
-	DrawCurrentInstruction(debuggerGuiState);
-#endif
 
 	ImGui::Separator();
 
@@ -297,10 +332,18 @@ static void DrawRegisterView(const E5150::Intel8088::Regs& regs)
 	}
 }
 
+static void DrawCpuInternalState(const E5150::Intel8088& cpu)
+{
+	DrawCpuWorkingState(cpu);
+	DrawRegisterView(cpu.regs);
+}
+
 static void DrawDebuggerCPUStatus(const EmulationGuiState& emulationGuiState)
 {
-	// DrawCurrentInstruction(debuggerGuiState);
-	DrawRegisterView(emulationGuiState.debuggerGuiState.cpu->regs);
+#if 0
+	DrawCurrentInstruction(debuggerGuiState);
+#endif
+	DrawCpuInternalState(*emulationGuiState.debuggerGuiState.cpu);
 }
 
 static void DrawDebuggerConsole(EmulationGuiState& emulationGuiState)

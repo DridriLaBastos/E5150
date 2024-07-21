@@ -52,8 +52,6 @@ enum PLATFORM_CODE platformProcess_Terminate(const process_t process);
 uint64_t platformError_GetCode(void);
 const char* platformError_GetDescription(void);
 
-enum PLATFORM_CODE platformFifo_Create(const char* fifoFileName);
-
 enum PLATFORM_CODE platformFile_GetLastModificationTime(const char* filename, uint64_t* const datetime);
 enum PLATFORM_CODE platformFile_Copy(const char* from, const char* to);
 

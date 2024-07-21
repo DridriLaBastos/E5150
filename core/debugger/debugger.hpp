@@ -5,7 +5,7 @@
 
 #include "platform/platform.h"
 
-namespace E5150::Debugger {
+namespace E5150::DEBUGGER {
 #if 0
 	void init (void);
 	void PrepareSimulationSide(void);
@@ -15,7 +15,8 @@ namespace E5150::Debugger {
 	bool Launch(const std::string& commandName, const std::string& commandArgs);
 #endif
 	void Init(void);
-	void WakeUp(void);
+	void Clean(void);
+	void WakeUp(const unsigned int cpuEvents);
 	void ParseCmdLine(std::string line);
 }
 
