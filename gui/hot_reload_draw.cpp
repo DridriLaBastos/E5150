@@ -266,12 +266,65 @@ static void DrawCpuState(const E5150::Intel8088& cpu)
 
 static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 {
+	char* stateStr;
+	unsigned int clockCount;
 
+	switch (cpu.biuMode)
+	{
+		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
+			stateStr = "Fetch Memory";
+			clockCount = cpu.biuClockCountDown;
+			break;
+
+		case E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE:
+			stateStr = "Instruction stream full";
+			clockCount = 0;
+			break;
+
+		default:
+			break;
+	}
+
+	ImGui::Text("BIU Mode : %s (%d) [%zu]",stateStr,clockCount,cpu.instructionStreamQueueIndex);
+
+	for (size_t i = 0; i < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH; i += 1)
+	{
+		bool styleColorPushed = false;
+		if (i < cpu.instructionStreamQueueIndex)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImColor(.1f,.8f,.3f).Value);
+			styleColorPushed = true;
+		}
+		else if (i == cpu.instructionStreamQueueIndex)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ImColor(.8f,.1f,.3f).Value);
+			styleColorPushed = true;
+		}
+		ImGui::Text( "0x%2X", cpu.instructionStreamQueue[i]);
+		ImGui::SameLine();
+
+		if (styleColorPushed)
+		{
+			ImGui::PopStyleColor();
+		}
+	}
 }
 
 static void DrawCpuEUState(const E5150::Intel8088& cpu)
 {
+	switch (cpu.euMode)
+	{
+		case E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION:
+			ImGui::TextUnformatted("EU Mode 'Wait instruction'");
+			break;
 
+		case E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION:
+			ImGui::TextUnformatted("EU Mode 'Execute instruction'");
+			break;
+
+		default:
+			break;
+	}
 }
 
 static void DrawCpuWorkingState(const E5150::Intel8088& cpu)
@@ -346,6 +399,13 @@ static void DrawDebuggerCPUStatus(const EmulationGuiState& emulationGuiState)
 	DrawCpuInternalState(*emulationGuiState.debuggerGuiState.cpu);
 }
 
+static void SendCommandToDebugger(const char* cmd, EmulationGuiState& emulationGuiState)
+{
+	emulationGuiState.debuggerGuiState.outCommandLine = cmd;
+	emulationGuiState.internalState->entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND,
+	                                                      emulationGuiState.debuggerGuiState.outCommandLine);
+}
+
 static void DrawDebuggerConsole(EmulationGuiState& emulationGuiState)
 {
 	//In case I forgot to remove it : this is just an anchor for ctrl F
@@ -387,9 +447,12 @@ static void DrawDebuggerConsole(EmulationGuiState& emulationGuiState)
 							DebuggerCommandTextEditCallback,
 							(void*)emulationGuiState.internalState))
 		{
-			emulationGuiState.debuggerGuiState.outCommandLine = cmdBuffer;
-			emulationGuiState.internalState->entries.emplace_back(DEBUGGER_ENTRY_TYPE::COMMAND,
-																  emulationGuiState.debuggerGuiState.outCommandLine);
+			SendCommandToDebugger(cmdBuffer,emulationGuiState);
+		}
+
+		if (ImGui::Button("Clock"))
+		{
+			SendCommandToDebugger("step -c 1",emulationGuiState);
 		}
 	}
 }

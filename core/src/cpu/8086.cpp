@@ -454,7 +454,7 @@ static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 		}
 		else
 		{
-			cpu->instructionStreamQueueIndex = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
+			cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
 		}
 	}
 }
@@ -490,6 +490,7 @@ static void BIUClock_Simulate(E5150::Intel8088* cpu)
 
 static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 {
+#if 0
 	xed_error_enum_t status = xed_decode(&cpu->decodedInst,
 										 cpu->instructionStreamQueue,
 										 E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH);
@@ -499,6 +500,7 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 		cpu->instructionStreamQueueIndex -= xed_decoded_inst_get_length(&cpu->decodedInst);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
 	}
+#endif
 }
 
 static void EUClock_Simulate(E5150::Intel8088* cpu)
