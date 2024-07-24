@@ -5,9 +5,6 @@
 #ifndef E5150_GUI_STATES_HPP
 #define E5150_GUI_STATES_HPP
 
-#include <memory>
-#include <cstdint>
-
 #include "core/arch.hpp"
 #include "spdlog_imgui_color_sink.hpp"
 
@@ -21,6 +18,7 @@ struct DebuggerGuiState
 #endif
 	E5150::Intel8088* cpu;
 	std::string outCommandLine;
+	Clock::time_point lastFrameTime;
 };
 
 struct InternalState;

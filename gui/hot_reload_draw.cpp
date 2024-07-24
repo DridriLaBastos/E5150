@@ -2,13 +2,14 @@
 // Created by Adrien COURNAND on 24/12/2022.
 //
 //TODO: WHY DO I HAVE LINK ERROR WHEN COMPILING XED IN STATIC MODE ?
-#include <utility>
 
 #include "core/8284A.hpp"
 #include "gui_states.hpp"
 #include "third-party/imgui/imgui.h"
 
 #include "platform/platform.h"
+
+using HighResolutionClock = std::chrono::high_resolution_clock;
 
 enum class DEBUGGER_ENTRY_TYPE {
 	COMMAND, DEFAULT
@@ -24,18 +25,11 @@ struct DebuggerConsoleEntry {
 struct InternalState
 {
 	std::vector<DebuggerConsoleEntry> entries;
+	E5150::Arch::EmulationStat lastFrameCpuStat;
+	HighResolutionClock::time_point lastFrameTime;
 };
 
 char ImGuiTextBuffer::EmptyString[1] = { 0 };
-
-using gui_clock = std::chrono::high_resolution_clock;
-
-static constexpr unsigned int MS_PER_UPDATE = 1000;
-static constexpr unsigned int EXPECTED_CPU_CLOCK_COUNT = E5150::Intel8284A::CPU_FREQUENCY_HZ * (MS_PER_UPDATE / 1000.f);
-
-#if 0
-static constexpr unsigned int EXPECTED_FDC_CLOCK_COUNT = E5150::FDC_BASE_CLOCK * (MS_PER_UPDATE / 1000.f);
-#endif
 
 static int DebuggerCommandTextEditCallback(ImGuiInputTextCallbackData* data)
 {
@@ -251,6 +245,25 @@ static void DrawCurrentInstruction(const DebuggerGuiState& data)
 }
 #endif
 
+static void DrawEmulationConsole(const EmulationGuiState& state)
+{ state.consoleSink->imguiDraw(); }
+
+static void DrawEmulationGui(const EmulationGuiState& state)
+{
+	ImGui::Begin("Emulation Statistics");
+
+	ImGui::Text("CPU clock executed : %6lld / %6u", state.emulationStat.cpuClock, E5150::Intel8284A::CPU_FREQUENCY_HZ);
+#if 0
+	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
+#endif
+
+	const float cpuClockAccuracy = (float)state.emulationStat.cpuClock / E5150::Intel8284A::CPU_FREQUENCY_HZ*100.f;
+	ImGui::Text("Clock accuracy:\n\t- cpu : %.2f%%",cpuClockAccuracy);
+
+	ImGui::End();
+}
+
+#ifdef DEBUGGER_ON
 static void DrawCpuState(const E5150::Intel8088& cpu)
 {
 	switch (cpu.mode)
@@ -481,24 +494,7 @@ static void DrawDebuggerGui(EmulationGuiState& emulationGuiState)
 	ImGui::EndChild();
 #endif
 }
-
-static void DrawEmulationConsole(const EmulationGuiState& state)
-{ state.consoleSink->imguiDraw(); }
-
-static void DrawEmulationGui(const EmulationGuiState& state)
-{
-	ImGui::Begin("Emulation Statistics");
-
-	ImGui::Text("CPU clock executed : %6lld / %6u", state.emulationStat.cpuClock, EXPECTED_CPU_CLOCK_COUNT);
-#if 0
-	ImGui::Text("FDC clock executed : %6d / %6d", FDCClockDelta, EXPECTED_FDC_CLOCK_COUNT);
 #endif
-
-	const float cpuClockAccuracy = (float)state.emulationStat.cpuClock / EXPECTED_CPU_CLOCK_COUNT*100.f;
-	ImGui::Text("Clock accuracy:\n\t- cpu : %.2f%%",cpuClockAccuracy);
-
-	ImGui::End();
-}
 
 extern "C" DLL_EXPORT HOT_RELOAD_DRAW_SIGNATURE
 {
@@ -513,4 +509,7 @@ extern "C" DLL_EXPORT HOT_RELOAD_DRAW_SIGNATURE
 #ifdef DEBUGGER_ON
 	DrawDebuggerGui(emulationGuiState);
 #endif
+
+	emulationGuiState.internalState->lastFrameCpuStat = emulationGuiState.emulationStat;
+	emulationGuiState.internalState->lastFrameTime = HighResolutionClock::now();
 }
