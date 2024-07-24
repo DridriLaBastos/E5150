@@ -85,7 +85,9 @@ void E5150::Arch::SimulationLoop()
 		for (unsigned int clock=0; clock < clockToExecute && simulate; clock += 1)
 		{
 			cpu.Clock();
+		#ifdef DEBUGGER_ON
 			E5150::DEBUGGER::WakeUp(cpu.events);
+		#endif
 		}
 
 #if 0
