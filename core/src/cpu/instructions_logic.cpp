@@ -4,7 +4,7 @@
 template <bool SAVE_RESULT = true>
 static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunction)(unsigned int destOperand, unsigned int srcOperand))
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu->decodedInst);
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(inst, 0));
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst, 1));
 
@@ -14,12 +14,12 @@ static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunc
 	switch (op_name1)
 	{
 		case XED_OPERAND_IMM0:
-			srcValues = xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
+			srcValues = xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst);
 			break;
 		
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			srcValues = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name1));
+			srcValues = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst,op_name1));
 			break;
 
 		case XED_OPERAND_MEM0:
@@ -31,10 +31,10 @@ static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunc
 	switch (op_name0)
 	{
 		case XED_OPERAND_REG0:
-			destValues = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0));
+			destValues = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst,op_name0));
 			destValues = instructionFunction(destValues,srcValues);
 			if constexpr (SAVE_RESULT)
-				cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0),destValues);
+				cpu.write_reg(xed_decoded_inst_get_reg(&cpu->decodedInst,op_name0),destValues);
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -57,11 +57,11 @@ static unsigned int Logic_twoOperandsInstruction (unsigned int (*instructionFunc
 
 void NOT()
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu->decodedInst);
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, 0));
 
 	if (op_name == XED_OPERAND_REG0)
-		cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name), ~cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name)));
+		cpu.write_reg(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name), ~cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name)));
 	else //MEM0 is the only posregs.siregs.ble other case
 	{
 		const unsigned int addr = cpu.eu.EAddress;

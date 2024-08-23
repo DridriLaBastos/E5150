@@ -9,17 +9,17 @@
 #include "core/instructions.hpp"
 
 #define CLOCK_CYCLES(...) static const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
-#define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu.eu.decodedInst)];
+#define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&cpu->decodedInst)];
 #define ADD_EA_ON_CONDITION(COND) if (COND) { clockCount += cpu.eu.computeEAAndGetComputationClockCount(); }
 
-#define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu.eu.decodedInst)
+#define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&cpu->decodedInst)
 #define ADD_EA_ON_IFORM_CONDITION(COND) GET_RAW_CLOCK_COUNT();\
 										GET_IFORM();\
 										ADD_EA_ON_CONDITION(COND)
 
 #define ADD_EA_ON_MEM_OPERAND() GET_RAW_CLOCK_COUNT();\
-								if (xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) > 0){\
-								cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);\
+								if (xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) > 0){\
+								cpu.eu.xedInst = xed_decoded_inst_inst(&cpu->decodedInst);\
 								const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));\
 								const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 1));\
 								ADD_EA_ON_CONDITION (op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0)}
@@ -280,7 +280,7 @@ unsigned int getSBBCycles	(void)
 
 unsigned int getDECCycles	(void)
 {
-	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu->decodedInst);
 	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
 
 	return op0 == XED_OPERAND_MEM0 ? (23 + cpu.eu.computeEAAndGetComputationClockCount()) : 3;
@@ -288,7 +288,7 @@ unsigned int getDECCycles	(void)
 
 unsigned int getNEGCycles	(void)
 {
-	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	cpu.eu.xedInst = xed_decoded_inst_inst(&cpu->decodedInst);
 	const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(cpu.eu.xedInst, 0));
 
 	return op0 == XED_OPERAND_MEM0 ? (24 + cpu.eu.computeEAAndGetComputationClockCount()) : 3;

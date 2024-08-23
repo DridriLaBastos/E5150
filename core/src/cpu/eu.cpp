@@ -86,17 +86,17 @@ static unsigned int prepareInstructionExecution(void)
 {
 	//At the end of the opcode of instructions that access memory, there is w bit = 0 for byte operand and 1 one for word operands.
 	//If this bit = 0 there is 1 memory access and if it = 1, 2 memory accesses
-	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu.eu.decodedInst);
+	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
 	cpu.eu.operandSizeWord = cpu.biu.instructionBufferQueue[nPrefix] & 0b1;
-	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu.eu.decodedInst) * (cpu.eu.operandSizeWord + 1);
+	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (cpu.eu.operandSizeWord + 1);
 	cpu.biu.requestMemoryByte(memoryByteAccess);
-	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu.eu.decodedInst);
+	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu->decodedInst);
 	EUWorkingState.CURRENT_INSTRUCTION_CS = cpu.regs.cs;
 	EUWorkingState.CURRENT_INSTRUCTION_IP = cpu.regs.ip;
 	cpu.biu.IPToNextInstruction(cpu.eu.instructionLength);
 	EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_INSTRUCTION;
 
-	switch (xed_decoded_inst_get_iclass(&cpu.eu.decodedInst))
+	switch (xed_decoded_inst_get_iclass(&cpu->decodedInst))
 	{
 		case XED_ICLASS_MOV:
 			instructionFunction = MOV;
@@ -467,7 +467,7 @@ static unsigned int prepareInstructionExecution(void)
 			instructionFunction = JCXZ;
 			return getJCXZCycles();
 
-		/* Servicing interrupts vary a bit than executing normregs.al instruction */
+		/* Servicing interrupts vary a bit than executing normal instruction */
 		case XED_ICLASS_INT:
 			cpu.interrupt(CPU::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
 			return 0;
@@ -532,8 +532,8 @@ static unsigned int prepareInstructionExecution(void)
 
 static unsigned int EUDecodeClock(void)
 {
-	xed_decoded_inst_zero_keep_mode(&cpu.eu.decodedInst);
-	const xed_error_enum_t DECODE_STATUS = xed_decode(&cpu.eu.decodedInst,cpu.biu.instructionBufferQueue.data(), cpu.biu.instructionBufferQueuePos);
+	xed_decoded_inst_zero_keep_mode(&cpu->decodedInst);
+	const xed_error_enum_t DECODE_STATUS = xed_decode(&cpu->decodedInst,cpu.biu.instructionBufferQueue.data(), cpu.biu.instructionBufferQueuePos);
 
 	if (DECODE_STATUS == XED_ERROR_NONE)
 	{

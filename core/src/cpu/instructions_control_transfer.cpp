@@ -3,17 +3,17 @@
 
 void CALL_NEAR()
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
 	cpu.push(cpu.regs.ip);
 
 	switch (op_name)
 	{   
 		case XED_OPERAND_REG0:
-			cpu.regs.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
+			cpu.regs.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_RELBR:
-			cpu.regs.ip = cpu.regs.ip + xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+			cpu.regs.ip = cpu.regs.ip + xed_decoded_inst_get_branch_displacement(&cpu->decodedInst);
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -26,13 +26,13 @@ void CALL_NEAR()
 
 void CALL_FAR()
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
 
 	switch (op_name)
 	{
 		case XED_OPERAND_PTR:
-			cpu.eu.farCall( xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst),
-							xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst));
+			cpu.eu.farCall( xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst),
+							xed_decoded_inst_get_branch_displacement(&cpu->decodedInst));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -49,7 +49,7 @@ void CALL_FAR()
 
 void JMP_NEAR()
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
 
 	switch (op_name)
 	{
@@ -58,11 +58,11 @@ void JMP_NEAR()
 			break;
 
 		case XED_OPERAND_REG0:
-			cpu.regs.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name));
+			cpu.regs.ip = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name));
 			break;
 
 		case XED_OPERAND_RELBR:
-			cpu.regs.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+			cpu.regs.ip += xed_decoded_inst_get_branch_displacement(&cpu->decodedInst);
 			break;
 	}
 
@@ -71,7 +71,7 @@ void JMP_NEAR()
 
 void JMP_FAR()
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
 
 	switch (op_name)
 	{
@@ -85,8 +85,8 @@ void JMP_FAR()
 		}
 
 		case XED_OPERAND_PTR:
-			cpu.regs.cs = xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
-			cpu.regs.ip = xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst);
+			cpu.regs.cs = xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst);
+			cpu.regs.ip = xed_decoded_inst_get_branch_displacement(&cpu->decodedInst);
 			break;
 	}
 
@@ -98,8 +98,8 @@ void RET_NEAR()
 	cpu.regs.ip = cpu.pop();
 	cpu.regs.cs = cpu.regs.cs;
 
-	if (xed_decoded_inst_get_length(&cpu.eu.decodedInst) > 1)
-		cpu.regs.sp += xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
+	if (xed_decoded_inst_get_length(&cpu->decodedInst) > 1)
+		cpu.regs.sp += xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst);
 	
 	cpu.biu.endControlTransferInstruction();
 }
@@ -108,8 +108,8 @@ void RET_FAR()
 {
 	cpu.eu.farRet();
 
-	if (xed_decoded_inst_get_length(&cpu.eu.decodedInst) > 1)
-		cpu.regs.sp += xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
+	if (xed_decoded_inst_get_length(&cpu->decodedInst) > 1)
+		cpu.regs.sp += xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst);
 	
 	cpu.biu.endControlTransferInstruction();
 }
@@ -117,7 +117,7 @@ void RET_FAR()
 static FORCE_INLINE void JMP_NEAR_ON_CONDITION(const bool condition)
 {
 	if(condition)
-	{ cpu.regs.ip += xed_decoded_inst_get_branch_displacement(&cpu.eu.decodedInst); }
+	{ cpu.regs.ip += xed_decoded_inst_get_branch_displacement(&cpu->decodedInst); }
 	cpu.biu.endControlTransferInstruction(condition);
 }
 

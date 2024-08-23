@@ -6,7 +6,7 @@ template <bool OVERWRITE_DEST = true>
 static unsigned int Arithmetic_twoOperandsInstruction(
 	unsigned int (*instructionAction)(const unsigned int destOperand, const unsigned int srcOperand))
 {
-	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu.eu.decodedInst);
+	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu->decodedInst);
 	const xed_operand_enum_t op_name0 = xed_operand_name(xed_inst_operand(inst,0));
 	const xed_operand_enum_t op_name1 = xed_operand_name(xed_inst_operand(inst,1));
 
@@ -17,12 +17,12 @@ static unsigned int Arithmetic_twoOperandsInstruction(
 	switch (op_name1)
 	{
 		case XED_OPERAND_IMM0:
-			srcOperand = xed_decoded_inst_get_unsigned_immediate(&cpu.eu.decodedInst);
+			srcOperand = xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst);
 			break;
 
 		case XED_OPERAND_REG0:
 		case XED_OPERAND_REG1:
-			srcOperand = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name1));
+			srcOperand = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst,op_name1));
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -35,10 +35,10 @@ static unsigned int Arithmetic_twoOperandsInstruction(
 	switch (op_name0)
 	{
 		case XED_OPERAND_REG0:
-			destOperand = cpu.readReg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0));
+			destOperand = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst,op_name0));
 			result = instructionAction(destOperand,srcOperand);
 			if constexpr (OVERWRITE_DEST)
-				cpu.write_reg(xed_decoded_inst_get_reg(&cpu.eu.decodedInst,op_name0),result);
+				cpu.write_reg(xed_decoded_inst_get_reg(&cpu->decodedInst,op_name0),result);
 			break;
 		
 		case XED_OPERAND_MEM0:
@@ -61,14 +61,14 @@ static unsigned int Arithmetic_twoOperandsInstruction(
 static unsigned int oneOperandInstruction(
 	unsigned int (*instructionAction)(const unsigned int destOperand))
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu.eu.decodedInst), 0));
+	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
 	unsigned int result;
 
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
 		{
-			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu.eu.decodedInst, op_name);
+			const xed_reg_enum_t reg = xed_decoded_inst_get_reg(&cpu->decodedInst, op_name);
 			result = instructionAction(cpu.readReg(reg));
 			cpu.write_reg(reg, result);
 		} break;

@@ -398,11 +398,13 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 	}
 }
 #endif
+
 #include "core/8086.hpp"
+#include "core/instructions.hpp"
 
 E5150::Intel8088::Intel8088():
 		mode(Intel8088::ERunningMode::INIT_SEQUENCE), instructionStreamQueueIndex(0),
-		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT)
+		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT), euClockCount(0)
 {
 	xed_tables_init();
 }
@@ -438,7 +440,7 @@ static void BIUMode_Switch(E5150::Intel8088* cpu, const E5150::Intel8088::EBIURu
 	cpu->biuMode = newMode;
 }
 
-static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
+static void BIUClock_FetchInstruction(E5150::Intel8088* cpu)
 {
 	cpu->biuClockCountDown -= 1;
 
@@ -459,6 +461,11 @@ static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 	}
 }
 
+static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
+{
+
+}
+
 static void BIUClock_WaitRoomInQueue(E5150::Intel8088* cpu)
 {
 	if (cpu->instructionStreamQueueIndex < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_INDEX_MAX)
@@ -469,7 +476,7 @@ static void BIUClock_WaitRoomInQueue(E5150::Intel8088* cpu)
 		// clock simulation function will be the one responsible for decreasing the instruction stream index
 		// the detection of new room available is done in the next clock simulation step, so we need to simulate a fetch
 		// cycle for this simulation step
-		BIUClock_FetchMemory(cpu);
+		BIUClock_FetchInstruction(cpu);
 	}
 }
 
@@ -477,6 +484,9 @@ static void BIUClock_Simulate(E5150::Intel8088* cpu)
 {
 	switch (cpu->biuMode)
 	{
+		case E5150::Intel8088::EBIURunningMode::FETCH_INSTRUCTION:
+			BIUClock_FetchInstruction(cpu);
+			break;
 		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
 			BIUClock_FetchMemory(cpu);
 			break;
@@ -488,6 +498,421 @@ static void BIUClock_Simulate(E5150::Intel8088* cpu)
 	}
 }
 
+static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu, bool* requestMemory)
+{
+	//At the end of the opcode of instructions that access memory, there is w bit = 0 for byte operand and 1 one for word operands.
+	//If this bit = 0 there is 1 memory access and if it = 1, 2 memory accesses
+	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
+	const unsigned int operandSizeWord = cpu->instructionStreamQueue[nPrefix] & 0b1;
+	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (operandSizeWord + 1);
+	*requestMemory = memoryByteAccess != 0;
+#if 0
+	cpu.biu.requestMemoryByte(memoryByteAccess);
+	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu->decodedInst);
+	EUWorkingState.CURRENT_INSTRUCTION_CS = cpu.regs.cs;
+	EUWorkingState.CURRENT_INSTRUCTION_IP = cpu.regs.ip;
+	cpu.biu.IPToNextInstruction(cpu.eu.instructionLength);
+	EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_INSTRUCTION;
+#endif
+
+	const xed_iclass_enum_t decodedInstGetIclass = xed_decoded_inst_get_iclass(&cpu->decodedInst);
+	cpu->decodedInstructionIClass = decodedInstGetIclass;
+
+	switch (decodedInstGetIclass)
+	{
+		case XED_ICLASS_MOV:
+			return 11;//getMOVCycles();
+
+#if 0
+		case XED_ICLASS_PUSH:
+			return getPUSHCycles();
+
+		case XED_ICLASS_POP:
+			return getPOPCycles();
+
+		case XED_ICLASS_XCHG:
+			return getXCHGCycles();
+
+		case XED_ICLASS_IN:
+			return getINCycles();
+
+		case XED_ICLASS_OUT:
+			return getOUTCycles();
+
+		case XED_ICLASS_XLAT:
+			return getXLATCycles();
+
+		case XED_ICLASS_LEA:
+			return getLEACycles();
+
+		case XED_ICLASS_LDS:
+			return getLDSCycles();
+
+		case XED_ICLASS_LES:
+			return getLESCycles();
+
+		case XED_ICLASS_LAHF:
+			return getLAHFCycles();
+
+		case XED_ICLASS_SAHF:
+			return getSAHFCycles();
+
+		case XED_ICLASS_PUSHF:
+			return getPUSHFCycles();
+
+		case XED_ICLASS_POPF:
+			return getPOPFCycles();
+
+		case XED_ICLASS_ADD:
+			return getADDCycles();
+
+		case XED_ICLASS_ADC:
+			return getADDCycles();
+
+		case XED_ICLASS_INC:
+			return getINCCycles();
+
+		case XED_ICLASS_AAA:
+			return getAAACycles();
+
+		case XED_ICLASS_DAA:
+			return getDAACycles();
+
+		case XED_ICLASS_SUB:
+			return getSUBCycles();
+
+		case XED_ICLASS_SBB:
+			return getSUBCycles();
+
+		case XED_ICLASS_DEC:
+			return getDECCycles();
+
+		case XED_ICLASS_NEG:
+			return getNEGCycles();
+
+		case XED_ICLASS_CMP:
+			return getCMPCycles();
+
+		case XED_ICLASS_AAS:
+			return getAASCycles();
+
+		case XED_ICLASS_DAS:
+			return getDASCycles();
+
+		case XED_ICLASS_MUL:
+			return getMULCycles();
+
+		case XED_ICLASS_IMUL:
+			return getIMULCycles();
+
+		case XED_ICLASS_DIV:
+			return getDIVCycles();
+
+		case XED_ICLASS_IDIV:
+			return getIDIVCycles();
+
+		case XED_ICLASS_AAD:
+			return getAADCycles();
+
+		case XED_ICLASS_CBW:
+			return getCBWCycles();
+
+		case XED_ICLASS_CWD:
+			return getCWDCycles();
+
+		case XED_ICLASS_NOT:
+			return getNOTCycles();
+
+		case XED_ICLASS_SHL:
+			return getSHIFT_ROTATECycles(nPrefix);
+
+		case XED_ICLASS_SHR:
+			return getSHIFT_ROTATECycles(nPrefix);
+
+		case XED_ICLASS_SAR:
+			return getSHIFT_ROTATECycles(nPrefix);
+
+		case XED_ICLASS_ROL:
+			return getSHIFT_ROTATECycles(nPrefix);
+
+		case XED_ICLASS_ROR:
+			return getSHIFT_ROTATECycles(nPrefix);
+
+		case XED_ICLASS_RCL:
+			return getSHIFT_ROTATECycles(nPrefix);
+
+		case XED_ICLASS_RCR:
+			return getSHIFT_ROTATECycles(nPrefix);
+
+		case XED_ICLASS_AND:
+			return getANDCycles();
+
+		case XED_ICLASS_TEST:
+			return getTESTCycles();
+
+		case XED_ICLASS_OR:
+			return getORCycles();
+
+		case XED_ICLASS_XOR:
+			return getXORCycles();
+
+		case XED_ICLASS_MOVSB:
+		case XED_ICLASS_MOVSW:
+			return getMOVSCycles();
+
+		case XED_ICLASS_REP_MOVSB:
+		case XED_ICLASS_REP_MOVSW:
+#if 0
+			EUWorkingState.REP_COUNT = 0;
+			repInstructionGetNextClockCount = getREP_MOVSCycles;
+			EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_REP_INSTRUCTION;
+			return getREP_MOVSCycles(EUWorkingState.REP_COUNT);
+#else
+			return 0;
+#endif
+
+		case XED_ICLASS_CMPSB:
+		case XED_ICLASS_CMPSW:
+			return getCMPSCycles();
+
+		case XED_ICLASS_REPE_CMPSB:
+		case XED_ICLASS_REPNE_CMPSB:
+		case XED_ICLASS_REPE_CMPSW:
+		case XED_ICLASS_REPNE_CMPSW:
+#if 0
+			EUWorkingState.REP_COUNT = 0;
+			repInstructionGetNextClockCount = getREP_CMPSCycles;
+			EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_REP_INSTRUCTION;
+			return getREP_CMPSCycles(EUWorkingState.REP_COUNT);
+#else
+			return 10;
+#endif
+
+		case XED_ICLASS_SCASB:
+		case XED_ICLASS_SCASW:
+			return getSCASCycles();
+
+		case XED_ICLASS_REPE_SCASB:
+		case XED_ICLASS_REPNE_SCASB:
+		case XED_ICLASS_REPE_SCASW:
+		case XED_ICLASS_REPNE_SCASW:
+#if 0
+			EUWorkingState.REP_COUNT = 0;
+			repInstructionGetNextClockCount = getREP_SCASCycles;
+			EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_REP_INSTRUCTION;
+			return getREP_SCASCycles(EUWorkingState.REP_COUNT);
+#else
+			return 10;
+#endif
+
+		case XED_ICLASS_LODSB:
+		case XED_ICLASS_LODSW:
+			return getLODSCycles();
+
+		case XED_ICLASS_REP_LODSB:
+		case XED_ICLASS_REP_LODSW:
+#if 0
+			EUWorkingState.REP_COUNT = 0;
+			repInstructionGetNextClockCount = getREP_LODSCycles;
+			EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_REP_INSTRUCTION;
+			return getREP_LODSCycles(EUWorkingState.REP_COUNT);
+#else
+			return 10;
+#endif
+		case XED_ICLASS_STOSB:
+		case XED_ICLASS_STOSW:
+			return getSTOSCycles();
+
+		case XED_ICLASS_REP_STOSB:
+		case XED_ICLASS_REP_STOSW:
+#if 0
+			EUWorkingState.REP_COUNT = 0;
+			repInstructionGetNextClockCount = getREP_STOSCycles;
+			EUWorkingState.EUWorkingMode = EU::WORKING_MODE::EXEC_REP_INSTRUCTION;
+			return getREP_STOSCycles(EUWorkingState.REP_COUNT);
+#else
+			return 10;
+#endif
+		case XED_ICLASS_CALL_NEAR:
+			return getCALLCycles();
+
+		case XED_ICLASS_CALL_FAR:
+			return getCALL_FARCycles();
+
+		case XED_ICLASS_JMP:
+			return getJMPCycles();
+
+		case XED_ICLASS_JMP_FAR:
+			return getJMP_FARCycles();
+
+		case XED_ICLASS_RET_NEAR:
+			return getRETCycles();
+
+		case XED_ICLASS_RET_FAR:
+			return getRET_FARCycles();
+
+		case XED_ICLASS_JZ:
+#if 0
+			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JL:
+#if 0
+			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JLE:
+#if 0
+			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JB:
+#if 0
+			return getJXXCycles(CPU::CARRY);
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JBE:
+#if 0
+			return getJXXCycles(CPU::CARRY || CPU::ZERRO);
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JP:
+#if 0
+			return getJXXCycles(CPU::PARRITY);
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JO:
+#if 0
+			return getJXXCycles(cpu.getFlagStatus(CPU::OVER));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JS:
+#if 0
+			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JNZ:
+#if 0
+			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JNL:
+#if 0
+			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JNLE:
+#if 0
+			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JNB:
+#if 0
+			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JNBE:
+#if 0
+			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY) && !cpu.getFlagStatus(CPU::ZERRO));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JNP:
+#if 0
+			return getJXXCycles(!cpu.getFlagStatus(CPU::PARRITY));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_JNS:
+#if 0
+			return getJXXCycles(!cpu.getFlagStatus(CPU::SIGN));
+#else
+			return 10;
+#endif
+		case XED_ICLASS_LOOP:
+			return getLOOPCycles();
+
+		case XED_ICLASS_LOOPE:// = LOOPZ
+			return getLOOPZCycles();
+
+		case XED_ICLASS_LOOPNE:// = LOOPNZ
+			return getLOOPNZCycles();
+
+		case XED_ICLASS_JCXZ:
+			return getJCXZCycles();
+
+			/* Servicing interrupts vary a bit than executing normal instruction */
+		case XED_ICLASS_INT:
+#if 0
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
+#endif
+			return 0;
+
+		case XED_ICLASS_INT3:
+#if 0
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INT3);
+#endif
+			return 0;
+
+		case XED_ICLASS_INTO:
+#if 0
+			if (!cpu.getFlagStatus(CPU::OVER))
+			{
+				return 4;
+			}
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INTO);
+#endif
+			return 0;
+
+		case XED_ICLASS_IRET:
+			return getIRETCycles();
+
+		case XED_ICLASS_CLC:
+			return getCLCCycles();
+
+		case XED_ICLASS_CMC:
+			return getCMCCycles();
+
+		case XED_ICLASS_STC:
+			return getSTCCycles();
+
+		case XED_ICLASS_CLD:
+			return getCLDCycles();
+
+		case XED_ICLASS_STD:
+			return getSTDCycles();
+
+		case XED_ICLASS_CLI:
+			return getCLICycles();
+
+		case XED_ICLASS_STI:
+			return getSTICycles();
+
+		case XED_ICLASS_HLT:
+			return getHLTCycles();
+
+		case XED_ICLASS_NOP:
+			return getNOPCycles();
+#endif
+
+		default:
+			spdlog::debug("Instruction not recognized yet");
+			return 10;
+	}
+}
+
 static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 {
 	xed_decoded_inst_zero_keep_mode(&cpu->decodedInst);
@@ -496,9 +921,499 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 										 cpu->instructionStreamQueueIndex);
 	if (status == XED_ERROR_NONE)
 	{
-		//TODO: Prepare the instruction
+		bool requestMemory;
 		cpu->instructionStreamQueueIndex -= xed_decoded_inst_get_length(&cpu->decodedInst);
+		cpu->euClockCount = PrepareInstructionExecution(cpu,&requestMemory);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
+		cpu->euMode = requestMemory ?
+						E5150::Intel8088::EEURunningMode::WAIT_BIU :
+						E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION;
+	}
+}
+
+static void ExecuteInstruction(E5150::Intel8088* cpu)
+{
+	switch (cpu->decodedInstructionIClass)
+	{
+		case XED_ICLASS_MOV:
+			//MOV(cpu);
+			break;
+#if 0
+		case XED_ICLASS_PUSH:
+			PUSH(cpu);
+			break;
+
+		case XED_ICLASS_POP:
+			POP(cpu);
+			break;
+
+		case XED_ICLASS_XCHG:
+			XCHG(cpu);
+			break;
+
+		case XED_ICLASS_IN:
+			_IN(cpu);
+			break;
+
+		case XED_ICLASS_OUT:
+			_OUT(cpu);
+			break;
+
+		case XED_ICLASS_XLAT:
+			XLAT(cpu);
+			break;
+
+		case XED_ICLASS_LEA:
+			LEA(cpu);
+			break;
+
+		case XED_ICLASS_LDS:
+			LDS(cpu);
+			break;
+
+		case XED_ICLASS_LES:
+			LES(cpu);
+			break;
+
+		case XED_ICLASS_LAHF:
+			LAHF(cpu);
+			break;
+
+		case XED_ICLASS_SAHF:
+			SAHF(cpu);
+			break;
+
+		case XED_ICLASS_PUSHF:
+			PUSHF(cpu);
+			break;
+
+		case XED_ICLASS_POPF:
+			POPF(cpu);
+			break;
+
+		case XED_ICLASS_ADD:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+#endif
+			ADD(cpu);
+			break;
+
+		case XED_ICLASS_ADC:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+#endif
+			ADD(cpu);
+			break;
+
+		case XED_ICLASS_INC:
+			INC(cpu);
+			break;
+
+		case XED_ICLASS_AAA:
+			AAA(cpu);
+			break;
+
+		case XED_ICLASS_DAA:
+			DAA(cpu);
+			break;
+
+		case XED_ICLASS_SUB:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+#endif
+			SUB(cpu);
+			break;
+
+		case XED_ICLASS_SBB:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+#endif
+			SUB(cpu);
+			break;
+
+		case XED_ICLASS_DEC:
+			DEC(cpu);
+			break;
+
+		case XED_ICLASS_NEG:
+			NEG(cpu);
+			break;
+
+		case XED_ICLASS_CMP:
+			CMP(cpu);
+			break;
+
+		case XED_ICLASS_AAS:
+			AAS(cpu);
+			break;
+
+		case XED_ICLASS_DAS:
+			DAS(cpu);
+			break;
+
+		case XED_ICLASS_MUL:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+#endif
+			MUL(cpu);
+			break;
+
+		case XED_ICLASS_IMUL:
+#if 0
+			cpu.eu.instructionExtraData.isSigned = true;
+#endif
+			MUL(cpu);
+			break;
+
+		case XED_ICLASS_DIV:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+#endif
+			DIV(cpu);
+			break;
+
+		case XED_ICLASS_IDIV:
+#if 0
+			cpu.eu.instructionExtraData.isSigned = true;
+#endif
+			DIV(cpu);
+			break;
+
+		case XED_ICLASS_AAD:
+			AAD(cpu);
+			break;
+
+		case XED_ICLASS_CBW:
+			CBW(cpu);
+			break;
+
+		case XED_ICLASS_CWD:
+			CWD(cpu);
+			break;
+
+		case XED_ICLASS_NOT:
+			NOT(cpu);
+			break;
+
+		case XED_ICLASS_SHL:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+			cpu.eu.instructionExtraData.setDirectionIsLeft();
+#endif
+			SHIFT(cpu);
+			break;
+
+		case XED_ICLASS_SHR:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+#endif
+			SHIFT(cpu);
+			break;
+
+		case XED_ICLASS_SAR:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+			cpu.eu.instructionExtraData.setInstructionIsArithmetic();
+#endif
+			SHIFT(cpu);
+			break;
+
+		case XED_ICLASS_ROL:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+			cpu.eu.instructionExtraData.setDirectionIsLeft();
+#endif
+			ROTATE(cpu);
+			break;
+
+		case XED_ICLASS_ROR:
+			ROTATE(cpu);
+			break;
+
+		case XED_ICLASS_RCL:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+			cpu.eu.instructionExtraData.setRotationWithCarry();
+			cpu.eu.instructionExtraData.setDirectionIsLeft();
+#endif
+			ROTATE(cpu);
+			break;
+
+		case XED_ICLASS_RCR:
+#if 0
+			cpu.eu.instructionExtraData.clearData();
+			cpu.eu.instructionExtraData.setRotationWithCarry();
+#endif
+			ROTATE(cpu);
+			break;
+
+		case XED_ICLASS_AND:
+			AND(cpu);
+			break;
+
+		case XED_ICLASS_TEST:
+			TEST(cpu);
+			break;
+
+		case XED_ICLASS_OR:
+			OR(cpu);
+			break;
+
+		case XED_ICLASS_XOR:
+			XOR(cpu);
+			break;
+
+		case XED_ICLASS_MOVSB:
+		case XED_ICLASS_MOVSW:
+			MOVS(cpu);
+			break;
+
+//TODO: A copy past error happened for the REP isntructions, investigate from the eu.cpp file what has to be done
+		case XED_ICLASS_REP_MOVSB:
+		case XED_ICLASS_REP_MOVSW:
+			REP_MOVS(cpu);
+			break;
+
+		case XED_ICLASS_CMPSB:
+		case XED_ICLASS_CMPSW:
+			CMPS(cpu);
+			break;
+
+		case XED_ICLASS_REPE_CMPSB:
+		case XED_ICLASS_REPNE_CMPSB:
+		case XED_ICLASS_REPE_CMPSW:
+		case XED_ICLASS_REPNE_CMPSW:
+			REP_CMPS(cpu);
+			break;
+
+		case XED_ICLASS_SCASB:
+		case XED_ICLASS_SCASW:
+			SCAS(cpu);
+			break;
+
+		case XED_ICLASS_REPE_SCASB:
+		case XED_ICLASS_REPNE_SCASB:
+		case XED_ICLASS_REPE_SCASW:
+		case XED_ICLASS_REPNE_SCASW:
+			REP_SCAS(cpu);
+			break;
+
+		case XED_ICLASS_LODSB:
+		case XED_ICLASS_LODSW:
+			LODS(cpu);
+			break;
+
+		case XED_ICLASS_REP_LODSB:
+		case XED_ICLASS_REP_LODSW:
+			REP_LODS(cpu);
+			break;
+
+		case XED_ICLASS_STOSB:
+		case XED_ICLASS_STOSW:
+			STOS(cpu);
+			break;
+
+		case XED_ICLASS_REP_STOSB:
+		case XED_ICLASS_REP_STOSW:
+			REP_STOS(cpu);
+			break;
+
+		case XED_ICLASS_CALL_NEAR:
+			CALL_NEAR(cpu);
+			break;
+
+		case XED_ICLASS_CALL_FAR:
+			CALL_FAR(cpu);
+			break;
+
+		case XED_ICLASS_JMP:
+			JMP_NEAR(cpu);
+			break;
+
+		case XED_ICLASS_JMP_FAR:
+			JMP_FAR(cpu);
+			break;
+
+		case XED_ICLASS_RET_NEAR:
+			RET_NEAR(cpu);
+			break;
+
+		case XED_ICLASS_RET_FAR:
+			RET_FAR(cpu);
+			break;
+
+		case XED_ICLASS_JZ:
+			JZ(cpu);
+			break;
+
+		case XED_ICLASS_JL:
+			JL(cpu);
+			break;
+
+		case XED_ICLASS_JLE:
+			JLE(cpu);
+			break;
+
+		case XED_ICLASS_JB:
+			JB(cpu);
+			break;
+
+		case XED_ICLASS_JBE:
+			JBE(cpu);
+			break;
+
+		case XED_ICLASS_JP:
+			JP(cpu);
+			break;
+
+		case XED_ICLASS_JO:
+			JO(cpu);
+			break;
+
+		case XED_ICLASS_JS:
+			JS(cpu);
+			break;
+
+		case XED_ICLASS_JNZ:
+			JNZ(cpu);
+			break;
+
+		case XED_ICLASS_JNL:
+			JNL(cpu);
+			break;
+
+		case XED_ICLASS_JNLE:
+			JNLE(cpu);
+			break;
+
+		case XED_ICLASS_JNB:
+			JNB(cpu);
+			break;
+
+		case XED_ICLASS_JNBE:
+			JNBE(cpu);
+			break;
+
+		case XED_ICLASS_JNP:
+			JNP(cpu);
+			break;
+
+		case XED_ICLASS_JNS:
+			JNS(cpu);
+			break;
+
+		case XED_ICLASS_LOOP:
+			LOOP(cpu);
+			break;
+
+		case XED_ICLASS_LOOPE:// = LOOPZ
+			LOOPZ(cpu);
+			break;
+
+		case XED_ICLASS_LOOPNE:// = LOOPNZ
+			LOOPNZ(cpu);
+			break;
+
+		case XED_ICLASS_JCXZ:
+			JCXZ(cpu);
+			break;
+
+			/* Servicing interrupts vary a bit than executing normal instruction */
+		case XED_ICLASS_INT:
+#if 0
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
+			return 0;
+#else
+			break;
+#endif
+
+		case XED_ICLASS_INT3:
+#if 0
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INT3);
+			return 0;
+#else
+			break;
+#endif
+
+		case XED_ICLASS_INTO:
+#if 0
+			if (!cpu.getFlagStatus(CPU::OVER))
+			{
+				doNothing(cpu);
+				break;
+			}
+			cpu.interrupt(CPU::INTERRUPT_TYPE::INTO);
+			return 0;
+#else
+			break;
+#endif
+
+		case XED_ICLASS_IRET:
+			IRET(cpu);
+			break;
+
+		case XED_ICLASS_CLC:
+			CLC(cpu);
+			break;
+
+		case XED_ICLASS_CMC:
+			CMC(cpu);
+			break;
+
+		case XED_ICLASS_STC:
+			STC(cpu);
+			break;
+
+		case XED_ICLASS_CLD:
+			CLD(cpu);
+			break;
+
+		case XED_ICLASS_STD:
+			STD(cpu);
+			break;
+
+		case XED_ICLASS_CLI:
+			_CLI(cpu);
+			break;
+
+		case XED_ICLASS_STI:
+			STI(cpu);
+			break;
+
+		case XED_ICLASS_HLT:
+			HLT(cpu);
+			break;
+
+		case XED_ICLASS_NOP:
+			NOP(cpu);
+			break;
+#endif
+
+		default:
+			spdlog::debug("Instruction not simulated yet");
+			//assert(false);
+	}
+
+}
+
+static void EUClock_ExecuteInstruction(E5150::Intel8088* cpu)
+{
+	cpu->euClockCount -= 1;
+
+	if (cpu->euClockCount == 0)
+	{
+		ExecuteInstruction(cpu);
+		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_EXECUTED;
+		cpu->euMode = E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION;
+	}
+}
+
+static void EUClock_WaitBIU(E5150::Intel8088* cpu)
+{
+	if (cpu->biuMode == E5150::Intel8088::EBIURunningMode::FETCH_MEMORY)
+	{
+		EUClock_ExecuteInstruction(cpu);
+		cpu->euMode = E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION;
 	}
 }
 
@@ -511,12 +1426,16 @@ static void EUClock_Simulate(E5150::Intel8088* cpu)
 			break;
 
 		case E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION:
+			EUClock_ExecuteInstruction(cpu);
+			break;
+
+		case E5150::Intel8088::EEURunningMode::WAIT_BIU:
+			EUClock_WaitBIU(cpu);
 			break;
 
 		default:
 			assert(false);
 	}
-
 }
 
 static void CPUClock_Operational(E5150::Intel8088* cpu)
@@ -527,6 +1446,10 @@ static void CPUClock_Operational(E5150::Intel8088* cpu)
 
 void E5150::Intel8088::Clock()
 {
+	if (halted)
+	{
+		return;
+	}
 	this->events = 0;
 	switch (mode) {
 		case ERunningMode::INIT_SEQUENCE:

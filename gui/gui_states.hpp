@@ -18,7 +18,6 @@ struct DebuggerGuiState
 #endif
 	E5150::Intel8088* cpu;
 	std::string outCommandLine;
-	Clock::time_point lastFrameTime;
 };
 
 struct InternalState;

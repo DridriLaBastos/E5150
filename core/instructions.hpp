@@ -1,119 +1,121 @@
 #ifndef INSTRUCTIONS_HPP
 #define INSTRUCTIONS_HPP
 
+#include "core/8086.hpp"
+
 /* Data Transfer */
 
-void MOV	(void); unsigned int getMOVCycles	(void);
-void PUSH	(void); unsigned int getPUSHCycles	(void);
-void POP	(void); unsigned int getPOPCycles	(void);
-void XCHG	(void); unsigned int getXCHGCycles	(void);
+void MOV	(E5150::Intel8088* cpu); unsigned int getMOVCycles	(void);
+void PUSH	(E5150::Intel8088* cpu); unsigned int getPUSHCycles	(void);
+void POP	(E5150::Intel8088* cpu); unsigned int getPOPCycles	(void);
+void XCHG	(E5150::Intel8088* cpu); unsigned int getXCHGCycles	(void);
 //For an unknonw reason, msvc doesn't want to let me use the names OUT ans IN
-void _IN	(void); unsigned int getINCycles	(void);
-void _OUT	(void); unsigned int getOUTCycles	(void);
-void XLAT	(void); unsigned int getXLATCycles	(void);
-void LEA	(void); unsigned int getLEACycles	(void);
-void LDS	(void); unsigned int getLDSCycles	(void);
-void LES	(void); unsigned int getLESCycles	(void);
-void LAHF	(void); unsigned int getLAHFCycles	(void);
-void SAHF	(void); unsigned int getSAHFCycles	(void);
-void PUSHF	(void); unsigned int getPUSHFCycles	(void);
-void POPF	(void); unsigned int getPOPFCycles	(void);
+void _IN	(E5150::Intel8088* cpu); unsigned int getINCycles	(void);
+void _OUT	(E5150::Intel8088* cpu); unsigned int getOUTCycles	(void);
+void XLAT	(E5150::Intel8088* cpu); unsigned int getXLATCycles	(void);
+void LEA	(E5150::Intel8088* cpu); unsigned int getLEACycles	(void);
+void LDS	(E5150::Intel8088* cpu); unsigned int getLDSCycles	(void);
+void LES	(E5150::Intel8088* cpu); unsigned int getLESCycles	(void);
+void LAHF	(E5150::Intel8088* cpu); unsigned int getLAHFCycles	(void);
+void SAHF	(E5150::Intel8088* cpu); unsigned int getSAHFCycles	(void);
+void PUSHF	(E5150::Intel8088* cpu); unsigned int getPUSHFCycles	(void);
+void POPF	(E5150::Intel8088* cpu); unsigned int getPOPFCycles	(void);
 
 /* Arithmetic */
 
-void ADD	(void); unsigned int getADDCycles	(void);
+void ADD	(E5150::Intel8088* cpu); unsigned int getADDCycles	(void);
 //void ADC(void); unsigned int getADCCycles	(void);
-void INC	(void); unsigned int getINCCycles	(void);
-void AAA	(void); unsigned int getAAACycles	(void);
-void DAA	(void); unsigned int getDAACycles	(void);
-void SUB	(void); unsigned int getSUBCycles	(void);
+void INC	(E5150::Intel8088* cpu); unsigned int getINCCycles	(void);
+void AAA	(E5150::Intel8088* cpu); unsigned int getAAACycles	(void);
+void DAA	(E5150::Intel8088* cpu); unsigned int getDAACycles	(void);
+void SUB	(E5150::Intel8088* cpu); unsigned int getSUBCycles	(void);
 //void SBB(void);unsigned int getSBBCycles	(void);
-void DEC	(void); unsigned int getDECCycles	(void);
-void NEG	(void); unsigned int getNEGCycles	(void);
-void CMP	(void); unsigned int getCMPCycles	(void);
-void AAS	(void); unsigned int getAASCycles	(void);
-void DAS	(void); unsigned int getDASCycles	(void);
-void MUL	(void); unsigned int getMULCycles	(void);
+void DEC	(E5150::Intel8088* cpu); unsigned int getDECCycles	(void);
+void NEG	(E5150::Intel8088* cpu); unsigned int getNEGCycles	(void);
+void CMP	(E5150::Intel8088* cpu); unsigned int getCMPCycles	(void);
+void AAS	(E5150::Intel8088* cpu); unsigned int getAASCycles	(void);
+void DAS	(E5150::Intel8088* cpu); unsigned int getDASCycles	(void);
+void MUL	(E5150::Intel8088* cpu); unsigned int getMULCycles	(void);
 /*void IMUL	(void);*/unsigned int getIMULCycles	(void);
-void DIV	(void); unsigned int getDIVCycles	(void);
+void DIV	(E5150::Intel8088* cpu); unsigned int getDIVCycles	(void);
 /*void IDIV	(void);*/unsigned int getIDIVCycles	(void);
-void AAD	(void); unsigned int getAADCycles	(void);
-void CBW	(void); unsigned int getCBWCycles	(void);
-void CWD	(void); unsigned int getCWDCycles	(void);
+void AAD	(E5150::Intel8088* cpu); unsigned int getAADCycles	(void);
+void CBW	(E5150::Intel8088* cpu); unsigned int getCBWCycles	(void);
+void CWD	(E5150::Intel8088* cpu); unsigned int getCWDCycles	(void);
 
 /* Logic */
 
-void NOT	(void); unsigned int getNOTCycles	(void);
-void SHIFT	(void); unsigned int getSHIFT_ROTATECycles	(const unsigned int nPrefix);
-void ROTATE	(void); //Same number of cycles than SHIFT
+void NOT	(E5150::Intel8088* cpu); unsigned int getNOTCycles	(void);
+void SHIFT	(E5150::Intel8088* cpu); unsigned int getSHIFT_ROTATECycles	(const unsigned int nPrefix);
+void ROTATE	(E5150::Intel8088* cpu); //Same number of cycles than SHIFT
 // void SHL	(void); unsigned int getSHLCycles	(void);
 // void SHR	(void); unsigned int getSHRCycles	(void);
 // void SAR	(void); unsigned int getSARCycles	(void);
 // void ROL	(void); unsigned int getROLCycles	(void);
 // void ROR	(void); unsigned int getRORCycles	(void);
 // void RCL	(void); unsigned int getRCLCycles	(void);
-void RCR	(void); unsigned int getRCRCycles	(void);
-void AND	(void); unsigned int getANDCycles	(void);
-void TEST	(void); unsigned int getTESTCycles	(void);
-void OR		(void); unsigned int getORCycles	(void);
-void XOR	(void); unsigned int getXORCycles	(void);
+void RCR	(E5150::Intel8088* cpu); unsigned int getRCRCycles	(void);
+void AND	(E5150::Intel8088* cpu); unsigned int getANDCycles	(void);
+void TEST	(E5150::Intel8088* cpu); unsigned int getTESTCycles	(void);
+void OR		(E5150::Intel8088* cpu); unsigned int getORCycles	(void);
+void XOR	(E5150::Intel8088* cpu); unsigned int getXORCycles	(void);
 
 /* String Manipulation */
 
-void MOVS (void); unsigned int getMOVSCycles (void);
-void REP_MOVS (void); unsigned int getREP_MOVSCycles (const unsigned int repeatCount);
-void CMPS (void); unsigned int getCMPSCycles (void);
-void REP_CMPS (void); unsigned int getREP_CMPSCycles (const unsigned int repeatCount);
-void SCAS (void); unsigned int getSCASCycles (void);
-void REP_SCAS (void); unsigned int getREP_SCASCycles (const unsigned int repeatCount);
-void LODS (void); unsigned int getLODSCycles (void);
-void REP_LODS (void); unsigned int getREP_LODSCycles (const unsigned int repeatCount);
-void STOS (void); unsigned int getSTOSCycles (void);
-void REP_STOS (void); unsigned int getREP_STOSCycles (const unsigned int repeatCount);
+void MOVS (E5150::Intel8088* cpu); unsigned int getMOVSCycles (void);
+void REP_MOVS (E5150::Intel8088* cpu); unsigned int getREP_MOVSCycles (const unsigned int repeatCount);
+void CMPS (E5150::Intel8088* cpu); unsigned int getCMPSCycles (void);
+void REP_CMPS (E5150::Intel8088* cpu); unsigned int getREP_CMPSCycles (const unsigned int repeatCount);
+void SCAS (E5150::Intel8088* cpu); unsigned int getSCASCycles (void);
+void REP_SCAS (E5150::Intel8088* cpu); unsigned int getREP_SCASCycles (const unsigned int repeatCount);
+void LODS (E5150::Intel8088* cpu); unsigned int getLODSCycles (void);
+void REP_LODS (E5150::Intel8088* cpu); unsigned int getREP_LODSCycles (const unsigned int repeatCount);
+void STOS (E5150::Intel8088* cpu); unsigned int getSTOSCycles (void);
+void REP_STOS (E5150::Intel8088* cpu); unsigned int getREP_STOSCycles (const unsigned int repeatCount);
 
 /* Control Transfer */
 
-void CALL_NEAR	(void); unsigned int getCALLCycles (void);
-void CALL_FAR	(void); unsigned int getCALL_FARCycles	(void);
-void JMP_NEAR	(void); unsigned int getJMPCycles		(void);
-void JMP_FAR	(void); unsigned int getJMP_FARCycles	(void);
-void RET_NEAR	(void); unsigned int getRETCycles	(void);
-void RET_FAR	(void); unsigned int getRET_FARCycles	(void);
-/* JE/JZ   */void JZ			(void); unsigned int getJXXCycles		(const bool conditionValue);
-/* JL/JNGE */void JL			(void); unsigned int getJLCycles		(void);
-/* JLE/JNG  */void JLE		(void); // unsigned int getJLECycles		(void);
-/* JB/JNAE */void JB			(void); // unsigned int getJBCycles		(void);
-/* JBE/JNA  */void JBE		(void); // unsigned int getJBECycles		(void);
-/* JLE/JNG  */void JP			(void); // unsigned int getJPCycles		(void);
-/* JP/JPE  */void JO			(void); // unsigned int getJOCycles		(void);
-void JS			(void); // unsigned int getJSCycles		(void);
-void JNZ		(void); // unsigned int getJNZCycles		(void);
-void JNL		(void); // unsigned int getJNLCycles		(void);
-void JNLE		(void); // unsigned int getJNLECycles		(void);
-void JNB		(void); // unsigned int getJNBCycles		(void);
-void JNBE		(void); // unsigned int getJNBECycles		(void);
-void JNP		(void); // unsigned int getJNPCycles		(void);
-void JNS		(void); // unsigned int getJNSCycles		(void);
-void LOOP		(void); unsigned int getLOOPCycles		(void);
-void LOOPZ		(void); unsigned int getLOOPZCycles		(void);
-void LOOPNZ		(void); unsigned int getLOOPNZCycles	(void);
-void JCXZ		(void); unsigned int getJCXZCycles		(void);
-void IRET		(void); unsigned int getIRETCycles		(void);
+void CALL_NEAR	(E5150::Intel8088* cpu); unsigned int getCALLCycles (void);
+void CALL_FAR	(E5150::Intel8088* cpu); unsigned int getCALL_FARCycles	(void);
+void JMP_NEAR	(E5150::Intel8088* cpu); unsigned int getJMPCycles		(void);
+void JMP_FAR	(E5150::Intel8088* cpu); unsigned int getJMP_FARCycles	(void);
+void RET_NEAR	(E5150::Intel8088* cpu); unsigned int getRETCycles	(void);
+void RET_FAR	(E5150::Intel8088* cpu); unsigned int getRET_FARCycles	(void);
+/* JE/JZ   */void JZ			(E5150::Intel8088* cpu); unsigned int getJXXCycles		(const bool conditionValue);
+/* JL/JNGE */void JL			(E5150::Intel8088* cpu); unsigned int getJLCycles		(void);
+/* JLE/JNG  */void JLE		(E5150::Intel8088* cpu); // unsigned int getJLECycles		(void);
+/* JB/JNAE */void JB			(E5150::Intel8088* cpu); // unsigned int getJBCycles		(void);
+/* JBE/JNA  */void JBE		(E5150::Intel8088* cpu); // unsigned int getJBECycles		(void);
+/* JLE/JNG  */void JP			(E5150::Intel8088* cpu); // unsigned int getJPCycles		(void);
+/* JP/JPE  */void JO			(E5150::Intel8088* cpu); // unsigned int getJOCycles		(void);
+void JS			(E5150::Intel8088* cpu); // unsigned int getJSCycles		(void);
+void JNZ		(E5150::Intel8088* cpu); // unsigned int getJNZCycles		(void);
+void JNL		(E5150::Intel8088* cpu); // unsigned int getJNLCycles		(void);
+void JNLE		(E5150::Intel8088* cpu); // unsigned int getJNLECycles		(void);
+void JNB		(E5150::Intel8088* cpu); // unsigned int getJNBCycles		(void);
+void JNBE		(E5150::Intel8088* cpu); // unsigned int getJNBECycles		(void);
+void JNP		(E5150::Intel8088* cpu); // unsigned int getJNPCycles		(void);
+void JNS		(E5150::Intel8088* cpu); // unsigned int getJNSCycles		(void);
+void LOOP		(E5150::Intel8088* cpu); unsigned int getLOOPCycles		(void);
+void LOOPZ		(E5150::Intel8088* cpu); unsigned int getLOOPZCycles		(void);
+void LOOPNZ		(E5150::Intel8088* cpu); unsigned int getLOOPNZCycles	(void);
+void JCXZ		(E5150::Intel8088* cpu); unsigned int getJCXZCycles		(void);
+void IRET		(E5150::Intel8088* cpu); unsigned int getIRETCycles		(void);
 
 /* Processor Control */
 
-void CLC	(void); unsigned int getCLCCycles	(void);
-void CMC	(void); unsigned int getCMCCycles	(void);
-void STC	(void); unsigned int getSTCCycles	(void);
-void CLD	(void); unsigned int getCLDCycles	(void);
-void STD	(void); unsigned int getSTDCycles	(void);
+void CLC	(E5150::Intel8088* cpu); unsigned int getCLCCycles	(void);
+void CMC	(E5150::Intel8088* cpu); unsigned int getCMCCycles	(void);
+void STC	(E5150::Intel8088* cpu); unsigned int getSTCCycles	(void);
+void CLD	(E5150::Intel8088* cpu); unsigned int getCLDCycles	(void);
+void STD	(E5150::Intel8088* cpu); unsigned int getSTDCycles	(void);
 //CLI is already used as namespace name inside CLI11
-void _CLI	(void); unsigned int getCLICycles	(void);
-void STI	(void); unsigned int getSTICycles	(void);
-void HLT	(void); unsigned int getHLTCycles	(void);
-void WAIT	(void); unsigned int getWAITCycles	(void);
-void LOCK	(void); unsigned int getLOCKCycles	(void);
+void _CLI	(E5150::Intel8088* cpu); unsigned int getCLICycles	(void);
+void STI	(E5150::Intel8088* cpu); unsigned int getSTICycles	(void);
+void HLT	(E5150::Intel8088* cpu); unsigned int getHLTCycles	(void);
+void WAIT	(E5150::Intel8088* cpu); unsigned int getWAITCycles	(void);
+void LOCK	(E5150::Intel8088* cpu); unsigned int getLOCKCycles	(void);
 
-void NOP	(void); unsigned int getNOPCycles	(void);
+void NOP	(E5150::Intel8088* cpu); unsigned int getNOPCycles	(void);
 
 #endif

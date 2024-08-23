@@ -1,10 +1,6 @@
 #ifndef __I8086_HPP__
 #define __I8086_HPP__
 
-#include "eu.hpp"
-#include "biu.hpp"
-#include "util.hpp"
-
 #if 0
 struct Regs {
 	union {
@@ -177,12 +173,12 @@ namespace E5150
 
 		enum class EBIURunningMode
 		{
-			FETCH_MEMORY,WAIT_ROOM_IN_QUEUE
+			FETCH_INSTRUCTION,FETCH_MEMORY,WAIT_ROOM_IN_QUEUE
 		};
 
 		enum class EEURunningMode
 		{
-			WAIT_INSTRUCTION, EXECUTE_INSTRUCTION
+			WAIT_INSTRUCTION,EXECUTE_INSTRUCTION,EXECUTE_REP_INSTRUCTION,WAIT_BIU
 		};
 
 		enum class EEventFlags
@@ -191,17 +187,62 @@ namespace E5150
 			INSTRUCTION_DECODED  = 1 << 1,
 		};
 
+		enum class ECpuFlags
+		{
+			CARRY	= 1 <<  0, // carry flag
+			PARITY	= 1 <<  2, // parity flag
+			A_CARRY	= 1 <<  4, // auxiliary carry flag
+			ZERO	= 1 <<  6, // zerro flag
+			SIGN	= 1 <<  7, // sign flag
+			TRAP	= 1 <<  8, // trap flag
+			INTF	= 1 <<  9, // interrupt flag
+			DIR		= 1 << 10, // direction flag
+			OVER	= 1 << 11  // overflow flag
+		};
+
 	public:
 		Intel8088(void);
 
 		void Clock(void);
+
+		template <typename... Flags>
+		void ClearFlags(const Flags& ...flags)
+		{
+			regs.flags &= ~HelperGetFlagMask(flags...);
+		}
+
+		template <typename... Flags>
+		void SetFlags(const Flags... flags)
+		{
+			regs.flags |= HelperGetFlagMask(flags...);
+		}
+
+		template <typename... Flags>
+		void ToggleFlags(const Flags... flags)
+		{
+			regs.flags ^= HelperGetFlagMask(flags...);
+		}
+
+	private:
+		template<typename Flag, typename... OtherFlags>
+		unsigned int HelperGetFlagMask(const Flag flag, const OtherFlags... otherFlags)
+		{
+			return static_cast<unsigned int>(flag) | HelperGetFlagMask(otherFlags...);
+		}
+
+		unsigned int HelperGetFlagMask(const ECpuFlags flag)
+		{
+			return static_cast<unsigned int>(flag);
+		}
 
 	public:
 		Regs regs;
 		ERunningMode mode;
 		EEURunningMode euMode;
 		EBIURunningMode biuMode;
+
 		xed_decoded_inst_t decodedInst;
+		xed_iclass_enum_t  decodedInstructionIClass;
 
 		uint8_t instructionStreamQueue [INSTRUCTION_STREAM_QUEUE_LENGTH];
 		size_t instructionStreamQueueIndex;
@@ -209,8 +250,11 @@ namespace E5150
 		unsigned int events;
 
 		unsigned int biuClockCountDown;
+		unsigned int euClockCount;
 
 		unsigned int clock;
+
+		bool halted;
 	};
 }
 

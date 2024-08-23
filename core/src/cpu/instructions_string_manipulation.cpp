@@ -1,7 +1,7 @@
 #include "core/arch.hpp"
 #include "core/instructions.hpp"
 
-//TODO: Is there a case where the rep prefix isn't the first ?
+#if 0
 static FORCE_INLINE void REP_OPERATIONS(void)
 {
 	cpu.regs.cx -= 1;
@@ -27,7 +27,7 @@ static FORCE_INLINE void REPE_OPERATIONS(void)
 	cpu.eu.repInstructionFinished = REPEndCondition || REPxEndCondition || REPNxEndCondition;
 }
 
-static FORCE_INLINE void MOVS_OPERATIONS(void)
+static void MOVS_OPERATIONS(void)
 {
 	const unsigned int srcAddr = cpu.genAddress(cpu.regs.ds,cpu.regs.si);
 	const unsigned int destAddr = cpu.genAddress(cpu.regs.es ,cpu.regs.di);
@@ -149,3 +149,4 @@ void REP_STOS(void)
 	STOS_OPERATIONS();
 	REP_OPERATIONS();
 }
+#endif

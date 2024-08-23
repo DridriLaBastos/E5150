@@ -7,6 +7,7 @@
 #include "gui/gui.hpp"
 #include "gui_states.hpp"
 
+#include "core/util.hpp"
 #include "core/arch.hpp"
 #include "core/8284A.hpp"
 
