@@ -103,11 +103,14 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 		set(XED_LIB_TYPE_FLAG --static)
 	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/xed/xed/mfile.py" --jobs=${CPU_COUNT} --build-dir=${PROJECT_BINARY_DIR}/obj --install-dir=${PROJECT_BINARY_DIR}/kits --prefix=${PROJECT_BINARY_DIR} --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_BUILD_INSTALL_FLAGS} --no-amd --no-via --no-encoder install)
+	execute_process(COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/xed/xed/mfile.py" --jobs=${CPU_COUNT} --build-dir=${PROJECT_BINARY_DIR}/obj --install-dir=${PROJECT_BINARY_DIR}/kits --prefix=${PROJECT_BINARY_DIR} --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_LIB_TYPE_FLAG} --no-amd --no-via --no-encoder install)
 
 	if(${WIN32})
 		file(COPY ${PROJECT_BINARY_DIR}/kits/lib DESTINATION ${PROJECT_BINARY_DIR})
 		file(COPY ${PROJECT_BINARY_DIR}/kits/include/xed DESTINATION  ${PROJECT_BINARY_DIR}/include)
+		if(${USE_DEBUGGER})
+			file(COPY ${PROJECT_BINARY_DIR}/kits/bin/xed.dll ${PROJECT_BINARY_DIR}/kits/bin/xed-ild.dll DESTINATION ${PROJECT_BINARY_DIR}/lib)
+		endif()
 	endif ()
 endif()
 
