@@ -136,10 +136,10 @@ void E5150::GUI::init()
 	signal(SIGINT, stop);
 	signal(SIGTERM, stop);
 
+	//Loading IBM BIOS
+	E5150::Arch::ram.LoadFromFile("test/ibm_bios.bin", 0xFE000);
 #if 0
 #if 1
-	//Loading IBM BIOS
-	ram.load("test/ibm_bios.bin", 0xFE000);
 #else
 	//Loading custom test code
 		ram.load("test/interrupts.bin",0);

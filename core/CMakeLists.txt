@@ -4,6 +4,7 @@ file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS src/*.cpp *.hpp)
 file(GLOB_RECURSE CORE_HDR *.hpp)
 
 add_library(core STATIC ${CORE_HDR}
+				src/ram.cpp
 				src/arch.cpp
 				src/cpu/8086.cpp
 				#src/cpu/instructions_arithmetic.cpp
@@ -23,4 +24,4 @@ endif ()
 
 target_link_libraries(core PRIVATE xed)
 
-target_precompile_headers(core	PUBLIC $<$<COMPILE_LANGUAGE:CXX,OBJC,OBJCXX>:${E5150_PRECOMPILED_HEADER_FILE}>)
+target_precompile_headers(core PUBLIC $<$<COMPILE_LANGUAGE:CXX,OBJC,OBJCXX>:${E5150_PRECOMPILED_HEADER_FILE}>)

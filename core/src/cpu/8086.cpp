@@ -399,7 +399,7 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 }
 #endif
 
-#include "core/8086.hpp"
+#include "core/arch.hpp"
 #include "core/instructions.hpp"
 
 E5150::Intel8088::Intel8088():
@@ -440,15 +440,20 @@ static void BIUMode_Switch(E5150::Intel8088* cpu, const E5150::Intel8088::EBIURu
 	cpu->biuMode = newMode;
 }
 
+static unsigned int GenerateFetAddress (const uint16_t cs, const uint16_t ip)
+{
+	return (cs << 4) + ip;
+}
+
 static void BIUClock_FetchInstruction(E5150::Intel8088* cpu)
 {
 	cpu->biuClockCountDown -= 1;
 
 	if (cpu->biuClockCountDown == 0)
 	{
-		//TODO: Read data from RAM
+		const uint8_t byte = E5150::Arch::ram.Read(GenerateFetAddress(cpu->regs.cs,cpu->regs.ip));
 		cpu->regs.ip += 1;
-		cpu->instructionStreamQueueIndex += 1;
+		cpu->instructionStreamQueue[cpu->instructionStreamQueueIndex++] = byte;
 
 		if (cpu->instructionStreamQueueIndex == E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH)
 		{

@@ -14,6 +14,8 @@
 #define dataBus E5150::Arch::_dataBus
 #endif
 
+#include "core/bus.hpp"
+#include "core/ram.hpp"
 #include "core/8086.hpp"
 
 namespace E5150
@@ -48,7 +50,12 @@ namespace E5150
 #endif
 			Intel8088 cpu;
 
-			static EmulationStat emulationStat;
+	public:
+		static RAM ram;
+
+		static EmulationStat emulationStat;
+		static E5150::BUS<20> addressBus;
+		static E5150::BUS<8> dataBus;
 	};
 }
 

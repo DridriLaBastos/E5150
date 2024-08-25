@@ -1,32 +1,44 @@
 #include "core/ram.hpp"
 #include "core/arch.hpp"
+#include "core/util.hpp"
 
-RAM::RAM(): mRamPtr(new uint8_t[0x100000]), m_mappedDevices()
+E5150::RAM::RAM(): m_ram(new uint8_t[0x100000]) {}
+
+static void UpdateBus(const unsigned int address, const uint8_t data)
 {
-	m_mappedDevices.reserve(5);
-	m_ram = mRamPtr.get();
+	E5150::Arch::addressBus = address;
+	E5150::Arch::dataBus = data;
 }
 
-uint8_t RAM::read(const unsigned int address) const
+uint8_t E5150::RAM::Read(const unsigned int address) const
 {
-	const uint8_t data = m_ram[address];
-	dataBus = data;
-#ifdef SEE_RAM_READ
-	if (E5150::Util::CURRENT_EMULATOR_LOG_LEVEL == EMULATION_MAX_LOG_LEVEL)
-		printf("%#4x --> %#5x\n", data, address);
-#endif
+	const uint8_t data = m_ram.get()[address];
+	UpdateBus(data,address);
 	return data;
 }
-void RAM::write(const unsigned int address, const uint8_t data)
+void E5150::RAM::Write(const unsigned int address, const uint8_t data)
 {
-	m_ram[address] = data;
-	dataBus = data;
-#ifdef SEE_RAM_WRITE
-	if (E5150::Util::CURRENT_EMULATOR_LOG_LEVEL >= EMULATION_MAX_LOG_LEVEL)
-		printf("%#5x <-- %#4x\n", address, data);
-#endif
+	m_ram.get()[address] = data;
+	UpdateBus(address,data);
 }
 
+void E5150::RAM::LoadFromFile(const std::filesystem::path path, size_t startPos)
+{
+	std::ifstream stream(path);
+
+	if (!stream.is_open())
+	{
+		E5150_WARNING("Cannot open file '{}'",path.c_str());
+		return;
+	}
+
+	while (!stream.eof())
+	{
+		m_ram.get()[startPos++] = stream.get();
+	}
+}
+
+#if 0
 void RAM::load (const std::string path, size_t pos)
 {
 	std::ifstream stream (path,std::ios_base::binary);
@@ -55,3 +67,4 @@ void RAM::map  (const MapInfo info)
 uint8_t *RAM::GetRamData(const unsigned int offset) const noexcept {
 	return &m_ram[offset];
 }
+#endif

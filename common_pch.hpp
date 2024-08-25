@@ -18,6 +18,7 @@
 #include <cinttypes>
 #include <exception>
 #include <functional>
+#include <filesystem>
 #include <string_view>
 
 extern "C"
