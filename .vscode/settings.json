@@ -91,7 +91,8 @@
 		"cinttypes": "cpp",
 		"csetjmp": "cpp",
 		"scoped_allocator": "cpp",
-		"shared_mutex": "cpp"
+		"shared_mutex": "cpp",
+		"cassert": "cpp"
 	},
 	"cmake.configureArgs": [
 		"-DUSE_MOLD=OFF",

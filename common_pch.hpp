@@ -13,6 +13,7 @@
 #include <utility>
 #include <fstream>
 #include <cstdint>
+#include <cassert>
 #include <iostream>
 #include <algorithm>
 #include <cinttypes>
