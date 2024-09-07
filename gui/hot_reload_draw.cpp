@@ -282,6 +282,9 @@ static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 	const char* stateStr;
 	unsigned int clockCount;
 
+	ImGui::TextUnformatted("BIU");
+	ImGui::TextUnformatted("Mode : "); ImGui::SameLine();
+
 	switch (cpu.biuMode)
 	{
 		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
@@ -299,7 +302,10 @@ static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 			break;
 	}
 
-	ImGui::Text("BIU Mode : %s (%d) [%zu]",stateStr,clockCount,cpu.instructionStreamQueueIndex);
+	ImGui::Text("%s (%d)",stateStr,clockCount);
+
+	ImGui::TextUnformatted("Instruction stream");
+	ImGui::Spacing(); ImGui::SameLine();
 
 	for (size_t i = 0; i < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH; i += 1)
 	{
@@ -326,14 +332,15 @@ static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 
 static void DrawCpuEUState(const E5150::Intel8088& cpu)
 {
+	ImGui::TextUnformatted("EU");
 	switch (cpu.euMode)
 	{
 		case E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION:
-			ImGui::TextUnformatted("EU Mode 'Wait instruction'");
+			ImGui::TextUnformatted("Mode 'Wait instruction'");
 			break;
 
 		case E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION:
-			ImGui::Text("EU Mode 'Execute instruction' %d",cpu.euClockCountDown);
+			ImGui::Text("Mode'Execute instruction' # clock %d",cpu.euClockCountDown);
 			break;
 
 		default:
@@ -345,14 +352,19 @@ static void DrawCpuWorkingState(const E5150::Intel8088& cpu)
 {
 	DrawCpuState(cpu);
 
+	//I don't know why but I need 2 calls to BeginGroup to have the items properly aligned...
 	ImGui::BeginGroup();
-	DrawCpuBIUState(cpu);
+	ImGui::BeginGroup();
+		DrawCpuBIUState(cpu);
 	ImGui::EndGroup();
-
+	ImGui::EndGroup();
+	
 	ImGui::SameLine();
 
 	ImGui::BeginGroup();
-	DrawCpuEUState(cpu);
+	ImGui::BeginGroup();
+		DrawCpuEUState(cpu);
+	ImGui::EndGroup();
 	ImGui::EndGroup();
 }
 
