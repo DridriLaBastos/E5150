@@ -404,7 +404,7 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 
 E5150::Intel8088::Intel8088():
 		mode(Intel8088::ERunningMode::INIT_SEQUENCE), instructionStreamQueueIndex(0),
-		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT), euClockCount(0)
+		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT),biuByteRequest(0) , euClockCountDown(0), euInstructionClockCount(0)
 {
 	xed_tables_init();
 }
@@ -426,32 +426,19 @@ static void CPUClock_Init(E5150::Intel8088* cpu)
 	}
 }
 
-static void BIUMode_Switch(E5150::Intel8088* cpu, const E5150::Intel8088::EBIURunningMode newMode)
-{
-	switch (newMode)
-	{
-		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
-			cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
-			break;
-		default:
-			break;
-	}
-
-	cpu->biuMode = newMode;
-}
-
-static unsigned int GenerateFetAddress (const uint16_t cs, const uint16_t ip)
+static unsigned int GenerateFetchAddress (const uint16_t cs, const uint16_t ip)
 {
 	return (cs << 4) + ip;
 }
 
+#if 0
 static void BIUClock_FetchInstruction(E5150::Intel8088* cpu)
 {
 	cpu->biuClockCountDown -= 1;
 
 	if (cpu->biuClockCountDown == 0)
 	{
-		const uint8_t byte = E5150::Arch::ram.Read(GenerateFetAddress(cpu->regs.cs,cpu->regs.ip));
+		const uint8_t byte = E5150::Arch::ram.Read(GenerateFetchAddress(cpu->regs.cs,cpu->regs.ip));
 		cpu->regs.ip += 1;
 		cpu->instructionStreamQueue[cpu->instructionStreamQueueIndex++] = byte;
 
@@ -465,52 +452,68 @@ static void BIUClock_FetchInstruction(E5150::Intel8088* cpu)
 		}
 	}
 }
+#endif
+
+static bool BIUState_FetchReady(E5150::Intel8088* cpu)
+{
+	return ((cpu->instructionStreamQueueIndex < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH) ||
+			(cpu->biuByteRequest != 0));
+}
 
 static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 {
+	cpu->biuClockCountDown -= 1;
 
-}
-
-static void BIUClock_WaitRoomInQueue(E5150::Intel8088* cpu)
-{
-	if (cpu->instructionStreamQueueIndex < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_INDEX_MAX)
+	if (cpu->biuClockCountDown == 0)
 	{
-		BIUMode_Switch(cpu,E5150::Intel8088::EBIURunningMode::FETCH_MEMORY);
+		switch (cpu->biuCurrentFetchType)
+		{
+			case E5150::Intel8088::EBIUFetchType::FETCH_DATA:
+				cpu->biuByteRequest -= 1;
+				if (cpu->biuByteRequest == 0)
+				{
+					cpu->biuNextFetchType = E5150::Intel8088::EBIUFetchType::FETCH_INSTRUCTION;
+				}
+				break;
+			
+			case E5150::Intel8088::EBIUFetchType::FETCH_INSTRUCTION:
+			{
+				const unsigned int fetchAddress = GenerateFetchAddress(cpu->regs.cs, cpu->regs.ip);
+				const uint8_t instructionByte = E5150::Arch::ram.Read(fetchAddress);
+				cpu->instructionStreamQueue[cpu->instructionStreamQueueIndex] = instructionByte;
+				cpu->instructionStreamQueueIndex += 1;
+				cpu->regs.ip += 1;
+			} break;
 
-		// Since the BIU clock simulation function is called before the EU clock simulation function and since the EU
-		// clock simulation function will be the one responsible for decreasing the instruction stream index
-		// the detection of new room available is done in the next clock simulation step, so we need to simulate a fetch
-		// cycle for this simulation step
-		BIUClock_FetchInstruction(cpu);
+			default:
+				assert(false);
+		}
+
+		cpu->biuCurrentFetchType = cpu->biuNextFetchType;
+		cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
 	}
 }
 
 static void BIUClock_Simulate(E5150::Intel8088* cpu)
 {
-	switch (cpu->biuMode)
+	if (!BIUState_FetchReady(cpu))
 	{
-		case E5150::Intel8088::EBIURunningMode::FETCH_INSTRUCTION:
-			BIUClock_FetchInstruction(cpu);
-			break;
-		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
-			BIUClock_FetchMemory(cpu);
-			break;
-		case E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE:
-			BIUClock_WaitRoomInQueue(cpu);
-			break;
-		default:
-			assert(true);//All running mode must be simulated
+		cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE;
+		return;
 	}
+
+	cpu->biuMode = E5150::Intel8088::EBIURunningMode::FETCH_MEMORY;
+	BIUClock_FetchMemory(cpu);
 }
 
-static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu, bool* requestMemory)
+static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu, unsigned int* memoryByteRequest)
 {
-	//At the end of the opcode of instructions that access memory, there is w bit = 0 for byte operand and 1 one for word operands.
+	//At the end of the opcode of the instructions that access memory, there is the w bit = 0 for byte operand and 1 one for word operands.
 	//If this bit = 0 there is 1 memory access and if it = 1, 2 memory accesses
 	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
 	const unsigned int operandSizeWord = cpu->instructionStreamQueue[nPrefix] & 0b1;
 	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (operandSizeWord + 1);
-	*requestMemory = memoryByteAccess != 0;
+	*memoryByteRequest = memoryByteAccess;
 #if 0
 	cpu.biu.requestMemoryByte(memoryByteAccess);
 	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu->decodedInst);
@@ -926,13 +929,17 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 										 cpu->instructionStreamQueueIndex);
 	if (status == XED_ERROR_NONE)
 	{
-		bool requestMemory;
+		unsigned int memoryByteRequest = 0;
 		cpu->instructionStreamQueueIndex -= xed_decoded_inst_get_length(&cpu->decodedInst);
-		cpu->euClockCount = PrepareInstructionExecution(cpu,&requestMemory);
+		cpu->euClockCountDown = PrepareInstructionExecution(cpu,&memoryByteRequest);
+	#ifdef ENABLE_DEBUGGER
+		cpu->euInstructionClockCount = cpu->euClockCountDown;//Only for debug gui
+	#endif
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
-		cpu->euMode = requestMemory ?
+		cpu->euMode = (memoryByteRequest != 0) ?
 						E5150::Intel8088::EEURunningMode::WAIT_BIU :
 						E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION;
+		cpu->biuByteRequest = 0;//memoryByteRequest;
 	}
 }
 
@@ -1398,14 +1405,13 @@ static void ExecuteInstruction(E5150::Intel8088* cpu)
 			spdlog::debug("Instruction not simulated yet");
 			//assert(false);
 	}
-
 }
 
 static void EUClock_ExecuteInstruction(E5150::Intel8088* cpu)
 {
-	cpu->euClockCount -= 1;
+	cpu->euClockCountDown -= 1;
 
-	if (cpu->euClockCount == 0)
+	if (cpu->euClockCountDown == 0)
 	{
 		ExecuteInstruction(cpu);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_EXECUTED;
@@ -1415,10 +1421,10 @@ static void EUClock_ExecuteInstruction(E5150::Intel8088* cpu)
 
 static void EUClock_WaitBIU(E5150::Intel8088* cpu)
 {
-	if (cpu->biuMode == E5150::Intel8088::EBIURunningMode::FETCH_MEMORY)
+	if (cpu->biuByteRequest == 0)
 	{
-		EUClock_ExecuteInstruction(cpu);
 		cpu->euMode = E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION;
+		EUClock_ExecuteInstruction(cpu);
 	}
 }
 

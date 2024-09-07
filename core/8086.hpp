@@ -173,7 +173,12 @@ namespace E5150
 
 		enum class EBIURunningMode
 		{
-			FETCH_INSTRUCTION,FETCH_MEMORY,WAIT_ROOM_IN_QUEUE
+			FETCH_MEMORY,WAIT_ROOM_IN_QUEUE
+		};
+
+		enum class EBIUFetchType
+		{
+			FETCH_INSTRUCTION, FETCH_DATA
 		};
 
 		enum class EEURunningMode
@@ -240,6 +245,7 @@ namespace E5150
 		ERunningMode mode;
 		EEURunningMode euMode;
 		EBIURunningMode biuMode;
+		EBIUFetchType biuCurrentFetchType,biuNextFetchType;
 
 		xed_decoded_inst_t decodedInst;
 		xed_iclass_enum_t  decodedInstructionIClass;
@@ -250,7 +256,10 @@ namespace E5150
 		unsigned int events;
 
 		unsigned int biuClockCountDown;
-		unsigned int euClockCount;
+		unsigned int biuByteRequest;
+		
+		unsigned int euClockCountDown;
+		unsigned int euInstructionClockCount;
 
 		unsigned int clock;
 
