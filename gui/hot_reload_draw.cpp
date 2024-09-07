@@ -279,18 +279,13 @@ static void DrawCpuState(const E5150::Intel8088& cpu)
 
 static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 {
-	char* stateStr;
+	const char* stateStr;
 	unsigned int clockCount;
 
 	switch (cpu.biuMode)
 	{
-		case E5150::Intel8088::EBIURunningMode::FETCH_INSTRUCTION:
-			stateStr = "Fetch Instructions";
-			clockCount = cpu.biuClockCountDown;;
-			break;
-
 		case E5150::Intel8088::EBIURunningMode::FETCH_MEMORY:
-			stateStr = "Fetch Memory";
+			stateStr = (cpu.biuCurrentFetchType == E5150::Intel8088::EBIUFetchType::FETCH_DATA) ? "Fetch Data" : "Fetch Instruction";
 			clockCount = cpu.biuClockCountDown;
 			break;
 
@@ -338,7 +333,7 @@ static void DrawCpuEUState(const E5150::Intel8088& cpu)
 			break;
 
 		case E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION:
-			ImGui::TextUnformatted("EU Mode 'Execute instruction'");
+			ImGui::Text("EU Mode 'Execute instruction' %d",cpu.euClockCountDown);
 			break;
 
 		default:

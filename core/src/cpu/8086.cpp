@@ -404,7 +404,7 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 
 E5150::Intel8088::Intel8088():
 		mode(Intel8088::ERunningMode::INIT_SEQUENCE), instructionStreamQueueIndex(0),
-		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT),biuByteRequest(0) , euClockCountDown(0), euInstructionClockCount(0)
+		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT),biuByteRequest(0) , euClockCountDown(0)
 {
 	xed_tables_init();
 }
@@ -932,9 +932,6 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 		unsigned int memoryByteRequest = 0;
 		cpu->instructionStreamQueueIndex -= xed_decoded_inst_get_length(&cpu->decodedInst);
 		cpu->euClockCountDown = PrepareInstructionExecution(cpu,&memoryByteRequest);
-	#ifdef ENABLE_DEBUGGER
-		cpu->euInstructionClockCount = cpu->euClockCountDown;//Only for debug gui
-	#endif
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
 		cpu->euMode = (memoryByteRequest != 0) ?
 						E5150::Intel8088::EEURunningMode::WAIT_BIU :
@@ -1418,6 +1415,7 @@ static void EUClock_ExecuteInstruction(E5150::Intel8088* cpu)
 		cpu->euMode = E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION;
 	}
 }
+
 
 static void EUClock_WaitBIU(E5150::Intel8088* cpu)
 {
