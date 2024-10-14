@@ -352,7 +352,7 @@ static void DrawCpuWorkingState(const E5150::Intel8088& cpu)
 {
 	DrawCpuState(cpu);
 
-	//I don't know why but I need 2 calls to BeginGroup to have the items properly aligned...
+	//I don't know why, but I need 2 calls to BeginGroup to have the items properly aligned...
 	ImGui::BeginGroup();
 	ImGui::BeginGroup();
 		DrawCpuBIUState(cpu);
@@ -368,35 +368,35 @@ static void DrawCpuWorkingState(const E5150::Intel8088& cpu)
 	ImGui::EndGroup();
 }
 
-static void DrawRegisterView(const E5150::Intel8088::Regs& regs)
+static void DrawRegisterView(const E5150::Intel8088& cpu)
 {
-	const uint16_t cs = regs.cs;
-	const uint16_t ip = regs.ip;
-	unsigned int ea = (cs << 4) + ip;
-	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,ip,ea);
+	const uint16_t cs = cpu.regs.cs;
+	const uint16_t offset = cpu.regs.ip + cpu.biuIpOffset;
+	unsigned int ea = (cs << 4) + offset;
+	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,offset,ea);
 
 	ImGui::Separator();
 
-	const uint16_t ss = regs.ss;
-	const uint16_t sp = regs.sp;
+	const uint16_t ss = cpu.regs.ss;
+	const uint16_t sp = cpu.regs.sp;
 	ea = (ss << 4) + sp;
 	ImGui::Text("Stack    (ss:sp) 0x%04X:0x%04X (0x%05X)", ss,sp,ea);
 
 	ImGui::Separator();
 
 	ImGui::Text("CS 0x%4X   DS 0x%4X   ES 0x%4X   SS 0x%4X",
-	            regs.cs,regs.ds,regs.es,regs.ss);
+	            cpu.regs.cs,cpu.regs.ds,cpu.regs.es,cpu.regs.ss);
 	ImGui::Text("AX 0x%4X   BX 0x%4X   CX 0x%4X   DX 0x%4X",
-	            regs.ax,regs.bx,regs.cx,regs.dx);
+	            cpu.regs.ax,cpu.regs.bx,cpu.regs.cx,cpu.regs.dx);
 	ImGui::Text("SI 0x%4X   DI 0x%4X   BP 0x%4X   SP 0x%4X",
-	            regs.si,regs.di,regs.bp,regs.sp);
+	            cpu.regs.si,cpu.regs.di,cpu.regs.bp,cpu.regs.sp);
 	ImGui::Separator();
 
 	const char flagChars[] = { 'C', 'P', 'A', 'Z', 'S', 'T', 'I', 'D', 'O' };
 
 	for (int i = 0; i < 9; i += 1)
 	{
-		const bool flagSet = regs.flags & (1 << i);
+		const bool flagSet = cpu.regs.flags & (1 << i);
 		char flagChar = flagChars[i];
 
 		const ImColor textColor = flagSet ? ImColor{.1f,.9f,.2f} : ImColor{.9f,.1f,.3f};
@@ -414,7 +414,7 @@ static void DrawRegisterView(const E5150::Intel8088::Regs& regs)
 static void DrawCpuInternalState(const E5150::Intel8088& cpu)
 {
 	DrawCpuWorkingState(cpu);
-	DrawRegisterView(cpu.regs);
+	DrawRegisterView(cpu);
 }
 
 static void DrawDebuggerCPUStatus(const EmulationGuiState& emulationGuiState)
