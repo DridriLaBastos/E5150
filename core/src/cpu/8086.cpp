@@ -404,8 +404,7 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 
 E5150::Intel8088::Intel8088():
 		mode(Intel8088::ERunningMode::INIT_SEQUENCE), instructionStreamQueueIndex(0),
-		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT),biuByteRequest(0) , euClockCountDown(0),
-		biuIpOffset(0)
+		biuClockCountDown(MEMORY_FETCH_CLOCK_COUNT),biuByteRequest(0),euClockCountDown(0)
 {
 	xed_tables_init();
 }
@@ -479,11 +478,10 @@ static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 			
 			case E5150::Intel8088::EBIUFetchType::FETCH_INSTRUCTION:
 			{
-				const unsigned int fetchAddress = GenerateFetchAddress(cpu->regs.cs, cpu->regs.ip + cpu->biuIpOffset);
+				const unsigned int fetchAddress = GenerateFetchAddress(cpu->regs.cs, cpu->regs.ip + cpu->instructionStreamQueueIndex);
 				const uint8_t instructionByte = E5150::Arch::ram.Read(fetchAddress);
 				cpu->instructionStreamQueue[cpu->instructionStreamQueueIndex] = instructionByte;
 				cpu->instructionStreamQueueIndex += 1;
-				cpu->biuIpOffset += 1;
 			} break;
 
 			default:
@@ -939,6 +937,7 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 	{
 		unsigned int memoryByteRequest = 0;
 		const size_t decodedInstructionLength = xed_decoded_inst_get_length(&cpu->decodedInst);
+		const unsigned int old = cpu->instructionStreamQueueIndex;
 		cpu->instructionStreamQueueIndex -= decodedInstructionLength;
 		cpu->euClockCountDown = PrepareInstructionExecution(cpu,&memoryByteRequest);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
@@ -947,7 +946,6 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 		              E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION;
 		cpu->biuByteRequest = 0;//memoryByteRequest;
 		cpu->regs.ip += decodedInstructionLength;
-		cpu->biuIpOffset -= decodedInstructionLength;
 	}
 }
 

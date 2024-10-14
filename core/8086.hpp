@@ -257,7 +257,6 @@ namespace E5150
 
 		unsigned int biuClockCountDown;
 		unsigned int biuByteRequest;
-		unsigned int biuIpOffset;
 		
 		unsigned int euClockCountDown;
 

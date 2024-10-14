@@ -371,7 +371,7 @@ static void DrawCpuWorkingState(const E5150::Intel8088& cpu)
 static void DrawRegisterView(const E5150::Intel8088& cpu)
 {
 	const uint16_t cs = cpu.regs.cs;
-	const uint16_t offset = cpu.regs.ip + cpu.biuIpOffset;
+	const uint16_t offset = cpu.regs.ip + cpu.instructionStreamQueueIndex;
 	unsigned int ea = (cs << 4) + offset;
 	ImGui::Text("Fetching (cs:ip) 0x%04X:0x%04X (0x%05X)",cs,offset,ea);
 
