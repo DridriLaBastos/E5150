@@ -8,7 +8,7 @@ add_library(core STATIC ${CORE_HDR}
 				src/arch.cpp
 				src/cpu/8086.cpp
 				#src/cpu/instructions_arithmetic.cpp
-				#src/cpu/instructions_clock_cycles.cpp
+				src/cpu/instructions_clock_cycles.cpp
 				#src/cpu/instructions_control_transfer.cpp
 				#src/cpu/instructions_data_transfer.cpp
 				#src/cpu/instructions_logic.cpp

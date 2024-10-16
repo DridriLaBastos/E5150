@@ -512,14 +512,10 @@ static xed_error_enum_t DecodeInstruction(E5150::Intel8088* cpu)
 	return xed_decode(&cpu->decodedInst,cpu->instructionStreamQueue,cpu->instructionStreamQueueIndex);
 }
 
-static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu, unsigned int* memoryByteRequest)
+static std::function<void(E5150::Intel8088*)> instructionExecFunction;
+
+static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 {
-	//At the end of the opcode of the instructions that access memory, there is the w bit = 0 for byte operand and 1 one for word operands.
-	//If this bit = 0 there is 1 memory access and if it = 1, 2 memory accesses
-	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
-	const unsigned int operandSizeWord = cpu->instructionStreamQueue[nPrefix] & 0b1;
-	const unsigned int memoryByteAccess = xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (operandSizeWord + 1);
-	*memoryByteRequest = memoryByteAccess;
 #if 0
 	cpu.biu.requestMemoryByte(memoryByteAccess);
 	cpu.eu.instructionLength = xed_decoded_inst_get_length(&cpu->decodedInst);
@@ -530,14 +526,13 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu, unsigned
 #endif
 
 	const xed_iclass_enum_t decodedInstGetIclass = xed_decoded_inst_get_iclass(&cpu->decodedInst);
-	cpu->decodedInstructionIClass = decodedInstGetIclass;
 
 	switch (decodedInstGetIclass)
 	{
+#if 0
 		case XED_ICLASS_MOV:
 			return 11;//getMOVCycles();
 
-#if 0
 		case XED_ICLASS_PUSH:
 			return getPUSHCycles();
 
@@ -757,6 +752,7 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu, unsigned
 			return getJMPCycles();
 
 		case XED_ICLASS_JMP_FAR:
+			instructionExecFunction = JMP_FAR;
 			return getJMP_FARCycles();
 
 		case XED_ICLASS_RET_NEAR:
@@ -927,7 +923,6 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu, unsigned
 	}
 }
 
-
 static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 {
 	xed_decoded_inst_zero_keep_mode(&cpu->decodedInst);
@@ -935,11 +930,14 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 
 	if (status == XED_ERROR_NONE)
 	{
-		unsigned int memoryByteRequest = 0;
 		const size_t decodedInstructionLength = xed_decoded_inst_get_length(&cpu->decodedInst);
-		const unsigned int old = cpu->instructionStreamQueueIndex;
+		//At the end of the opcode of the instructions that access memory, there is the w bit = 0 for byte operand and 1 one for word operands.
+		//If this bit = 0 there is 1 memory access and if it = 1, 2 memory accesses
+		//const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
+		//const unsigned int operandSizeWord = cpu->instructionStreamQueue[nPrefix] & 0b1;
+		const unsigned int memoryByteRequest = 0;// xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (operandSizeWord + 1);
 		cpu->instructionStreamQueueIndex -= decodedInstructionLength;
-		cpu->euClockCountDown = PrepareInstructionExecution(cpu,&memoryByteRequest);
+		cpu->euClockCountDown = PrepareInstructionExecution(cpu);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
 		cpu->euMode = (memoryByteRequest != 0) ?
 		              E5150::Intel8088::EEURunningMode::WAIT_BIU :
@@ -951,12 +949,12 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 
 static void ExecuteInstruction(E5150::Intel8088* cpu)
 {
+#if 0
 	switch (cpu->decodedInstructionIClass)
 	{
 		case XED_ICLASS_MOV:
-			//MOV(cpu);
+			MOV(cpu);
 			break;
-#if 0
 		case XED_ICLASS_PUSH:
 			PUSH(cpu);
 			break;
@@ -1405,12 +1403,12 @@ static void ExecuteInstruction(E5150::Intel8088* cpu)
 		case XED_ICLASS_NOP:
 			NOP(cpu);
 			break;
-#endif
 
 		default:
 			spdlog::debug("Instruction not simulated yet");
 			//assert(false);
 	}
+#endif
 }
 
 static void EUClock_ExecuteInstruction(E5150::Intel8088* cpu)
@@ -1419,7 +1417,7 @@ static void EUClock_ExecuteInstruction(E5150::Intel8088* cpu)
 
 	if (cpu->euClockCountDown == 0)
 	{
-		ExecuteInstruction(cpu);
+		instructionExecFunction(cpu);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_EXECUTED;
 		cpu->euMode = E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION;
 	}
@@ -1443,14 +1441,14 @@ static void EUClock_Simulate(E5150::Intel8088* cpu)
 	// EUClock_WaitInstruction will decode the instruction and will put the EU into the
 	// EXECUTE_INSTRUCTION state. Thus, the next clock will be the execution of the next
 	// instruction without having a spurious WAIT_INSTRUCTION state
-	if (cpu->euMode == E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION)
-	{
-		EUClock_ExecuteInstruction(cpu);
-	}
-
 	if (cpu->euMode == E5150::Intel8088::EEURunningMode::WAIT_BIU)
 	{
 		EUClock_WaitBIU(cpu);
+	}
+
+	if (cpu->euMode == E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION)
+	{
+		EUClock_ExecuteInstruction(cpu);
 	}
 
 	if (cpu->euMode == E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION)

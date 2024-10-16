@@ -33,11 +33,12 @@ E5150::FDC E5150::Arch::_fdc(pic,ports);
 E5150::Arch::EmulationStat E5150::Arch::emulationStat;
 
 E5150::RAM E5150::Arch::ram;
+E5150::Intel8088 E5150::Arch::cpu;
 
 E5150::BUS<20> E5150::Arch::addressBus;
 E5150::BUS<8> E5150::Arch::dataBus;
 
-E5150::Arch::Arch(): cpu()
+E5150::Arch::Arch()
 {
 #if 0
 	#ifndef STOP_AT_INSTRUCTION
