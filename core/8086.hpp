@@ -248,6 +248,7 @@ namespace E5150
 		EBIUFetchType biuCurrentFetchType,biuNextFetchType;
 
 		xed_decoded_inst_t decodedInst;
+		const xed_inst_t* inst;
 
 		uint8_t instructionStreamQueue [INSTRUCTION_STREAM_QUEUE_LENGTH];
 		size_t instructionStreamQueueIndex;
