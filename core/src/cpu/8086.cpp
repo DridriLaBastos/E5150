@@ -399,6 +399,7 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 }
 #endif
 
+#include "biu.hpp"
 #include "core/arch.hpp"
 #include "core/instructions.hpp"
 
@@ -934,6 +935,15 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 	}
 }
 
+static void BIU_PopBytes(E5150::Intel8088* cpu, const unsigned int byteCount)
+{
+	for (unsigned int i = 0; i < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH-byteCount; i++)
+	{
+		cpu->instructionStreamQueue[i] = cpu->instructionStreamQueue[i + byteCount];
+	}
+	cpu->instructionStreamQueueIndex -= byteCount;
+}
+
 static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 {
 	xed_decoded_inst_zero_keep_mode(&cpu->decodedInst);
@@ -948,7 +958,7 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 		//const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
 		//const unsigned int operandSizeWord = cpu->instructionStreamQueue[nPrefix] & 0b1;
 		const unsigned int memoryByteRequest = 0;// xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (operandSizeWord + 1);
-		cpu->instructionStreamQueueIndex -= decodedInstructionLength;
+		BIU_PopBytes(cpu,decodedInstructionLength);
 		cpu->euClockCountDown = PrepareInstructionExecution(cpu);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
 		cpu->euMode = E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION;
