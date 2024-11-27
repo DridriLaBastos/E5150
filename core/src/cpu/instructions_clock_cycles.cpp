@@ -20,7 +20,7 @@
 
 #define ADD_EA_ON_MEM_OPERAND() GET_RAW_CLOCK_COUNT();\
 								if (xed_decoded_inst_number_of_memory_operands(&E5150::Arch::cpu.decodedInst) > 0){\
-                                const xed_inst_t* inst = xed_decoded_inst_inst(&E5150::Arch::cpu.decodedInst);\
+                                const xed_inst_t* inst = E5150::Arch::cpu.inst;\
 								const xed_operand_enum_t op0 = xed_operand_name(xed_inst_operand(inst, 0));\
 								const xed_operand_enum_t op1 = xed_operand_name(xed_inst_operand(inst, 1));\
 								ADD_EA_ON_CONDITION (op0 == XED_OPERAND_MEM0 || op1 == XED_OPERAND_MEM0)}
@@ -583,20 +583,61 @@ unsigned int getXORCycles	()
 }
 
 /* String Manipulation */
-#if 0
-unsigned int getMOVSCycles () { return cpu.eu.operandSizeWord ? 26 : 18; }
-unsigned int getREP_MOVSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 25 : 17); }
+
+//Using macro instead of function to be sure that the code will be inlined
+#define COMPUTE_OPERAND_SIZE_WORD(resultVariableName)\
+	E5150::Intel8088* cpu = &E5150::Arch::cpu;\
+	const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);\
+	const unsigned int operandSizeWordBit =  cpu->instructionStreamQueue[nPrefix] & 0b1;\
+	const bool resultVariableName = static_cast<bool>(operandSizeWord)
+
+unsigned int getMOVSCycles ()
+{
+	COMPUTE_OPERAND_SIZE_WORD(operandSizeWord);
+	return operandSizeWord ? 26 : 18;
+}
+
+unsigned int getREP_MOVSCycles (const unsigned int repeatCount)
+{
+	COMPUTE_OPERAND_SIZE_WORD(operandSizeWord);
+	return repeatCount == 0 ? 9 : (operandSizeWord ? 25 : 17);
+}
+
 //TODO: find accurate clock cycles
-unsigned int getCMPSCycles () { return cpu.eu.operandSizeWord ? 30 : 22; }
-unsigned int getREP_CMPSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : 30; }
+unsigned int getCMPSCycles ()
+{
+	COMPUTE_OPERAND_SIZE_WORD(operandSizeWord);
+	return operandSizeWord ? 30 : 22;
+}
+
+unsigned int getREP_CMPSCycles (const unsigned int repeatCount)
+{ return repeatCount == 0 ? 9 : 30; }
 unsigned int getSCASCycles () { return 19; }
-unsigned int getREP_SCASCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 19 : 15); }
+unsigned int getREP_SCASCycles (const unsigned int repeatCount)
+{
+	COMPUTE_OPERAND_SIZE_WORD(operandSizeWord);
+	return repeatCount == 0 ? 9 : (operandSizeWord ? 19 : 15);
+}
 unsigned int getLODSCycles () { return 16; }
+
 //TODO: clock value from my mind, I didn't find infos about the rep clock cycle version
-unsigned int getREP_LODSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 15 : 14); }
-unsigned int getSTOSCycles () { return cpu.eu.operandSizeWord ? 15 : 11; }
-unsigned int getREP_STOSCycles (const unsigned int repeatCount) { return repeatCount == 0 ? 9 : (cpu.eu.operandSizeWord ? 14 : 10); }
-#endif
+unsigned int getREP_LODSCycles (const unsigned int repeatCount)
+{
+	COMPUTE_OPERAND_SIZE_WORD(operandSizeWord);
+	return repeatCount == 0 ? 9 : (operandSizeWord ? 15 : 14);
+}
+
+unsigned int getSTOSCycles ()
+{
+	COMPUTE_OPERAND_SIZE_WORD(operandSizeWord);
+	return operandSizeWord ? 15 : 11;
+}
+
+unsigned int getREP_STOSCycles (const unsigned int repeatCount)
+{
+	COMPUTE_OPERAND_SIZE_WORD(operandSizeWord);
+	return repeatCount == 0 ? 9 : (operandSizeWord ? 14 : 10);
+}
 /* Control Transfer */
 
 // unsigned int getCALL_NEARCycles	(){}
@@ -691,11 +732,21 @@ unsigned int getJXXCycles		(const bool conditionValue) { return conditionValue ?
 // unsigned int getJNBECycles		() { return 7 + 0; }
 // unsigned int getJNPCycles		() { return 7 + 0; }
 // unsigned int getJNSCycles		() { return 7 + 0; }
-#if 0
+
 unsigned int getLOOPCycles		() { return (E5150::Arch::cpu.regs.cx - 1 == 0) ? 5 : 18; }
-unsigned int getLOOPZCycles		() { return ((E5150::Arch::cpu.regs.cx - 1 == 0) && cpu.getFlagStatus(CPU::ZERRO)) ? 6 : 18; }
-unsigned int getLOOPNZCycles	() { return ((E5150::Arch::cpu.regs.cx - 1 == 0) && !cpu.getFlagStatus(CPU::ZERRO)) ? 5 : 19; }
-#endif
+
+unsigned int getLOOPZCycles		()
+{
+	E5150::Intel8088& cpu = E5150::Arch::cpu;
+	return ((cpu.regs.cx - 1 == 0) && cpu.GetFlags(E5150::Intel8088::ECpuFlags::ZERO)) ? 6 : 18;
+}
+
+unsigned int getLOOPNZCycles	()
+{
+	E5150::Intel8088& cpu = E5150::Arch::cpu;
+	return ((E5150::Arch::cpu.regs.cx - 1 == 0) && !cpu.GetFlags(E5150::Intel8088::ECpuFlags::ZERO)) ? 5 : 19;
+}
+
 unsigned int getJCXZCycles		() { return E5150::Arch::cpu.regs.cx == 0 ? 6 : 18; }
 unsigned int getINTCycles		() { return 51; }
 unsigned int getINT3Cycles		() { return 52; }

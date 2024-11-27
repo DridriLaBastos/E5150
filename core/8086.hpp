@@ -228,6 +228,13 @@ namespace E5150
 			regs.flags ^= HelperGetFlagMask(flags...);
 		}
 
+		template <typename... Flags>
+		bool GetFlags(const Flags... flags)
+		{
+			const unsigned int mask = HelperGetFlagMask(flags...);
+			return (regs.flags & mask) == mask;
+		}
+
 	private:
 		template<typename Flag, typename... OtherFlags>
 		unsigned int HelperGetFlagMask(const Flag flag, const OtherFlags... otherFlags)

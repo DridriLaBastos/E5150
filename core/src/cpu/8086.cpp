@@ -540,9 +540,8 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 
 	switch (decodedInstGetIclass)
 	{
-#if 0
 		case XED_ICLASS_MOV:
-			return 11;//getMOVCycles();
+			return getMOVCycles();
 
 		case XED_ICLASS_PUSH:
 			return getPUSHCycles();
@@ -642,7 +641,7 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 
 		case XED_ICLASS_NOT:
 			return getNOTCycles();
-
+#if 0
 		case XED_ICLASS_SHL:
 			return getSHIFT_ROTATECycles(nPrefix);
 
@@ -663,7 +662,7 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 
 		case XED_ICLASS_RCR:
 			return getSHIFT_ROTATECycles(nPrefix);
-
+#endif
 		case XED_ICLASS_AND:
 			return getANDCycles();
 
@@ -763,8 +762,10 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 			return getJMPCycles();
 
 		case XED_ICLASS_JMP_FAR:
+#if 0
 			instructionExecFunction = JMP_FAR;
 			BeginControlTransferInstruction(cpu);
+#endif
 			return getJMP_FARCycles();
 
 		case XED_ICLASS_RET_NEAR:
@@ -927,7 +928,6 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 
 		case XED_ICLASS_NOP:
 			return getNOPCycles();
-#endif
 
 		default:
 			spdlog::debug("Instruction not recognized yet");
