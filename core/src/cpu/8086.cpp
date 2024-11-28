@@ -480,7 +480,7 @@ static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 			case E5150::Intel8088::EBIUFetchType::FETCH_INSTRUCTION:
 			{
 				const unsigned int fetchAddress = GenerateFetchAddress(cpu->regs.cs, cpu->regs.ip + cpu->instructionStreamQueueIndex);
-				const uint8_t instructionByte = E5150::Arch::ram.Read(fetchAddress);
+				const uint8_t instructionByte = E5150::Arch::ram.ReadByte(fetchAddress);
 				cpu->instructionStreamQueue[cpu->instructionStreamQueueIndex] = instructionByte;
 				cpu->instructionStreamQueueIndex += 1;
 			} break;
@@ -491,6 +491,30 @@ static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 
 		cpu->biuCurrentFetchType = cpu->biuNextFetchType;
 		cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
+
+		if (cpu->instructionStreamQueueIndex == E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH)
+		{
+			cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE;
+		}
+
+		if (cpu->instructionIsControlTransfer)
+		{
+			cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING;
+		}
+	}
+}
+
+static void BIUModeFetchInstruction(E5150::Intel8088* cpu)
+{
+	cpu->biuMode = E5150::Intel8088::EBIURunningMode::FETCH_MEMORY;
+	cpu->biuCurrentFetchType = E5150::Intel8088::EBIUFetchType::FETCH_INSTRUCTION;
+}
+
+static void BIUClock_WaitRoom(E5150::Intel8088* cpu)
+{
+	if (cpu->instructionStreamQueueIndex < E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH)
+	{
+		BIUModeFetchInstruction(cpu);
 	}
 }
 
@@ -503,25 +527,25 @@ static void BIUClock_Simulate(E5150::Intel8088* cpu)
 			break;
 
 		case E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE:
-			//BIUClock_WaitRoom(cpu);
+			BIUClock_WaitRoom(cpu);
 			break;
 
-		//case E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING:
-			//BIUClock_WaitControlTransferEnd(cpu);
+		case E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING:
 			break;
+
 		default:
 			break;
 	}
 }
 
-static std::function<void(E5150::Intel8088*)> instructionExecFunction;
+static std::function<void(E5150::Intel8088*)> InstructionExecFunction;
 
 static void BeginControlTransferInstruction(E5150::Intel8088* cpu)
 {
-	//cpu->controlTransferInstruction = true;
+	cpu->instructionIsControlTransfer = true;
 
 	// Flush the instruction stream
-	cpu->instructionStreamQueueIndex = 0;
+	//cpu->instructionStreamQueueIndex = 0;
 	//cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING;
 }
 
@@ -762,10 +786,8 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 			return getJMPCycles();
 
 		case XED_ICLASS_JMP_FAR:
-#if 0
-			instructionExecFunction = JMP_FAR;
+			InstructionExecFunction = JMP_FAR;
 			BeginControlTransferInstruction(cpu);
-#endif
 			return getJMP_FARCycles();
 
 		case XED_ICLASS_RET_NEAR:
@@ -967,477 +989,13 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 	}
 }
 
-static void ExecuteInstruction(E5150::Intel8088* cpu)
-{
-#if 0
-	switch (cpu->decodedInstructionIClass)
-	{
-		case XED_ICLASS_MOV:
-			MOV(cpu);
-			break;
-		case XED_ICLASS_PUSH:
-			PUSH(cpu);
-			break;
-
-		case XED_ICLASS_POP:
-			POP(cpu);
-			break;
-
-		case XED_ICLASS_XCHG:
-			XCHG(cpu);
-			break;
-
-		case XED_ICLASS_IN:
-			_IN(cpu);
-			break;
-
-		case XED_ICLASS_OUT:
-			_OUT(cpu);
-			break;
-
-		case XED_ICLASS_XLAT:
-			XLAT(cpu);
-			break;
-
-		case XED_ICLASS_LEA:
-			LEA(cpu);
-			break;
-
-		case XED_ICLASS_LDS:
-			LDS(cpu);
-			break;
-
-		case XED_ICLASS_LES:
-			LES(cpu);
-			break;
-
-		case XED_ICLASS_LAHF:
-			LAHF(cpu);
-			break;
-
-		case XED_ICLASS_SAHF:
-			SAHF(cpu);
-			break;
-
-		case XED_ICLASS_PUSHF:
-			PUSHF(cpu);
-			break;
-
-		case XED_ICLASS_POPF:
-			POPF(cpu);
-			break;
-
-		case XED_ICLASS_ADD:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-#endif
-			ADD(cpu);
-			break;
-
-		case XED_ICLASS_ADC:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-#endif
-			ADD(cpu);
-			break;
-
-		case XED_ICLASS_INC:
-			INC(cpu);
-			break;
-
-		case XED_ICLASS_AAA:
-			AAA(cpu);
-			break;
-
-		case XED_ICLASS_DAA:
-			DAA(cpu);
-			break;
-
-		case XED_ICLASS_SUB:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-#endif
-			SUB(cpu);
-			break;
-
-		case XED_ICLASS_SBB:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-#endif
-			SUB(cpu);
-			break;
-
-		case XED_ICLASS_DEC:
-			DEC(cpu);
-			break;
-
-		case XED_ICLASS_NEG:
-			NEG(cpu);
-			break;
-
-		case XED_ICLASS_CMP:
-			CMP(cpu);
-			break;
-
-		case XED_ICLASS_AAS:
-			AAS(cpu);
-			break;
-
-		case XED_ICLASS_DAS:
-			DAS(cpu);
-			break;
-
-		case XED_ICLASS_MUL:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-#endif
-			MUL(cpu);
-			break;
-
-		case XED_ICLASS_IMUL:
-#if 0
-			cpu.eu.instructionExtraData.isSigned = true;
-#endif
-			MUL(cpu);
-			break;
-
-		case XED_ICLASS_DIV:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-#endif
-			DIV(cpu);
-			break;
-
-		case XED_ICLASS_IDIV:
-#if 0
-			cpu.eu.instructionExtraData.isSigned = true;
-#endif
-			DIV(cpu);
-			break;
-
-		case XED_ICLASS_AAD:
-			AAD(cpu);
-			break;
-
-		case XED_ICLASS_CBW:
-			CBW(cpu);
-			break;
-
-		case XED_ICLASS_CWD:
-			CWD(cpu);
-			break;
-
-		case XED_ICLASS_NOT:
-			NOT(cpu);
-			break;
-
-		case XED_ICLASS_SHL:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-			cpu.eu.instructionExtraData.setDirectionIsLeft();
-#endif
-			SHIFT(cpu);
-			break;
-
-		case XED_ICLASS_SHR:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-#endif
-			SHIFT(cpu);
-			break;
-
-		case XED_ICLASS_SAR:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-			cpu.eu.instructionExtraData.setInstructionIsArithmetic();
-#endif
-			SHIFT(cpu);
-			break;
-
-		case XED_ICLASS_ROL:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-			cpu.eu.instructionExtraData.setDirectionIsLeft();
-#endif
-			ROTATE(cpu);
-			break;
-
-		case XED_ICLASS_ROR:
-			ROTATE(cpu);
-			break;
-
-		case XED_ICLASS_RCL:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-			cpu.eu.instructionExtraData.setRotationWithCarry();
-			cpu.eu.instructionExtraData.setDirectionIsLeft();
-#endif
-			ROTATE(cpu);
-			break;
-
-		case XED_ICLASS_RCR:
-#if 0
-			cpu.eu.instructionExtraData.clearData();
-			cpu.eu.instructionExtraData.setRotationWithCarry();
-#endif
-			ROTATE(cpu);
-			break;
-
-		case XED_ICLASS_AND:
-			AND(cpu);
-			break;
-
-		case XED_ICLASS_TEST:
-			TEST(cpu);
-			break;
-
-		case XED_ICLASS_OR:
-			OR(cpu);
-			break;
-
-		case XED_ICLASS_XOR:
-			XOR(cpu);
-			break;
-
-		case XED_ICLASS_MOVSB:
-		case XED_ICLASS_MOVSW:
-			MOVS(cpu);
-			break;
-
-//TODO: A copy past error happened for the REP isntructions, investigate from the eu.cpp file what has to be done
-		case XED_ICLASS_REP_MOVSB:
-		case XED_ICLASS_REP_MOVSW:
-			REP_MOVS(cpu);
-			break;
-
-		case XED_ICLASS_CMPSB:
-		case XED_ICLASS_CMPSW:
-			CMPS(cpu);
-			break;
-
-		case XED_ICLASS_REPE_CMPSB:
-		case XED_ICLASS_REPNE_CMPSB:
-		case XED_ICLASS_REPE_CMPSW:
-		case XED_ICLASS_REPNE_CMPSW:
-			REP_CMPS(cpu);
-			break;
-
-		case XED_ICLASS_SCASB:
-		case XED_ICLASS_SCASW:
-			SCAS(cpu);
-			break;
-
-		case XED_ICLASS_REPE_SCASB:
-		case XED_ICLASS_REPNE_SCASB:
-		case XED_ICLASS_REPE_SCASW:
-		case XED_ICLASS_REPNE_SCASW:
-			REP_SCAS(cpu);
-			break;
-
-		case XED_ICLASS_LODSB:
-		case XED_ICLASS_LODSW:
-			LODS(cpu);
-			break;
-
-		case XED_ICLASS_REP_LODSB:
-		case XED_ICLASS_REP_LODSW:
-			REP_LODS(cpu);
-			break;
-
-		case XED_ICLASS_STOSB:
-		case XED_ICLASS_STOSW:
-			STOS(cpu);
-			break;
-
-		case XED_ICLASS_REP_STOSB:
-		case XED_ICLASS_REP_STOSW:
-			REP_STOS(cpu);
-			break;
-
-		case XED_ICLASS_CALL_NEAR:
-			CALL_NEAR(cpu);
-			break;
-
-		case XED_ICLASS_CALL_FAR:
-			CALL_FAR(cpu);
-			break;
-
-		case XED_ICLASS_JMP:
-			JMP_NEAR(cpu);
-			break;
-
-		case XED_ICLASS_JMP_FAR:
-			JMP_FAR(cpu);
-			break;
-
-		case XED_ICLASS_RET_NEAR:
-			RET_NEAR(cpu);
-			break;
-
-		case XED_ICLASS_RET_FAR:
-			RET_FAR(cpu);
-			break;
-
-		case XED_ICLASS_JZ:
-			JZ(cpu);
-			break;
-
-		case XED_ICLASS_JL:
-			JL(cpu);
-			break;
-
-		case XED_ICLASS_JLE:
-			JLE(cpu);
-			break;
-
-		case XED_ICLASS_JB:
-			JB(cpu);
-			break;
-
-		case XED_ICLASS_JBE:
-			JBE(cpu);
-			break;
-
-		case XED_ICLASS_JP:
-			JP(cpu);
-			break;
-
-		case XED_ICLASS_JO:
-			JO(cpu);
-			break;
-
-		case XED_ICLASS_JS:
-			JS(cpu);
-			break;
-
-		case XED_ICLASS_JNZ:
-			JNZ(cpu);
-			break;
-
-		case XED_ICLASS_JNL:
-			JNL(cpu);
-			break;
-
-		case XED_ICLASS_JNLE:
-			JNLE(cpu);
-			break;
-
-		case XED_ICLASS_JNB:
-			JNB(cpu);
-			break;
-
-		case XED_ICLASS_JNBE:
-			JNBE(cpu);
-			break;
-
-		case XED_ICLASS_JNP:
-			JNP(cpu);
-			break;
-
-		case XED_ICLASS_JNS:
-			JNS(cpu);
-			break;
-
-		case XED_ICLASS_LOOP:
-			LOOP(cpu);
-			break;
-
-		case XED_ICLASS_LOOPE:// = LOOPZ
-			LOOPZ(cpu);
-			break;
-
-		case XED_ICLASS_LOOPNE:// = LOOPNZ
-			LOOPNZ(cpu);
-			break;
-
-		case XED_ICLASS_JCXZ:
-			JCXZ(cpu);
-			break;
-
-			/* Servicing interrupts vary a bit than executing normal instruction */
-		case XED_ICLASS_INT:
-#if 0
-			cpu.interrupt(CPU::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
-			return 0;
-#else
-			break;
-#endif
-
-		case XED_ICLASS_INT3:
-#if 0
-			cpu.interrupt(CPU::INTERRUPT_TYPE::INT3);
-			return 0;
-#else
-			break;
-#endif
-
-		case XED_ICLASS_INTO:
-#if 0
-			if (!cpu.getFlagStatus(CPU::OVER))
-			{
-				doNothing(cpu);
-				break;
-			}
-			cpu.interrupt(CPU::INTERRUPT_TYPE::INTO);
-			return 0;
-#else
-			break;
-#endif
-
-		case XED_ICLASS_IRET:
-			IRET(cpu);
-			break;
-
-		case XED_ICLASS_CLC:
-			CLC(cpu);
-			break;
-
-		case XED_ICLASS_CMC:
-			CMC(cpu);
-			break;
-
-		case XED_ICLASS_STC:
-			STC(cpu);
-			break;
-
-		case XED_ICLASS_CLD:
-			CLD(cpu);
-			break;
-
-		case XED_ICLASS_STD:
-			STD(cpu);
-			break;
-
-		case XED_ICLASS_CLI:
-			_CLI(cpu);
-			break;
-
-		case XED_ICLASS_STI:
-			STI(cpu);
-			break;
-
-		case XED_ICLASS_HLT:
-			HLT(cpu);
-			break;
-
-		case XED_ICLASS_NOP:
-			NOP(cpu);
-			break;
-
-		default:
-			spdlog::debug("Instruction not simulated yet");
-			//assert(false);
-	}
-#endif
-}
-
 static void EUClock_ExecuteInstruction(E5150::Intel8088* cpu)
 {
 	cpu->euClockCountDown -= 1;
 
 	if (cpu->euClockCountDown == 0)
 	{
-		//instructionExecFunction(cpu);
+		InstructionExecFunction(cpu);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_EXECUTED;
 		cpu->euMode = E5150::Intel8088::EEURunningMode::WAIT_INSTRUCTION;
 	}
@@ -1488,3 +1046,104 @@ void E5150::Intel8088::Clock()
 			break;
 	}
 }
+
+void E5150::Intel8088::EndControlTransferInstruction(const bool didTransfer)
+{
+	if (didTransfer)
+	{
+		BIUModeFetchInstruction(this);
+		instructionStreamQueueIndex = 0;
+		instructionIsControlTransfer = false;
+	}
+}
+
+unsigned int E5150::Intel8088::GenerateEffectiveAddress() const
+{
+	return GenerateAddress(xed_decoded_inst_get_seg_reg(&decodedInst,0),
+							xed_decoded_inst_get_memory_displacement(&decodedInst,0));
+}
+
+unsigned int E5150::Intel8088::GenerateAddress(const uint16_t base, const uint16_t offset) const
+{
+	return base*16 + offset;
+}
+
+unsigned int E5150::Intel8088::GenerateAddress (const uint16_t base, const xed_reg_enum_t offset) const
+{ return GenerateAddress(base, ReadRegister(offset)); }
+
+unsigned int E5150::Intel8088::GenerateAddress (const xed_reg_enum_t segment, const uint16_t offset) const
+{ return GenerateAddress(ReadRegister(segment), offset); }
+
+unsigned int E5150::Intel8088::GenerateAddress (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const
+{return GenerateAddress(ReadRegister(segment), ReadRegister(offset));}
+
+uint16_t E5150::Intel8088::ReadRegister(const xed_reg_enum_t reg) const
+{
+	switch (reg)
+	{
+		case XED_REG_AX:
+			return regs.ax;
+
+		case XED_REG_BX:
+			return regs.bx;
+
+		case XED_REG_CX:
+			return regs.cx;
+
+		case XED_REG_DX:
+			return regs.dx;
+
+		case XED_REG_AH:
+			return regs.ah;
+
+		case XED_REG_BH:
+			return regs.bh;
+
+		case XED_REG_CH:
+			return regs.ch;
+
+		case XED_REG_DH:
+			return regs.dh;
+
+		case XED_REG_AL:
+			return regs.al;
+
+		case XED_REG_BL:
+			return regs.bl;
+
+		case XED_REG_CL:
+			return regs.cl;
+
+		case XED_REG_DL:
+			return regs.dl;
+
+		case XED_REG_SI:
+			return regs.si;
+
+		case XED_REG_DI:
+			return regs.di;
+
+		case XED_REG_BP:
+			return regs.bp;
+
+		case XED_REG_SP:
+			return regs.sp;
+
+		case XED_REG_CS:
+			return regs.cs;
+
+		case XED_REG_DS:
+			return regs.ds;
+
+		case XED_REG_ES:
+			return regs.es;
+
+		case XED_REG_SS:
+			return regs.es;
+	}
+
+	// Should never be rearegs.ched but here to regs.silent compiler warning
+	// TODO: launregs.ch an exception here ? (probaregs.bly yregs.es, it is not ok if the program goregs.es here)
+	return 0;
+}
+

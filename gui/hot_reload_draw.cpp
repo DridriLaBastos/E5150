@@ -297,6 +297,11 @@ static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 			clockCount = 0;
 			break;
 
+		case E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING:
+			stateStr = "Wait control transfer instruction finish";
+			clockCount = 0;
+			break;
+
 		default:
 			assert(false);
 			break;

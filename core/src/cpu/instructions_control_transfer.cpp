@@ -1,6 +1,6 @@
 #include "core/arch.hpp"
 #include "core/instructions.hpp"
-
+#if 0
 void CALL_NEAR()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
@@ -68,31 +68,30 @@ void JMP_NEAR()
 
 	cpu.biu.endControlTransferInstruction();
 }
-
-void JMP_FAR()
+#endif
+void JMP_FAR(E5150::Intel8088* cpu)
 {
-	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
-
-	switch (op_name)
+	switch (const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0)))
 	{
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned far_addr_location = cpu.eu.EAddress;
+			const unsigned far_addr_location = cpu->GenerateEffectiveAddress();
 			
-			cpu.regs.cs = cpu.biu.readWord(far_addr_location);
-			cpu.regs.ip = cpu.biu.readWord(far_addr_location + 2);
+			cpu->regs.cs = E5150::Arch::ram.ReadWord(far_addr_location);
+			cpu->regs.ip = E5150::Arch::ram.ReadWord(far_addr_location + 2);
 			break;
 		}
 
 		case XED_OPERAND_PTR:
-			cpu.regs.cs = xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst);
-			cpu.regs.ip = xed_decoded_inst_get_branch_displacement(&cpu->decodedInst);
+			cpu->regs.cs = xed_decoded_inst_get_unsigned_immediate(&cpu->decodedInst);
+			cpu->regs.ip = xed_decoded_inst_get_branch_displacement(&cpu->decodedInst);
 			break;
 	}
 
-	cpu.biu.endControlTransferInstruction();
+	cpu->EndControlTransferInstruction();
 }
 
+#if 0
 void RET_NEAR()
 {
 	cpu.regs.ip = cpu.pop();
@@ -151,3 +150,4 @@ void IRET ()
 	cpu.biu.endControlTransferInstruction();
 	cpu.iretDelay();
 }
+#endif

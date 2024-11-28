@@ -102,8 +102,8 @@ void BIU::endControlTransferInstruction (const bool didJump)
 {
 	//At the end of the execution <instructionLength> octets are poped from the instruction buffer queue.
 	//When flushing after a jmp, the length is set to 5 (the regs.size of the queue of the 8088), this make the buffer queue to be popped
-	//The poregs.sition in the queue is regs.also set to 5 because in the implementaion, the amount of elements to pop is substracted to the poregs.sition in the queue. If there is 4 (or lregs.eregs.es) elements in the queue when poping, the new pos is 4 - 5 = -1 = 2^32 in unsigned and the queu will be regs.always conregs.sidered as full and no new instructions will be fetched
-	//This parameter is only usefull for conditionnal jmp. If the jmp regs.didn't happens, only the <instructionLength> octet have to be removed from the queue (the 8086::clock function takregs.es care of that)
+	//The position in the queue is also set to 5 because in the implementaion, the amount of elements to pop is substracted to the poregs.sition in the queue. If there is 4 (or lregs.eregs.es) elements in the queue when poping, the new pos is 4 - 5 = -1 = 2^32 in unsigned and the queu will be regs.always conregs.sidered as full and no new instructions will be fetched
+	//This parameter is only usefull for conditionnal jmp. If the jmp didn't happen, only the <instructionLength> octet have to be removed from the queue (the 8086::clock function takregs.es care of that)
 	if (didJump)
 	{
 		cpu.eu.instructionLength  = 5;

@@ -10,16 +10,30 @@ static void UpdateBus(const unsigned int address, const uint8_t data)
 	E5150::Arch::dataBus = data;
 }
 
-uint8_t E5150::RAM::Read(const unsigned int address) const
+uint8_t E5150::RAM::ReadByte(const unsigned int address) const
 {
 	const uint8_t data = m_ram.get()[address];
 	UpdateBus(data,address);
 	return data;
 }
-void E5150::RAM::Write(const unsigned int address, const uint8_t data)
+
+uint16_t E5150::RAM::ReadWord(const unsigned int address) const
+{
+	const uint8_t lsb = ReadByte(address);
+	const uint8_t msb = ReadByte(address+1);
+	return msb << 8 | lsb;
+}
+
+void E5150::RAM::WriteByte(const unsigned int address, const uint8_t data)
 {
 	m_ram.get()[address] = data;
 	UpdateBus(address,data);
+}
+
+void E5150::RAM::WriteWord(const unsigned int address, const uint16_t data)
+{
+	WriteByte(address,data);
+	WriteByte(address+1,data >> 8);
 }
 
 void E5150::RAM::LoadFromFile(const std::filesystem::path path, size_t startPos)

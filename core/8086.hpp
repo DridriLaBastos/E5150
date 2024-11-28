@@ -173,7 +173,7 @@ namespace E5150
 
 		enum class EBIURunningMode
 		{
-			FETCH_MEMORY,WAIT_ROOM_IN_QUEUE
+			FETCH_MEMORY,WAIT_ROOM_IN_QUEUE,WAIT_CONTROL_TRANSFER_ENDING
 		};
 
 		enum class EBIUFetchType
@@ -209,6 +209,13 @@ namespace E5150
 		Intel8088(void);
 
 		void Clock(void);
+		void EndControlTransferInstruction(bool didTransfer = true);
+		unsigned int GenerateAddress(uint16_t base, uint16_t offset) const;
+		unsigned int GenerateAddress (uint16_t base, xed_reg_enum_t offset) const;
+		unsigned int GenerateAddress (xed_reg_enum_t segment, uint16_t offset) const;
+		unsigned int GenerateAddress (xed_reg_enum_t segment, xed_reg_enum_t offset) const;
+		unsigned int GenerateEffectiveAddress() const;
+		uint16_t ReadRegister(xed_reg_enum_t reg) const;
 
 		template <typename... Flags>
 		void ClearFlags(const Flags& ...flags)
@@ -270,6 +277,7 @@ namespace E5150
 		unsigned int clock;
 
 		bool halted;
+		bool instructionIsControlTransfer;
 	};
 }
 
