@@ -282,6 +282,8 @@ static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 	const char* stateStr;
 	unsigned int clockCount;
 
+	ImGui::BeginGroup();
+
 	ImGui::TextUnformatted("BIU");
 	ImGui::TextUnformatted("Mode : "); ImGui::SameLine();
 
@@ -333,10 +335,12 @@ static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 			ImGui::PopStyleColor();
 		}
 	}
+	ImGui::EndGroup();
 }
 
 static void DrawCpuEUState(const E5150::Intel8088& cpu)
 {
+	ImGui::BeginGroup();
 	ImGui::TextUnformatted("EU");
 	switch (cpu.euMode)
 	{
@@ -351,26 +355,143 @@ static void DrawCpuEUState(const E5150::Intel8088& cpu)
 		default:
 			break;
 	}
+	ImGui::EndGroup();
+}
+
+static void DrawExecutedInstructionWidget(const E5150::Intel8088& cpu)
+{
+
+	const xed_decoded_inst_t* decodedInstruction = &cpu.decodedInst;
+	const xed_inst_t* inst = xed_decoded_inst_inst(decodedInstruction);
+
+	if (!inst) { return; }
+	ImGui::BeginGroup();
+	
+	ImGui::Text("%s",xed_iclass_enum_t2str(xed_decoded_inst_get_iclass(decodedInstruction))); ImGui::SameLine();
+	unsigned int realOperandPos = 0;
+	bool foundPtr = false;
+
+	for (unsigned int i = 0; i < xed_decoded_inst_noperands(decodedInstruction); ++i)
+	{
+		const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(inst, i));
+		const xed_operand_visibility_enum_t op_vis = xed_operand_operand_visibility(xed_inst_operand(inst, i));
+
+		if (op_vis == XED_OPVIS_EXPLICIT)
+		{
+			if (foundPtr)
+			{
+				ImGui::TextUnformatted(":"); ImGui::SameLine();
+				foundPtr = false;
+			}
+			else
+			{
+				if (realOperandPos > 0)
+				{
+					ImGui::TextUnformatted(", ");
+					ImGui::SameLine();
+				}
+			}
+
+			switch (op_name)
+			{
+			case XED_OPERAND_RELBR:
+				ImGui::Text("%d",(xed_decoded_inst_get_branch_displacement(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
+				break;
+
+			case XED_OPERAND_PTR:
+				ImGui::Text("0x%X",(xed_decoded_inst_get_branch_displacement(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
+				foundPtr = true;
+				break;
+
+			case XED_OPERAND_REG0:
+			case XED_OPERAND_REG1:
+			case XED_OPERAND_REG2:
+				ImGui::Text("%s",xed_reg_enum_t2str(xed_decoded_inst_get_reg(decodedInstruction, op_name))); ImGui::SameLine();
+				break;
+
+			case XED_OPERAND_IMM0:
+			case XED_OPERAND_IMM1:
+			ImGui::Text("0x%" PRIu64 ,(xed_decoded_inst_get_unsigned_immediate(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
+				break;
+
+			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
+			case XED_OPERAND_MEM0:
+			{
+				const xed_reg_enum_t baseReg = xed_decoded_inst_get_base_reg(decodedInstruction, 0);
+				const xed_reg_enum_t indexReg = xed_decoded_inst_get_index_reg(decodedInstruction, 0);
+				const int64_t memDisplacement = xed_decoded_inst_get_memory_displacement(decodedInstruction,0);
+				ImGui::Text("%s %s:[",
+					((xed_decoded_inst_get_memory_operand_length(decodedInstruction, 0) == 1) ? "BYTE" : "WORD"),
+					xed_reg_enum_t2str(xed_decoded_inst_get_seg_reg(decodedInstruction, 0))); ImGui::SameLine();
+
+				if (baseReg != XED_REG_INVALID)
+				{
+					ImGui::Text("%s",xed_reg_enum_t2str(baseReg));
+					ImGui::SameLine();
+				}
+				
+				if (indexReg != XED_REG_INVALID)
+				{
+					if (baseReg != XED_REG_INVALID)
+					{ ImGui::TextUnformatted("+"); ImGui::SameLine(); }
+
+					ImGui::Text("%s",xed_reg_enum_t2str(indexReg));
+				}
+
+				if ((indexReg != XED_REG_INVALID) || (baseReg != XED_REG_INVALID))
+				{
+					if (memDisplacement != 0)
+					{
+						if (memDisplacement > 0)
+							ImGui::Text(" + %" PRIi64 , memDisplacement);
+						else
+							ImGui::Text(" - %" PRIi64 , -memDisplacement);
+						ImGui::SameLine();
+					}
+				}
+				else
+				{ ImGui::Text("%" PRIi64 ,memDisplacement); ImGui::SameLine(); }
+
+				ImGui::TextUnformatted("]");
+				ImGui::SameLine();
+			}	break;
+
+			default:
+				break;
+			}
+
+			++realOperandPos;
+		}
+	}
+
+	ImGui::Text("[%d]",xed_decoded_inst_get_length(decodedInstruction));
+	ImGui::SameLine();
+	ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(decodedInstruction)));
+	ImGui::SameLine();
+#if 0
+	ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
+#endif
+
+	ImGui::EndGroup();
 }
 
 static void DrawCpuWorkingState(const E5150::Intel8088& cpu)
 {
 	DrawCpuState(cpu);
 
-	//I don't know why, but I need 2 calls to BeginGroup to have the items properly aligned...
+	//I don't know why, but even if the 2 draw functions wrap there drawing in a BeginGroup/EnGroup,
+	// to have the items properly aligned, I still need to add BeginGroup/EndGroup around the calls
 	ImGui::BeginGroup();
-	ImGui::BeginGroup();
-		DrawCpuBIUState(cpu);
-	ImGui::EndGroup();
+	DrawCpuBIUState(cpu);
 	ImGui::EndGroup();
 	
 	ImGui::SameLine();
 
 	ImGui::BeginGroup();
-	ImGui::BeginGroup();
-		DrawCpuEUState(cpu);
+	DrawCpuEUState(cpu);
 	ImGui::EndGroup();
-	ImGui::EndGroup();
+
+	DrawExecutedInstructionWidget(cpu);
 }
 
 static void DrawRegisterView(const E5150::Intel8088& cpu)
