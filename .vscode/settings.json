@@ -95,8 +95,8 @@
 		"cassert": "cpp"
 	},
 	"cmake.configureArgs": [
-		"-DUSE_MOLD=OFF",
-		"-DUSE_DEBUGGER=ON"
+		"-DUSE_MOLD:BOOL=OFF",
+		"-DUSE_DEBUGGER:BOOL=ON"
 	],
 	"C_Cpp.codeAnalysis.clangTidy.enabled": true
 }
