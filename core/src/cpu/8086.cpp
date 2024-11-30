@@ -530,6 +530,8 @@ static void BIUClock_Simulate(E5150::Intel8088* cpu)
 			break;
 
 		case E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING:
+			// Noting to be done here. The cpu goes out of the control transfer mode inside the EndControlTransferInstruction function
+	// that is called 'asynchronously'
 			break;
 
 		default:
@@ -1024,6 +1026,9 @@ static void EUClock_Simulate(E5150::Intel8088* cpu)
 
 static void CPUClock_Operational(E5150::Intel8088* cpu)
 {
+	//TODO: Maybe this step should be separated in twi substeps :
+	//	- 1 : perform the actions for EU and BIU
+	//	- 2 : update the status
 	BIUClock_Simulate(cpu);
 	EUClock_Simulate(cpu);
 }
