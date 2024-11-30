@@ -42,7 +42,7 @@ void E5150::RAM::LoadFromFile(const std::filesystem::path path, size_t startPos)
 
 	if (!stream.is_open())
 	{
-		E5150_WARNING("Cannot open file '{}'",path.c_str());
+		E5150_WARNING("Cannot open file '{}'",path.generic_string().c_str());
 		return;
 	}
 

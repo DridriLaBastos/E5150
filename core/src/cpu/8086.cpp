@@ -399,7 +399,6 @@ void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 }
 #endif
 
-#include "biu.hpp"
 #include "core/arch.hpp"
 #include "core/instructions.hpp"
 

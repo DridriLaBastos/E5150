@@ -78,13 +78,8 @@ target_link_libraries(imgui glfw OpenGL::GL)
 
 set(XED_LIB_NAME ${CMAKE_STATIC_LIBRARY_PREFIX}xed${CMAKE_STATIC_LIBRARY_SUFFIX})
 
-if (${USE_DEBUGGER})
-	set(XED_LIB_NAME ${CMAKE_SHARED_LIBRARY_PREFIX}xed${CMAKE_SHARED_LIBRARY_SUFFIX})	
-endif()
-
 set(XED_EXTRA_FLAGS "-flto")
 if (WIN32)
-	set(XED_EXTRA_FLAGS "/GL")
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__declspec(dllexport)")
 else ()
 	target_compile_definitions(imgui PUBLIC "IMGUI_API=__attribute__((visibility(\"default\")))")
@@ -95,22 +90,14 @@ if((NOT EXISTS ${PROJECT_BINARY_DIR}/lib/${XED_LIB_NAME}) OR (NOT EXISTS ${PROJE
 	
 	find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
-	# There must be some static variable in libxed or something because when compiled as a static library, when
-	# linked with the shared library hot_reload_draw I have undefined symbols inside xed
-	if(${USE_DEBUGGER})
-		set(XED_LIB_TYPE_FLAG --shared)
-	else()
-		set(XED_LIB_TYPE_FLAG --static)
-	endif()
 
-	execute_process(COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/xed/xed/mfile.py" --jobs=${CPU_COUNT} --build-dir=${PROJECT_BINARY_DIR}/obj --install-dir=${PROJECT_BINARY_DIR}/kits --prefix=${PROJECT_BINARY_DIR} --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_LIB_TYPE_FLAG} --no-amd --no-via --no-encoder install)
+	# Using execute process to run the command during configuration time and having the headers available while
+	# working on the project
+	execute_process(COMMAND ${Python3_EXECUTABLE} "${PROJECT_SOURCE_DIR}/xed/xed/mfile.py" --jobs=${CPU_COUNT} --build-dir=${PROJECT_BINARY_DIR}/obj --install-dir=${PROJECT_BINARY_DIR}/kits --prefix=${PROJECT_BINARY_DIR} --extra-flags=${XED_EXTRA_FLAGS} --opt=3 ${XED_LIB_TYPE_FLAG} --no-amd --no-via --no-encoder --static install)
 
 	if(${WIN32})
 		file(COPY ${PROJECT_BINARY_DIR}/kits/lib DESTINATION ${PROJECT_BINARY_DIR})
 		file(COPY ${PROJECT_BINARY_DIR}/kits/include/xed DESTINATION  ${PROJECT_BINARY_DIR}/include)
-		if(${USE_DEBUGGER})
-			file(COPY ${PROJECT_BINARY_DIR}/kits/bin/xed.dll ${PROJECT_BINARY_DIR}/kits/bin/xed-ild.dll DESTINATION ${PROJECT_BINARY_DIR}/lib)
-		endif()
 	endif ()
 endif()
 

@@ -39,6 +39,7 @@ static void stop(const int signum)
 static void reloadDrawLibrary()
 {
 	const fs::file_time_type lastWriteTime = fs::last_write_time(DRAW_LIBRARY_FULL_PATH, errorCode);
+	PLATFORM_CODE code = PLATFORM_SUCCESS;
 
 	if (errorCode)
 	{
@@ -55,7 +56,7 @@ static void reloadDrawLibrary()
 	#ifndef _WIN32
 	fs::copy_file(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FULL_PATH,fs::copy_options::overwrite_existing,errorCode);
 	#else
-	const PLATFORM_CODE code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FULL_PATH);
+	code = platformFile_Copy(DRAW_LIBRARY_FULL_PATH,DRAW_LIBRARY_COPY_FULL_PATH);
 	errorCode.clear();
 
 	if (code)

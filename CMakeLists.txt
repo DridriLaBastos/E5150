@@ -10,8 +10,8 @@ project(E5150
 		DESCRIPTION "Clock accurate emulator of the IBM PC 5150"
 		LANGUAGES C CXX ${PLATFORM_LANGUAGES})
 
-set(CMAKE_CXX_STANDARD 17)
-# set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 set(E5150_PRECOMPILED_HEADER_FILE ${CMAKE_SOURCE_DIR}/common_pch.hpp)
@@ -114,5 +114,8 @@ target_link_libraries(epc gui core)
 if (${WIN32})
 	string(TIMESTAMP CURRENT_TIMESTAMP "%H_%m_%s")
 	set_target_properties(epc PROPERTIES PDB_NAME "epc_${CURRENT_TIMESTAMP}.pdb")
+	add_custom_command(	TARGET epc POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:glfw> $<TARGET_FILE:imgui> $<TARGET_FILE_DIR:epc>)
 endif()
+
 add_custom_target(run $<TARGET_FILE:epc> WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
