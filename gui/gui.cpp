@@ -138,7 +138,7 @@ void E5150::GUI::init()
 	signal(SIGTERM, stop);
 
 	//Loading IBM BIOS
-	E5150::Arch::ram.LoadFromFile("test/ibm_bios.bin", 0xFE000);
+	E5150::Arch::ram.LoadFromFile(IBM_BIOS_PATH, 0xFE000);
 #if 0
 #if 1
 #else
