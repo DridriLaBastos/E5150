@@ -12,7 +12,7 @@ add_library(core STATIC ${CORE_HDR}
 				src/cpu/instructions_control_transfer.cpp
 				#src/cpu/instructions_data_transfer.cpp
 				#src/cpu/instructions_logic.cpp
-				#src/cpu/instructions_processor_control.cpp
+				src/cpu/instructions_processor_control.cpp
 				#src/cpu/instructions_string_manipulation.cpp
 )
 

@@ -11,14 +11,6 @@ void STD (E5150::Intel8088* cpu) { cpu->SetFlags(E5150::Intel8088::ECpuFlags::DI
 void _CLI (E5150::Intel8088* cpu) { cpu->ClearFlags(E5150::Intel8088::ECpuFlags::INTF); }
 void STI (E5150::Intel8088* cpu) { cpu->SetFlags(E5150::Intel8088::ECpuFlags::INTF); }
 
-void HLT (E5150::Intel8088* cpu) { cpu->hlt(); }
+void HLT (E5150::Intel8088* cpu) { cpu->halted = true; }
 
-void NOP() { }
-
-/**
- * A | B | XOR
- * 0   0    0
- * 0   1    1
- * 1   0    1
- * 1   1    0
-*/
+void NOP(E5150::Intel8088* cpu) { (void)cpu; }

@@ -926,30 +926,39 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 			return getIRETCycles();
 
 		case XED_ICLASS_CLC:
+			InstructionExecFunction = CLC;
 			return getCLCCycles();
 
 		case XED_ICLASS_CMC:
+			InstructionExecFunction = CMC;
 			return getCMCCycles();
 
 		case XED_ICLASS_STC:
+			InstructionExecFunction = STC;
 			return getSTCCycles();
 
 		case XED_ICLASS_CLD:
+			InstructionExecFunction = STD;
 			return getCLDCycles();
 
 		case XED_ICLASS_STD:
+			InstructionExecFunction = CLD;
 			return getSTDCycles();
 
 		case XED_ICLASS_CLI:
+			InstructionExecFunction = _CLI;
 			return getCLICycles();
 
 		case XED_ICLASS_STI:
+			InstructionExecFunction = STI;
 			return getSTICycles();
 
 		case XED_ICLASS_HLT:
+			InstructionExecFunction = HLT;
 			return getHLTCycles();
 
 		case XED_ICLASS_NOP:
+			InstructionExecFunction = NOP;
 			return getNOPCycles();
 
 		default:
