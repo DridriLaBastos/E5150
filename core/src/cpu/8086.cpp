@@ -487,19 +487,6 @@ static void BIUClock_FetchMemory(E5150::Intel8088* cpu)
 			default:
 				assert(false);
 		}
-
-		cpu->biuCurrentFetchType = cpu->biuNextFetchType;
-		cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
-
-		if (cpu->instructionStreamQueueIndex == E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH)
-		{
-			cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE;
-		}
-
-		if (cpu->instructionIsControlTransfer)
-		{
-			cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING;
-		}
 	}
 }
 
@@ -1033,6 +1020,46 @@ static void EUClock_Simulate(E5150::Intel8088* cpu)
 	}
 }
 
+static void BIUState_ApplyNext(E5150::Intel8088* cpu)
+{
+	cpu->biuCurrentFetchType = cpu->biuNextFetchType;
+	cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
+
+	if (cpu->instructionStreamQueueIndex == E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH)
+	{
+		cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_ROOM_IN_QUEUE;
+	}
+
+	if (cpu->instructionIsControlTransfer)
+	{
+		cpu->biuMode = E5150::Intel8088::EBIURunningMode::WAIT_CONTROL_TRANSFER_ENDING;
+	}
+}
+
+static void BIUState_Update(E5150::Intel8088* cpu)
+{
+	if ((cpu->biuClockCountDown == 0) && (cpu->biuMode == E5150::Intel8088::EBIURunningMode::FETCH_MEMORY))
+	{
+		switch (cpu->biuCurrentFetchType)
+		{
+		case E5150::Intel8088::EBIUFetchType::FETCH_INSTRUCTION:
+			BIUState_ApplyNext(cpu);
+			break;
+		
+		case E5150::Intel8088::EBIUFetchType::FETCH_DATA:
+		{
+			if (cpu->biuByteRequest == 0)
+			{
+				BIUState_ApplyNext(cpu);
+			}
+		} break;
+		
+		default:
+			assert(false);
+		}
+	}
+}
+
 static void CPUClock_Operational(E5150::Intel8088* cpu)
 {
 	//TODO: Maybe this step should be separated in twi substeps :
@@ -1040,6 +1067,7 @@ static void CPUClock_Operational(E5150::Intel8088* cpu)
 	//	- 2 : update the status
 	BIUClock_Simulate(cpu);
 	EUClock_Simulate(cpu);
+	BIUState_Update(cpu);
 }
 
 void E5150::Intel8088::Clock()
