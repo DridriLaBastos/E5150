@@ -963,6 +963,12 @@ static void BIU_PopBytes(E5150::Intel8088* cpu, const unsigned int byteCount)
 	cpu->instructionStreamQueueIndex -= byteCount;
 }
 
+static void BIUData_RequestBytes(E5150::Intel8088* cpu, const unsigned int byteCount)
+{
+	cpu->biuByteRequest = byteCount;
+	cpu->biuNextFetchType = E5150::Intel8088::EBIUFetchType::FETCH_DATA;
+}
+
 static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 {
 	xed_decoded_inst_zero_keep_mode(&cpu->decodedInst);
@@ -974,15 +980,19 @@ static void EUClock_WaitInstruction(E5150::Intel8088* cpu)
 		const size_t decodedInstructionLength = xed_decoded_inst_get_length(&cpu->decodedInst);
 		//At the end of the opcode of the instructions that access memory, there is the w bit = 0 for byte operand and 1 one for word operands.
 		//If this bit = 0 there is 1 memory access and if it = 1, 2 memory accesses
-		//const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
-		//const unsigned int operandSizeWord = cpu->instructionStreamQueue[nPrefix] & 0b1;
-		const unsigned int memoryByteRequest = 0;// xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (operandSizeWord + 1);
+		const unsigned int nPrefix = xed_decoded_inst_get_nprefixes(&cpu->decodedInst);
+		const unsigned int operandSizeWord = cpu->instructionStreamQueue[nPrefix] & 0b1;
+		const unsigned int memoryByteRequest = xed_decoded_inst_number_of_memory_operands(&cpu->decodedInst) * (operandSizeWord + 1);
 		BIU_PopBytes(cpu,decodedInstructionLength);
 		cpu->euClockCountDown = PrepareInstructionExecution(cpu);
 		cpu->events |= (int)E5150::Intel8088::EEventFlags::INSTRUCTION_DECODED;
 		cpu->euMode = E5150::Intel8088::EEURunningMode::EXECUTE_INSTRUCTION;
-		cpu->biuByteRequest = 0;//memoryByteRequest;
 		cpu->regs.ip += decodedInstructionLength;
+
+		if (memoryByteRequest != 0)
+		{
+			BIUData_RequestBytes(cpu, memoryByteRequest);
+		}
 	}
 }
 
@@ -1023,7 +1033,6 @@ static void EUClock_Simulate(E5150::Intel8088* cpu)
 static void BIUState_ApplyNext(E5150::Intel8088* cpu)
 {
 	cpu->biuCurrentFetchType = cpu->biuNextFetchType;
-	cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
 
 	if (cpu->instructionStreamQueueIndex == E5150::Intel8088::INSTRUCTION_STREAM_QUEUE_LENGTH)
 	{
@@ -1040,6 +1049,7 @@ static void BIUState_Update(E5150::Intel8088* cpu)
 {
 	if ((cpu->biuClockCountDown == 0) && (cpu->biuMode == E5150::Intel8088::EBIURunningMode::FETCH_MEMORY))
 	{
+		cpu->biuClockCountDown = E5150::Intel8088::MEMORY_FETCH_CLOCK_COUNT;
 		switch (cpu->biuCurrentFetchType)
 		{
 		case E5150::Intel8088::EBIUFetchType::FETCH_INSTRUCTION:

@@ -309,7 +309,11 @@ static void DrawCpuBIUState(const E5150::Intel8088& cpu)
 			break;
 	}
 
-	ImGui::Text("%s (%d)",stateStr,clockCount);
+	ImGui::Text("%s (%d)",stateStr,clockCount); ImGui::SameLine();
+	if (cpu.biuCurrentFetchType == E5150::Intel8088::EBIUFetchType::FETCH_DATA)
+	{
+		ImGui::Text("byte request : %d",cpu.biuByteRequest);
+	}
 
 	ImGui::TextUnformatted("Instruction stream");
 	ImGui::Spacing(); ImGui::SameLine();
@@ -545,9 +549,6 @@ static void DrawCpuInternalState(const E5150::Intel8088& cpu)
 
 static void DrawDebuggerCPUStatus(const EmulationGuiState& emulationGuiState)
 {
-#if 0
-	DrawCurrentInstruction(debuggerGuiState);
-#endif
 	DrawCpuInternalState(*emulationGuiState.debuggerGuiState.cpu);
 }
 
