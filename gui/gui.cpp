@@ -139,15 +139,12 @@ void E5150::GUI::init()
 
 	//Loading IBM BIOS
 	E5150::Arch::ram.LoadFromFile(IBM_BIOS_PATH, 0xFE000);
-#if 0
 #if 1
-#else
 	//Loading custom test code
-		ram.load("test/interrupts.bin",0);
-		ram.load("test/jmp.bin", 0xFFFF0);
+		E5150::Arch::ram.LoadFromFile("test/interrupts.bin",0);
+		E5150::Arch::ram.LoadFromFile("/Users/adrien/Documents/Informatique/C++/E5150/cmake-build-Debug/test/jmp0.bin", 0xFFFF0);
 		//ram.load("/Users/adrien/Documents/Informatique/OS/Beetle16/init/init.bin",0x500);
-		ram.load("test/bios.bin",0x500);
-#endif
+		E5150::Arch::ram.LoadFromFile("test/bios.bin",0x500);
 #endif
 	//TODO: launching the thread arch shouldn't be done inside the gui init function
 	t = std::thread(&E5150::Arch::SimulationLoop, &arch);
