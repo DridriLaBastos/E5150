@@ -1,5 +1,7 @@
 #include "core/instructions.hpp"
 
+#include "arch.hpp"
+
 void MOV(E5150::Intel8088* cpu)
 {
 	const xed_inst_t* inst = xed_decoded_inst_inst(&cpu->decodedInst);
@@ -11,11 +13,11 @@ void MOV(E5150::Intel8088* cpu)
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			move_v = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name));
+			move_v = cpu->ReadRegister(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name));
 			break;
 
 		case XED_OPERAND_REG1:
-			move_v = cpu.readReg(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name));
+			move_v = cpu->ReadRegister(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name));
 			break;
 		
 		case XED_OPERAND_IMM0:
@@ -23,8 +25,14 @@ void MOV(E5150::Intel8088* cpu)
 			break;
 
 		case XED_OPERAND_MEM0:
-			move_v = cpu.biu.readWord(cpu.eu.EAddress);
+			// When reading here we don't care for the length of the data. We can read a whole word at once
+			// and then writing only a byte or a word depending on the instruction. This made the economy of
+			// one if statement
+			move_v = E5150::Arch::ram.ReadWord(cpu->GenerateEffectiveAddress());
 			break;
+		
+		default:
+			assert(false);
 	}
 
 	op_name = xed_operand_name(xed_inst_operand(inst, 0));
@@ -32,23 +40,25 @@ void MOV(E5150::Intel8088* cpu)
 	switch (op_name)
 	{
 		case XED_OPERAND_REG0:
-			cpu.write_reg(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name), move_v);
+			cpu->WriteRegister(xed_decoded_inst_get_reg(&cpu->decodedInst, op_name), move_v);
 			break;
 		
 		case XED_OPERAND_MEM0:
 		{
-			const unsigned int write_addr = cpu.eu.EAddress;
+			const unsigned int write_addr = cpu->GenerateEffectiveAddress();
 
 			if (xed_decoded_inst_get_memory_operand_length(&cpu->decodedInst, 0) == 1)
-				cpu.biu.writeByte(write_addr, (uint8_t)move_v);
+				E5150::Arch::ram.WriteByte(write_addr,(uint8_t)move_v);
 			else
-				cpu.biu.writeWord(write_addr, move_v);
-			
-			break;
-		}
+			E5150::Arch::ram.WriteWord(write_addr, move_v);
+		} break;
+
+		default:
+			assert(false);
 	}
 }
 
+#if 0
 void PUSH ()
 {
 	const xed_operand_enum_t op_name = xed_operand_name(xed_inst_operand(xed_decoded_inst_inst(&cpu->decodedInst), 0));
@@ -209,3 +219,4 @@ void PUSHF ()
 
 void POPF ()
 { cpu.regs.flags = cpu.pop(); }
+#endif

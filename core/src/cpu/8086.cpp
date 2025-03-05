@@ -553,6 +553,7 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 	switch (decodedInstGetIclass)
 	{
 		case XED_ICLASS_MOV:
+			InstructionExecFunction = MOV;
 			return getMOVCycles();
 
 		case XED_ICLASS_PUSH:
@@ -1198,3 +1199,90 @@ uint16_t E5150::Intel8088::ReadRegister(const xed_reg_enum_t reg) const
 	return 0;
 }
 
+#define LSB(v) ((uint8_t)((v) & 0xFF))
+
+void E5150::Intel8088::WriteRegister(xed_reg_enum_t reg, const uint16_t data)
+{
+	switch (reg)
+	{
+	case XED_REG_AX:
+		regs.ax = data;
+		break;
+
+	case XED_REG_BX:
+		regs.bx = data;
+		break;
+
+	case XED_REG_CX:
+		regs.cx = data;
+		break;
+
+	case XED_REG_DX:
+		regs.dx = data;
+		break;
+
+	case XED_REG_AH:
+		regs.ah = LSB(data);
+		break;
+
+	case XED_REG_BH:
+		regs.bh = LSB(data);
+		break;
+
+	case XED_REG_CH:
+		regs.ch = LSB(data);
+		break;
+
+	case XED_REG_DH:
+		regs.dh = LSB(data);
+		break;
+
+	case XED_REG_AL:
+		regs.al = LSB(data);
+		break;
+
+	case XED_REG_BL:
+		regs.bl = LSB(data);
+		break;
+
+	case XED_REG_CL:
+		regs.cl = LSB(data);
+		break;
+
+	case XED_REG_DL:
+		regs.dl = LSB(data);
+		break;
+
+	case XED_REG_SI:
+		regs.si = data;
+		break;
+
+	case XED_REG_DI:
+		regs.di = data;
+		break;
+
+	case XED_REG_BP:
+		regs.bp = data;
+		break;
+
+	case XED_REG_SP:
+		regs.sp = data;
+		break;
+
+	case XED_REG_CS:
+		regs.cs = data;
+		break;
+
+	case XED_REG_DS:
+		regs.ds = data;
+		break;
+
+	case XED_REG_ES:
+		regs.es = data;
+		break;
+
+	case XED_REG_SS:
+		regs.es = data;
+		break;
+	}
+}

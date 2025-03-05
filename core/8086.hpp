@@ -215,7 +215,9 @@ namespace E5150
 		unsigned int GenerateAddress (xed_reg_enum_t segment, uint16_t offset) const;
 		unsigned int GenerateAddress (xed_reg_enum_t segment, xed_reg_enum_t offset) const;
 		unsigned int GenerateEffectiveAddress() const;
+
 		uint16_t ReadRegister(xed_reg_enum_t reg) const;
+		void WriteRegister (xed_reg_enum_t reg, const uint16_t data);
 
 		template <typename... Flags>
 		void ClearFlags(const Flags& ...flags)
