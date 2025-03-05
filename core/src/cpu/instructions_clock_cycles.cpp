@@ -11,7 +11,7 @@
 #define CLOCK_CYCLES(...) static const uint8_t CLOCK_CYCLES [] = { __VA_ARGS__ }
 #define GET_RAW_CLOCK_COUNT() unsigned int clockCount = CLOCK_CYCLES[xed_decoded_inst_get_iform_enum_dispatch(&E5150::Arch::cpu.decodedInst)];
 //TODO: Implement the commented code
-#define ADD_EA_ON_CONDITION(COND) if (COND) { clockCount += 0; /*ComputeEAComputationClockCount();*/ }
+#define ADD_EA_ON_CONDITION(COND) if (COND) { clockCount += ComputeEAComputationClockCount(); }
 
 #define GET_IFORM() const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&E5150::Arch::cpu.decodedInst)
 #define ADD_EA_ON_IFORM_CONDITION(COND) GET_RAW_CLOCK_COUNT();\
