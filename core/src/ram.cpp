@@ -38,7 +38,7 @@ void E5150::RAM::WriteWord(const unsigned int address, const uint16_t data)
 
 void E5150::RAM::LoadFromFile(const std::filesystem::path path, size_t startPos)
 {
-	std::ifstream stream(path);
+	std::ifstream stream(path,std::ios_base::binary);
 
 	if (!stream.is_open())
 	{
