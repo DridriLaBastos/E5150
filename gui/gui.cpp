@@ -137,9 +137,10 @@ void E5150::GUI::init()
 	signal(SIGINT, stop);
 	signal(SIGTERM, stop);
 
+#if 1
 	//Loading IBM BIOS
 	E5150::Arch::ram.LoadFromFile(IBM_BIOS_PATH, 0xFE000);
-#if 1
+#else
 	//Loading custom test code
 		E5150::Arch::ram.LoadFromFile("test/interrupts.bin",0);
 		E5150::Arch::ram.LoadFromFile("/Users/adrien/Documents/Informatique/C++/E5150/cmake-build-Debug/test/jmp0.bin", 0xFFFF0);
