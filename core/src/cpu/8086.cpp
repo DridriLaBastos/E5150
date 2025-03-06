@@ -584,9 +584,11 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 			return getLESCycles();
 
 		case XED_ICLASS_LAHF:
+			InstructionExecFunction = LAHF;
 			return getLAHFCycles();
 
 		case XED_ICLASS_SAHF:
+			InstructionExecFunction = SAHF;
 			return getSAHFCycles();
 
 		case XED_ICLASS_PUSHF:

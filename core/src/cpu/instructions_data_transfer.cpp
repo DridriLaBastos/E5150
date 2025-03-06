@@ -205,15 +205,25 @@ void LES()
 	cpu.regs.es = cpu.biu.readWord(addr);
 	cpu.write_reg(xed_decoded_inst_get_reg(&cpu->decodedInst,op_name),cpu.biu.readWord(addr+2));
 }
+#endif
+static constexpr unsigned int xAHF_INSTRUCTION_FLAG_MASK = 
+	static_cast<unsigned int>(E5150::Intel8088::ECpuFlags::SIGN) |
+	static_cast<unsigned int>(E5150::Intel8088::ECpuFlags::ZERO) |
+	static_cast<unsigned int>(E5150::Intel8088::ECpuFlags::A_CARRY) |
+	static_cast<unsigned int>(E5150::Intel8088::ECpuFlags::PARITY) |
+	static_cast<unsigned int>(E5150::Intel8088::ECpuFlags::CARRY);
 
-static const unsigned int statusFlagsMask = CPU::SIGN | CPU::ZERRO | CPU::A_CARRY | CPU::PARRITY | CPU::CARRY;
+void LAHF (E5150::Intel8088* cpu)
+{
+	cpu->regs.ah = (cpu->regs.flags & xAHF_INSTRUCTION_FLAG_MASK);
+}
 
-void LAHF ()
-{ cpu.regs.ah = (cpu.regs.flags & statusFlagsMask) | 0b10; }
+void SAHF (E5150::Intel8088* cpu)
+{
+	cpu->regs.flags = (cpu->regs.ah & xAHF_INSTRUCTION_FLAG_MASK);
+}
 
-void SAHF ()
-{ cpu.regs.flags = (cpu.regs.ah & statusFlagsMask) | 0b10; }
-
+#if 0
 void PUSHF ()
 { cpu.push(cpu.regs.flags); }
 
