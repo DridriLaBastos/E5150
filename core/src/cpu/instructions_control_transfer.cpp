@@ -1,5 +1,7 @@
+#include "util.hpp"
 #include "core/arch.hpp"
 #include "core/instructions.hpp"
+
 #if 0
 void CALL_NEAR()
 {
@@ -113,33 +115,39 @@ void RET_FAR()
 	cpu.biu.endControlTransferInstruction();
 }
 
-static FORCE_INLINE void JMP_NEAR_ON_CONDITION(const bool condition)
+#endif
+
+static FORCE_INLINE void JMP_NEAR_ON_CONDITION(const bool condition, E5150::Intel8088* cpu)
 {
 	if(condition)
-	{ cpu.regs.ip += xed_decoded_inst_get_branch_displacement(&cpu->decodedInst); }
-	cpu.biu.endControlTransferInstruction(condition);
+	{
+		cpu->regs.ip += xed_decoded_inst_get_branch_displacement(&cpu->decodedInst);
+	}
+
+	cpu->EndControlTransferInstruction(condition);
 }
 
 //TODO: Wrong clock cycles for JO (at least)
-void JZ()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO)); }
-void JL()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)); }
-void JLE() { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER))); }
-void JB()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY)); }
-void JBE() { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO)); }
-void JP()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::PARRITY)); }
-void JO()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::OVER)); }
-void JS()  { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN)); }
-void JNZ() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO)); }
-void JNL() { JMP_NEAR_ON_CONDITION(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)); }
-void JNLE() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER))); }
-void JNB() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::CARRY)); }
-void JNBE() { JMP_NEAR_ON_CONDITION(!(cpu.getFlagStatus(CPU::CARRY) || cpu.getFlagStatus(CPU::ZERRO))); }
-void JNP() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::PARRITY)); }
-void JNS() { JMP_NEAR_ON_CONDITION(!cpu.getFlagStatus(CPU::SIGN)); }
+void JZ   (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN),cpu); }
+void JL   (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO) != cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER),cpu); }
+void JLE  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) || (cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) != cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER)),cpu); }
+void JB   (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY),cpu); }
+void JBE  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY) || cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN),cpu); }
+void JP   (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::PARITY),cpu); }
+void JO   (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER),cpu); }
+void JS   (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN),cpu); }
+void JNZ  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN),cpu); }
+void JNL  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) == cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER),cpu); }
+void JNLE (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) && (cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) == cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER)),cpu); }
+void JNB  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY),cpu); }
+void JNBE (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(!(cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY) || cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN)),cpu); }
+void JNP  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::PARITY),cpu); }
+void JNS  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN),cpu); }
 
+#if 0
 void LOOP()   { cpu.regs.cx -= 1; JMP_NEAR_ON_CONDITION(cpu.regs.cx != 0); }
-void LOOPZ()  { cpu.regs.cx -= 1; JMP_NEAR_ON_CONDITION((cpu.regs.cx != 0) && cpu.getFlagStatus(CPU::ZERRO)); }
-void LOOPNZ() { cpu.regs.cx -= 1; JMP_NEAR_ON_CONDITION((cpu.regs.cx != 0) && !cpu.getFlagStatus(CPU::ZERRO)); }
+void LOOPZ()  { cpu.regs.cx -= 1; JMP_NEAR_ON_CONDITION((cpu.regs.cx != 0) && cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN)); }
+void LOOPNZ() { cpu.regs.cx -= 1; JMP_NEAR_ON_CONDITION((cpu.regs.cx != 0) && !cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN)); }
 
 void JCXZ() { JMP_NEAR_ON_CONDITION(cpu.regs.cx == 0); }
 

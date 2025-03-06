@@ -81,23 +81,23 @@ void JMP_NEAR	(E5150::Intel8088* cpu); unsigned int getJMPCycles		(void);
 void JMP_FAR	(E5150::Intel8088* cpu); unsigned int getJMP_FARCycles	(void);
 void RET_NEAR	(E5150::Intel8088* cpu); unsigned int getRETCycles	(void);
 void RET_FAR	(E5150::Intel8088* cpu); unsigned int getRET_FARCycles	(void);
-/* JE/JZ   */void JZ			(E5150::Intel8088* cpu); unsigned int getJXXCycles		(const bool conditionValue);
-/* JL/JNGE */void JL			(E5150::Intel8088* cpu); unsigned int getJLCycles		(void);
-/* JLE/JNG  */void JLE		(E5150::Intel8088* cpu); // unsigned int getJLECycles		(void);
-/* JB/JNAE */void JB			(E5150::Intel8088* cpu); // unsigned int getJBCycles		(void);
-/* JBE/JNA  */void JBE		(E5150::Intel8088* cpu); // unsigned int getJBECycles		(void);
-/* JLE/JNG  */void JP			(E5150::Intel8088* cpu); // unsigned int getJPCycles		(void);
-/* JP/JPE  */void JO			(E5150::Intel8088* cpu); // unsigned int getJOCycles		(void);
-void JS			(E5150::Intel8088* cpu); // unsigned int getJSCycles		(void);
-void JNZ		(E5150::Intel8088* cpu); // unsigned int getJNZCycles		(void);
-void JNL		(E5150::Intel8088* cpu); // unsigned int getJNLCycles		(void);
-void JNLE		(E5150::Intel8088* cpu); // unsigned int getJNLECycles		(void);
-void JNB		(E5150::Intel8088* cpu); // unsigned int getJNBCycles		(void);
-void JNBE		(E5150::Intel8088* cpu); // unsigned int getJNBECycles		(void);
-void JNP		(E5150::Intel8088* cpu); // unsigned int getJNPCycles		(void);
-void JNS		(E5150::Intel8088* cpu); // unsigned int getJNSCycles		(void);
+void JZ			(E5150::Intel8088* cpu); unsigned int getJXXCycles		(const bool conditionValue);/* JE/JZ   */
+void JL			(E5150::Intel8088* cpu); unsigned int getJLCycles		(void);/* JL/JNGE */
+void JLE		(E5150::Intel8088* cpu); unsigned int getJLECycles		(void);/* JLE/JNG  */
+void JB			(E5150::Intel8088* cpu); unsigned int getJBCycles		(void);/* JB/JNAE */
+void JBE		(E5150::Intel8088* cpu); unsigned int getJBECycles		(void);/* JBE/JNA  */
+void JP			(E5150::Intel8088* cpu); unsigned int getJPCycles		(void);/* JLE/JNG  */
+void JO			(E5150::Intel8088* cpu); unsigned int getJOCycles		(void);/* JP/JPE  */
+void JS			(E5150::Intel8088* cpu); unsigned int getJSCycles		(void);
+void JNZ		(E5150::Intel8088* cpu); unsigned int getJNZCycles		(void);
+void JNL		(E5150::Intel8088* cpu); unsigned int getJNLCycles		(void);
+void JNLE		(E5150::Intel8088* cpu); unsigned int getJNLECycles		(void);
+void JNB		(E5150::Intel8088* cpu); unsigned int getJNBCycles		(void);
+void JNBE		(E5150::Intel8088* cpu); unsigned int getJNBECycles		(void);
+void JNP		(E5150::Intel8088* cpu); unsigned int getJNPCycles		(void);
+void JNS		(E5150::Intel8088* cpu); unsigned int getJNSCycles		(void);
 void LOOP		(E5150::Intel8088* cpu); unsigned int getLOOPCycles		(void);
-void LOOPZ		(E5150::Intel8088* cpu); unsigned int getLOOPZCycles		(void);
+void LOOPZ		(E5150::Intel8088* cpu); unsigned int getLOOPZCycles	(void);
 void LOOPNZ		(E5150::Intel8088* cpu); unsigned int getLOOPNZCycles	(void);
 void JCXZ		(E5150::Intel8088* cpu); unsigned int getJCXZCycles		(void);
 void IRET		(E5150::Intel8088* cpu); unsigned int getIRETCycles		(void);

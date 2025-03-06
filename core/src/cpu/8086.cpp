@@ -15,7 +15,7 @@ static uint8_t INTERRUPT_VECTOR	= 0;
 
 //TODO: 23/12/2023: Still not sure about the architecture. If I really want to separate the different components of the CPU in different class, then the EU should
 // also do the initialization of the registers
-CPU::CPU() : regs(), biu(), eu(), instructionExecutedCount(0)
+E5150::Intel8088::ECpuFlags::CPU() : regs(), biu(), eu(), instructionExecutedCount(0)
 {
 	std::cout << xed_get_copyright() << std::endl;
 
@@ -33,31 +33,31 @@ CPU::CPU() : regs(), biu(), eu(), instructionExecutedCount(0)
 }
 
 //Clear the values of the flag, then update the values accorregs.ding to the bool status (false = 0, true = 1) using only bitwise operators to regs.speedup the operation
-void CPU::updateFlag(const CPU::FLAGS_T& flag, const bool values)
+void E5150::Intel8088::ECpuFlags::updateFlag(const E5150::Intel8088::ECpuFlags::FLAGS_T& flag, const bool values)
 {
 	const unsigned int mask = (~0) * values;
 	regs.flags = (regs.flags & ~flag) | (flag & mask);
 }
 
-void CPU::setFlags (const unsigned int requestedFlags)
+void E5150::Intel8088::ECpuFlags::setFlags (const unsigned int requestedFlags)
 { regs.flags |= requestedFlags; }
 
-void CPU::toggleFlags (const unsigned int requestedFlags)
+void E5150::Intel8088::ECpuFlags::toggleFlags (const unsigned int requestedFlags)
 { regs.flags ^= requestedFlags; }
 
-void CPU::clearFlags (const unsigned int requestedFlags)
+void E5150::Intel8088::ECpuFlags::clearFlags (const unsigned int requestedFlags)
 { regs.flags &= (~requestedFlags); }
 
-bool CPU::getFlagStatus (const CPU::FLAGS_T flag) const
+bool E5150::Intel8088::ECpuFlags::getFlagStatus (const E5150::Intel8088::ECpuFlags::FLAGS_T flag) const
 { return regs.flags & (unsigned int) flag; }
 
-void CPU::testCF (const unsigned int values, const bool wordSize)
+void E5150::Intel8088::ECpuFlags::testCF (const unsigned int values, const bool wordSize)
 {
 	const unsigned int carryMask = ~(wordSize ? 0xFFFF : 0xFF);
 	updateFlag(CARRY,values & carryMask);
 }
 
-void CPU::testPF (unsigned int values)
+void E5150::Intel8088::ECpuFlags::testPF (unsigned int values)
 {
 	unsigned int count = 1;
 
@@ -70,22 +70,22 @@ void CPU::testPF (unsigned int values)
 }
 
 //TODO: need to be tested
-void CPU::testAF (const unsigned int values)
+void E5150::Intel8088::ECpuFlags::testAF (const unsigned int values)
 { updateFlag(A_CARRY, values > (~0b111)); }
 
-void CPU::testZF (const unsigned int values)
+void E5150::Intel8088::ECpuFlags::testZF (const unsigned int values)
 { updateFlag(ZERRO,values == 0); }
 
-void CPU::testSF (const unsigned int values)
+void E5150::Intel8088::ECpuFlags::testSF (const unsigned int values)
 { updateFlag(SIGN, values & (1 << (sizeof(unsigned int) - 1))); }
 
-void CPU::testOF (const unsigned int values, const bool wordSize)
+void E5150::Intel8088::ECpuFlags::testOF (const unsigned int values, const bool wordSize)
 {
 	const bool newFlagValues = wordSize ? (values & (~0xFFFF)) : (values & (~0xFF));
 	updateFlag(OVER,newFlagValues);
 }
 
-void CPU::updateStatusFlags (const unsigned int values, const bool wordSize)
+void E5150::Intel8088::ECpuFlags::updateStatusFlags (const unsigned int values, const bool wordSize)
 {
 	testCF(values, wordSize);
 	testPF(values);
@@ -95,16 +95,16 @@ void CPU::updateStatusFlags (const unsigned int values, const bool wordSize)
 	testOF(values, wordSize);
 }
 
-unsigned int CPU::genAddress (const uint16_t base, const xed_reg_enum_t offset) const
+unsigned int E5150::Intel8088::ECpuFlags::genAddress (const uint16_t base, const xed_reg_enum_t offset) const
 { return genAddress(base, readReg(offset)); }
 
-unsigned int CPU::genAddress (const xed_reg_enum_t segment, const uint16_t offset) const
+unsigned int E5150::Intel8088::ECpuFlags::genAddress (const xed_reg_enum_t segment, const uint16_t offset) const
 { return genAddress(readReg(segment), offset); }
 
-unsigned int CPU::genAddress (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const
+unsigned int E5150::Intel8088::ECpuFlags::genAddress (const xed_reg_enum_t segment, const xed_reg_enum_t offset) const
 {return genAddress(readReg(segment), readReg(offset));}
 
-uint16_t CPU::readReg(const xed_reg_enum_t reg) const
+uint16_t E5150::Intel8088::ECpuFlags::readReg(const xed_reg_enum_t reg) const
 {
 	switch (reg)
 	{
@@ -174,33 +174,33 @@ uint16_t CPU::readReg(const xed_reg_enum_t reg) const
 	return 0;
 }
 
-void CPU::interrupt(const CPU::INTERRUPT_TYPE type, const uint8_t interruptVector)
+void E5150::Intel8088::ECpuFlags::interrupt(const E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE type, const uint8_t interruptVector)
 {
 	INTERRUPT_VECTOR = interruptVector;
 
 	switch (type)
 	{
-		case CPU::INTERRUPT_TYPE::EXTERNAL:
+		case E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::EXTERNAL:
 			INTR = true;
 			return;
 		
-		case CPU::INTERRUPT_TYPE::INTERNAL:
+		case E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::INTERNAL:
 			INTN = true;
 			return;
 		
-		case CPU::INTERRUPT_TYPE::NMI:
+		case E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::NMI:
 			NMI = true;
 			return;
 		
-		case CPU::INTERRUPT_TYPE::INTO:
+		case E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::INTO:
 			INTO = true;
 			return;
 		
-		case CPU::INTERRUPT_TYPE::INT3:
+		case E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::INT3:
 			INT3 = true;
 			return;
 		
-		case CPU::INTERRUPT_TYPE::DIVIDE:
+		case E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::DIVIDE:
 			DIVIDE = true;
 			return;
 
@@ -212,7 +212,7 @@ void CPU::interrupt(const CPU::INTERRUPT_TYPE type, const uint8_t interruptVecto
 	}
 }
 
-void CPU::handleInterrupts(void)
+void E5150::Intel8088::ECpuFlags::handleInterrupts(void)
 {
 	static unsigned int INTERRUPT_SEQUENCE_CLOCK_COUNT = 0;
 	CPU_HLT = false;
@@ -247,7 +247,7 @@ void CPU::handleInterrupts(void)
 	else if (INTR)// intr line aregs.eserted
 	{
 		INTR = false;
-		if (!cpu.getFlagStatus(CPU::FLAGS_T::INTF))
+		if (!cpu->GetFlags(E5150::Intel8088::ECpuFlags::FLAGS_T::INTF))
 		{
 			EMULATION_INFO_LOG<EMULATION_MAX_LOG_LEVEL>("INTEL 8088: INTERRUPT: interrupt requregs.est while IF is regs.disaregs.bled");
 			return;
@@ -264,19 +264,19 @@ void CPU::handleInterrupts(void)
 	cpu.eu.enterInterruptServiceProcedure(INTERRUPT_SEQUENCE_CLOCK_COUNT);
 }
 
-bool CPU::interruptSequence()
+bool E5150::Intel8088::ECpuFlags::interruptSequence()
 {
 	push(regs.flags);
 	cpu.eu.farCall(biu.readWord(INTERRUPT_VECTOR*4 + 2), biu.readWord(INTERRUPT_VECTOR*4));
-	TEMP_TF = getFlagStatus(CPU::FLAGS_T::TRAP);
-	clearFlags(CPU::FLAGS_T::INTF | CPU::FLAGS_T::TRAP);
+	TEMP_TF = getFlagStatus(E5150::Intel8088::ECpuFlags::FLAGS_T::TRAP);
+	clearFlags(E5150::Intel8088::ECpuFlags::FLAGS_T::INTF | E5150::Intel8088::ECpuFlags::FLAGS_T::TRAP);
 
 	return NMI || TEMP_TF;
 }
 
-void CPU::iretDelay(void) { IRET_DELAY = true; }
+void E5150::Intel8088::ECpuFlags::iretDelay(void) { IRET_DELAY = true; }
 
-unsigned int CPU::clock()
+unsigned int E5150::Intel8088::ECpuFlags::clock()
 {
 	if (!CPU_HLT)
 		cpu.biu.clock();
@@ -287,7 +287,7 @@ unsigned int CPU::clock()
 		instructionExecutedCount += 1;
 
 		//TODO: This might be optimized by using bit mask to tell which interrupt is triggered
-		const bool shouldInterrupt = (!IRET_DELAY) && (INTR || INTN || INTO || INT3 || DIVIDE || NMI || cpu.getFlagStatus(CPU::FLAGS_T::TRAP));
+		const bool shouldInterrupt = (!IRET_DELAY) && (INTR || INTN || INTO || INT3 || DIVIDE || NMI || cpu->GetFlags(E5150::Intel8088::ECpuFlags::FLAGS_T::TRAP));
 		if (shouldInterrupt)
 			handleInterrupts();
 		IRET_DELAY = false;
@@ -297,22 +297,22 @@ unsigned int CPU::clock()
 	return EUStatus;
 }
 
-void CPU::hlt(void) { CPU_HLT = true; }
+void E5150::Intel8088::ECpuFlags::hlt(void) { CPU_HLT = true; }
 
-void CPU::push (const uint16_t data)
+void E5150::Intel8088::ECpuFlags::push (const uint16_t data)
 {
 	regs.sp -= 2;
 	cpu.biu.writeWord(cpu.genAddress(cpu.regs.es,regs.sp), data);
 }
 
-uint16_t CPU::pop (void)
+uint16_t E5150::Intel8088::ECpuFlags::pop (void)
 {
 	const uint16_t ret = cpu.biu.readWord(cpu.genAddress(cpu.regs.es,regs.sp));
 	regs.sp += 2;
 	return ret;
 }
 
-void CPU::write_reg(const xed_reg_enum_t reg, const unsigned int data)
+void E5150::Intel8088::ECpuFlags::write_reg(const xed_reg_enum_t reg, const unsigned int data)
 {
 	switch (reg)
 	{
@@ -788,95 +788,79 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 			return getRET_FARCycles();
 
 		case XED_ICLASS_JZ:
-#if 0
-			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JZ;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+
 		case XED_ICLASS_JL:
-#if 0
-			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JL;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) != cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER));
+		
 		case XED_ICLASS_JLE:
-#if 0
-			return getJXXCycles(cpu.getFlagStatus(CPU::ZERRO) || (cpu.getFlagStatus(CPU::SIGN) != cpu.getFlagStatus(CPU::OVER)));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JLE;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO) || (cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) != cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER)));
+		
 		case XED_ICLASS_JB:
-#if 0
-			return getJXXCycles(CPU::CARRY);
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JB;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY));
+		
 		case XED_ICLASS_JBE:
-#if 0
-			return getJXXCycles(CPU::CARRY || CPU::ZERRO);
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JBE;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY) || cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+		
 		case XED_ICLASS_JP:
-#if 0
-			return getJXXCycles(CPU::PARRITY);
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JP;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::PARITY));
+		
 		case XED_ICLASS_JO:
-#if 0
-			return getJXXCycles(cpu.getFlagStatus(CPU::OVER));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JO;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER));
+		
 		case XED_ICLASS_JS:
-#if 0
-			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JS;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN));
+		
 		case XED_ICLASS_JNZ:
-#if 0
-			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JNZ;
+			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+		
 		case XED_ICLASS_JNL:
-#if 0
-			return getJXXCycles(cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JNL;
+			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) == cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER));
+		
 		case XED_ICLASS_JNLE:
-#if 0
-			return getJXXCycles(!cpu.getFlagStatus(CPU::ZERRO) && (cpu.getFlagStatus(CPU::SIGN) == cpu.getFlagStatus(CPU::OVER)));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JNLE;
+			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO) && (cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) == cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER)));
+		
 		case XED_ICLASS_JNB:
-#if 0
-			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JNB;
+			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY));
+		
 		case XED_ICLASS_JNBE:
-#if 0
-			return getJXXCycles(!cpu.getFlagStatus(CPU::CARRY) && !cpu.getFlagStatus(CPU::ZERRO));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JNBE;
+			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY) && !cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+		
 		case XED_ICLASS_JNP:
-#if 0
-			return getJXXCycles(!cpu.getFlagStatus(CPU::PARRITY));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JNP;
+			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::PARITY));
+		
 		case XED_ICLASS_JNS:
-#if 0
-			return getJXXCycles(!cpu.getFlagStatus(CPU::SIGN));
-#else
-			return 10;
-#endif
+			BeginControlTransferInstruction(cpu);
+			InstructionExecFunction = JNS;
+			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN));
 		case XED_ICLASS_LOOP:
 			return getLOOPCycles();
 
@@ -892,23 +876,23 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 			/* Servicing interrupts vary a bit than executing normal instruction */
 		case XED_ICLASS_INT:
 #if 0
-			cpu.interrupt(CPU::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
+			cpu.interrupt(E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::INTERNAL, cpu.biu.instructionBufferQueue[1]);
 #endif
 			return 0;
 
 		case XED_ICLASS_INT3:
 #if 0
-			cpu.interrupt(CPU::INTERRUPT_TYPE::INT3);
+			cpu.interrupt(E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::INT3);
 #endif
 			return 0;
 
 		case XED_ICLASS_INTO:
 #if 0
-			if (!cpu.getFlagStatus(CPU::OVER))
+			if (!cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER))
 			{
 				return 4;
 			}
-			cpu.interrupt(CPU::INTERRUPT_TYPE::INTO);
+			cpu.interrupt(E5150::Intel8088::ECpuFlags::INTERRUPT_TYPE::INTO);
 #endif
 			return 0;
 
@@ -1107,8 +1091,9 @@ void E5150::Intel8088::EndControlTransferInstruction(const bool didTransfer)
 	{
 		BIUModeFetchInstruction(this);
 		instructionStreamQueueIndex = 0;
-		instructionIsControlTransfer = false;
 	}
+
+	instructionIsControlTransfer = false;
 }
 
 unsigned int E5150::Intel8088::GenerateEffectiveAddress() const

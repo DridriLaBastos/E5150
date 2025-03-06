@@ -716,22 +716,22 @@ unsigned int getRET_FARCycles	()
 	return clockCount;
 }
 
-unsigned int getJXXCycles		(const bool conditionValue) { return conditionValue ? 16 : 4; }
-// unsigned int getJZCycles		() { return 7 + 0; }/* JE /JZ   */
-// unsigned int getJLCycles		() { return 7 + 0; }/* JL /JNGE */
-// unsigned int getJLECycles		() { return 7 + 0; }/* JLE/JNG  */
-// unsigned int getJBCycles		() { return 7 + 0; }/* JB /JNAE */
-// unsigned int getJBECycles		() { return 7 + 0; }/* JBE/JNA  */
-// unsigned int getJPCycles		() { return 7 + 0; }/* JLE/JNG  */
-// unsigned int getJOCycles		() { return 7 + 0; }/* JP /JPE  */
-// unsigned int getJSCycles		() { return 7 + 0; }
-// unsigned int getJNZCycles		() { return 7 + 0; }
-// unsigned int getJNLCycles		() { return 7 + 0; }
-// unsigned int getJNLECycles		() { return 7 + 0; }
-// unsigned int getJNBCycles		() { return 7 + 0; }
-// unsigned int getJNBECycles		() { return 7 + 0; }
-// unsigned int getJNPCycles		() { return 7 + 0; }
-// unsigned int getJNSCycles		() { return 7 + 0; }
+unsigned int getJXXCycles	(const bool conditionValue) { return conditionValue ? 16 : 4; }
+unsigned int getJZCycles	() { return 7 + 0; }/* JE /JZ   */
+unsigned int getJLCycles	() { return 7 + 0; }/* JL /JNGE */
+unsigned int getJLECycles	() { return 7 + 0; }/* JLE/JNG  */
+unsigned int getJBCycles	() { return 7 + 0; }/* JB /JNAE */
+unsigned int getJBECycles	() { return 7 + 0; }/* JBE/JNA  */
+unsigned int getJPCycles	() { return 7 + 0; }/* JLE/JNG  */
+unsigned int getJOCycles	() { return 7 + 0; }/* JP /JPE  */
+unsigned int getJSCycles	() { return 7 + 0; }
+unsigned int getJNZCycles	() { return 7 + 0; }
+unsigned int getJNLCycles	() { return 7 + 0; }
+unsigned int getJNLECycles	() { return 7 + 0; }
+unsigned int getJNBCycles	() { return 7 + 0; }
+unsigned int getJNBECycles	() { return 7 + 0; }
+unsigned int getJNPCycles	() { return 7 + 0; }
+unsigned int getJNSCycles	() { return 7 + 0; }
 
 unsigned int getLOOPCycles		() { return (E5150::Arch::cpu.regs.cx - 1 == 0) ? 5 : 18; }
 
