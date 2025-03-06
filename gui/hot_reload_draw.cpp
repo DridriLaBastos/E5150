@@ -399,11 +399,11 @@ static void DrawExecutedInstructionWidget(const E5150::Intel8088& cpu)
 			switch (op_name)
 			{
 			case XED_OPERAND_RELBR:
-				ImGui::Text("%d",(xed_decoded_inst_get_branch_displacement(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
+				ImGui::Text("%" PRId16 ,(uint16_t)(xed_decoded_inst_get_branch_displacement(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
 				break;
 
 			case XED_OPERAND_PTR:
-				ImGui::Text("0x%X",(xed_decoded_inst_get_branch_displacement(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
+				ImGui::Text("0x%" PRIX16 ,(uint16_t)(xed_decoded_inst_get_branch_displacement(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
 				foundPtr = true;
 				break;
 
@@ -415,7 +415,7 @@ static void DrawExecutedInstructionWidget(const E5150::Intel8088& cpu)
 
 			case XED_OPERAND_IMM0:
 			case XED_OPERAND_IMM1:
-			ImGui::Text("0x%" PRIu64 ,(xed_decoded_inst_get_unsigned_immediate(decodedInstruction) & 0xFFFF)); ImGui::SameLine();
+			ImGui::Text("0x%" PRIX16 ,((uint16_t)(xed_decoded_inst_get_unsigned_immediate(decodedInstruction) & 0xFFFF))); ImGui::SameLine();
 				break;
 
 			//Displaying memory operand with format SEG:[[BASE +] [INDEX +] DISPLACEMENT ]
@@ -472,9 +472,6 @@ static void DrawExecutedInstructionWidget(const E5150::Intel8088& cpu)
 	ImGui::SameLine();
 	ImGui::Text("(iform: %s)",xed_iform_enum_t2str(xed_decoded_inst_get_iform_enum(decodedInstruction)));
 	ImGui::SameLine();
-#if 0
-	ImGui::Text(" (%" PRIu64 ")",data.i8086->instructionExecutedCount);
-#endif
 
 	ImGui::EndGroup();
 }
