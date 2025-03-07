@@ -81,7 +81,7 @@ void JMP_NEAR	(E5150::Intel8088* cpu); unsigned int getJMPCycles		(void);
 void JMP_FAR	(E5150::Intel8088* cpu); unsigned int getJMP_FARCycles	(void);
 void RET_NEAR	(E5150::Intel8088* cpu); unsigned int getRETCycles	(void);
 void RET_FAR	(E5150::Intel8088* cpu); unsigned int getRET_FARCycles	(void);
-void JZ			(E5150::Intel8088* cpu); unsigned int getJXXCycles		(const bool conditionValue);/* JE/JZ   */
+void JE			(E5150::Intel8088* cpu); unsigned int getJXXCycles		(const bool conditionValue);/* JE/JZ   */
 void JL			(E5150::Intel8088* cpu); unsigned int getJLCycles		(void);/* JL/JNGE */
 void JLE		(E5150::Intel8088* cpu); unsigned int getJLECycles		(void);/* JLE/JNG  */
 void JB			(E5150::Intel8088* cpu); unsigned int getJBCycles		(void);/* JB/JNAE */
@@ -89,7 +89,7 @@ void JBE		(E5150::Intel8088* cpu); unsigned int getJBECycles		(void);/* JBE/JNA 
 void JP			(E5150::Intel8088* cpu); unsigned int getJPCycles		(void);/* JLE/JNG  */
 void JO			(E5150::Intel8088* cpu); unsigned int getJOCycles		(void);/* JP/JPE  */
 void JS			(E5150::Intel8088* cpu); unsigned int getJSCycles		(void);
-void JNZ		(E5150::Intel8088* cpu); unsigned int getJNZCycles		(void);
+void JNE		(E5150::Intel8088* cpu); unsigned int getJNZCycles		(void);
 void JNL		(E5150::Intel8088* cpu); unsigned int getJNLCycles		(void);
 void JNLE		(E5150::Intel8088* cpu); unsigned int getJNLECycles		(void);
 void JNB		(E5150::Intel8088* cpu); unsigned int getJNBCycles		(void);
@@ -101,6 +101,22 @@ void LOOPZ		(E5150::Intel8088* cpu); unsigned int getLOOPZCycles	(void);
 void LOOPNZ		(E5150::Intel8088* cpu); unsigned int getLOOPNZCycles	(void);
 void JCXZ		(E5150::Intel8088* cpu); unsigned int getJCXZCycles		(void);
 void IRET		(E5150::Intel8088* cpu); unsigned int getIRETCycles		(void);
+
+bool GetJECondition   (E5150::Intel8088* cpu);
+bool GetJLCondition   (E5150::Intel8088* cpu);
+bool GetJLECondition  (E5150::Intel8088* cpu);
+bool GetJBCondition   (E5150::Intel8088* cpu);
+bool GetJBECondition  (E5150::Intel8088* cpu);
+bool GetJPCondition   (E5150::Intel8088* cpu);
+bool GetJOCondition   (E5150::Intel8088* cpu);
+bool GetJSCondition   (E5150::Intel8088* cpu);
+bool GetJNECondition  (E5150::Intel8088* cpu);
+bool GetJNLCondition  (E5150::Intel8088* cpu);
+bool GetJNLECondition (E5150::Intel8088* cpu);
+bool GetJNBCondition  (E5150::Intel8088* cpu);
+bool GetJNBECondition (E5150::Intel8088* cpu);
+bool GetJNPCondition  (E5150::Intel8088* cpu);
+bool GetJNSCondition  (E5150::Intel8088* cpu);
 
 /* Processor Control */
 

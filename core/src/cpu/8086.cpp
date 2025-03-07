@@ -827,10 +827,11 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 			InstructionExecFunction = JS;
 			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN));
 		
-		case XED_ICLASS_JNZ:
+		#define XED_ICLASS_JNE XED_ICLASS_JNZ //JNZ is JNE but xed doesn't define JNE
+		case XED_ICLASS_JNE:
 			BeginControlTransferInstruction(cpu);
-			InstructionExecFunction = JNZ;
-			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+			InstructionExecFunction = JNE;
+			return getJXXCycles(GetJNECondition(cpu));
 		
 		case XED_ICLASS_JNL:
 			BeginControlTransferInstruction(cpu);
