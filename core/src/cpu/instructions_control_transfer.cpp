@@ -140,6 +140,7 @@ void JNE  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(GetJNECondition  (cpu)
 void JNL  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(GetJNLCondition  (cpu),cpu); }
 void JNB  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(GetJNBCondition  (cpu),cpu); }
 void JNBE (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(GetJNBECondition (cpu),cpu); }
+void JNLE (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(GetJNLECondition (cpu),cpu); }
 void JNP  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(GetJNPCondition  (cpu),cpu); }
 void JNS  (E5150::Intel8088* cpu) { JMP_NEAR_ON_CONDITION(GetJNSCondition  (cpu),cpu); }
 

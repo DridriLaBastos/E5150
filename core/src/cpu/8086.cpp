@@ -787,45 +787,46 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 		case XED_ICLASS_RET_FAR:
 			return getRET_FARCycles();
 
-		case XED_ICLASS_JZ:
+		#define XED_ICLASS_JE XED_ICLASS_JZ
+		case XED_ICLASS_JE:
 			BeginControlTransferInstruction(cpu);
-			InstructionExecFunction = JZ;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+			InstructionExecFunction = JE;
+			return getJXXCycles(GetJECondition(cpu));
 
 		case XED_ICLASS_JL:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JL;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) != cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER));
+			return getJXXCycles(GetJLCondition(cpu));
 		
 		case XED_ICLASS_JLE:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JLE;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO) || (cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) != cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER)));
+			return getJXXCycles(GetJLECondition(cpu));
 		
 		case XED_ICLASS_JB:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JB;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY));
+			return getJXXCycles(GetJBCondition(cpu));
 		
 		case XED_ICLASS_JBE:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JBE;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY) || cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+			return getJXXCycles(GetJBECondition(cpu));
 		
 		case XED_ICLASS_JP:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JP;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::PARITY));
+			return getJXXCycles(GetJPCondition(cpu));
 		
 		case XED_ICLASS_JO:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JO;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER));
+			return getJXXCycles(GetJOCondition(cpu));
 		
 		case XED_ICLASS_JS:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JS;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN));
+			return getJXXCycles(GetJSCondition(cpu));
 		
 		#define XED_ICLASS_JNE XED_ICLASS_JNZ //JNZ is JNE but xed doesn't define JNE
 		case XED_ICLASS_JNE:
@@ -836,32 +837,32 @@ static unsigned int PrepareInstructionExecution (E5150::Intel8088* cpu)
 		case XED_ICLASS_JNL:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JNL;
-			return getJXXCycles(cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) == cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER));
+			return getJXXCycles(GetJNLCondition(cpu));
 		
 		case XED_ICLASS_JNLE:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JNLE;
-			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO) && (cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN) == cpu->GetFlags(E5150::Intel8088::ECpuFlags::OVER)));
+			return getJXXCycles(GetJNLECondition(cpu));
 		
 		case XED_ICLASS_JNB:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JNB;
-			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY));
+			return getJXXCycles(GetJNBCondition(cpu));
 		
 		case XED_ICLASS_JNBE:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JNBE;
-			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::CARRY) && !cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO));
+			return getJXXCycles(GetJNPCondition(cpu));
 		
 		case XED_ICLASS_JNP:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JNP;
-			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::PARITY));
+			return getJXXCycles(GetJNPCondition(cpu));
 		
 		case XED_ICLASS_JNS:
 			BeginControlTransferInstruction(cpu);
 			InstructionExecFunction = JNS;
-			return getJXXCycles(!cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN));
+			return getJXXCycles(GetJNSCondition(cpu));
 		case XED_ICLASS_LOOP:
 			return getLOOPCycles();
 

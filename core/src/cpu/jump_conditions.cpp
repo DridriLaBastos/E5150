@@ -24,20 +24,20 @@ bool GetJOCondition(E5150::Intel8088* cpu)
 bool GetJSCondition(E5150::Intel8088* cpu)
 { return cpu->GetFlags(E5150::Intel8088::ECpuFlags::SIGN); }
 
-bool GetJNZCondition(E5150::Intel8088* cpu)
+bool GetJNECondition(E5150::Intel8088* cpu)
 { return !cpu->GetFlags(E5150::Intel8088::ECpuFlags::ZERO); }
 
 bool GetJNLCondition(E5150::Intel8088* cpu)
 { return !GetJLCondition(cpu); }
 
 bool GetJNLECondition(E5150::Intel8088* cpu)
-{ return GetJNLCondition(cpu) || GetJECondition(cpu); }
+{ return GetJNLCondition(cpu) && GetJNECondition(cpu); }
 
 bool GetJNBCondition(E5150::Intel8088* cpu)
 { return !GetJBCondition(cpu); }
 
 bool GetJNBECondition(E5150::Intel8088* cpu)
-{ return GetJNBCondition(cpu) || GetJECondition(cpu); }
+{ return GetJNBCondition(cpu) && GetJNECondition(cpu); }
 
 bool GetJNPCondition(E5150::Intel8088* cpu)
 { return !GetJPCondition(cpu); }
